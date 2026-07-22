@@ -1,3 +1,17 @@
+## 2026-07-22 - Add a password gate to the reader page
+
+**What changed**: Added a client-side password gate to `site/index.html`, adapted from the local `sunshine-trail` overlay pattern. An early `localStorage` check in `<head>` prevents a flash of the gate for returning visitors; a full-viewport overlay (styled with the existing tricolor bar and Helvetica, no BCBS logo) blocks the page until the password `REDACTED-OLD-PASSWORD` is entered (case-insensitive, trimmed). Auth persists via the `bcbsNewsAuth` localStorage key; wrong entries show an inline error and stay gated. Updated the README Reader Experience section to document the gate and its limits.
+
+**Decisions made**: Treat this as a presentation gate, not real access control; the password is visible in page source and `feed.rss`/`feed.json`/`feed-audit.json` remain publicly fetchable by direct URL. Styled the gate to the site's own look rather than copying sunshine-trail's sun/beer visuals, and deliberately used no BCBS logo per request. Edited `site/index.html` directly because the generator writes only the feed/audit files, not the reader HTML, so the change is not overwritten by a build.
+
+**Left off at**: Commit `7b71ccc` (gate) pushed to `origin/main`; README/WORKLOG docs follow-up committed on top. Repo clean and synchronized.
+
+**Open questions**: If real access control is ever needed, move to server-side auth (Cloudflare Access fits the migration plan in `CLOUDFLARE_MIGRATION_PLAN.md`). The reader's indexable-vs-noindex question from the 2026-07-21 entry is unchanged.
+
+**Verification**: `npm test` green (90/90). Headless Chromium checks passed: first-load gate visible, wrong-password error and still gated, correct-password unlock, case-insensitive/trimmed unlock, and persistence across reload. Gate script passed `node --check`.
+
+---
+
 ## 2026-07-22 - Exercise test and release automation safely
 
 **What changed**: Added manual entry points for the test workflow and a non-publishing release dry run, then exercised both through GitHub Actions.

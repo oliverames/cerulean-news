@@ -108,6 +108,8 @@ The relevance gate then removes common false positives:
 
 The reader is a static HTML page that loads `feed.json` in the browser. It shows the newest 25 stories first, supports simple search, uses plain checkbox sections for multi-select filtering, and keeps comments hidden behind a per-story button.
 
+The reader page opens behind a client-side password gate. Visitors enter the shared password once; the reader then stays unlocked in that browser through `localStorage`. This is a presentation gate to keep the page from being casually browsed, not real access control: the password lives in the page source, and the underlying `feed.rss`, `feed.json`, and `feed-audit.json` files stay publicly fetchable by direct URL.
+
 Each story can include:
 
 | Field | Purpose |
