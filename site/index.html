@@ -16,6 +16,17 @@
     <link rel="alternate" type="application/rss+xml" title="Blue Cross VT News Mentions" href="feed.rss">
     <link rel="alternate" type="application/feed+json" title="Blue Cross VT News Mentions JSON Feed" href="feed.json">
     <meta name="theme-color" content="#0077C8">
+    <!-- Early auth check - runs before body parses to prevent any flash of the password gate -->
+    <script>
+      // Feature detection for localStorage (handles private browsing)
+      try {
+        if (localStorage.getItem("bcbsNewsAuth") === "true") {
+          document.documentElement.classList.add("authenticated");
+        }
+      } catch (e) {
+        // localStorage not available (private browsing mode)
+      }
+    </script>
     <style>
       :root {
         --fg: #111;
@@ -358,9 +369,138 @@
           margin-bottom: 6px;
         }
       }
+
+      /* Prevent page scroll while the password gate is visible */
+      html:not(.authenticated),
+      html:not(.authenticated) body {
+        overflow: hidden;
+        height: 100%;
+      }
+
+      /* Password gate - presentation gate, not real security */
+      .password-gate {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+        background: #fff;
+        transition: opacity 0.4s ease, visibility 0.4s ease;
+      }
+
+      /* Hide immediately for returning (authenticated) visitors - no flash */
+      html.authenticated .password-gate {
+        display: none !important;
+      }
+
+      .password-gate.instant-hidden {
+        display: none !important;
+      }
+
+      .password-gate.hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .password-card {
+        width: 100%;
+        max-width: 360px;
+        text-align: center;
+      }
+
+      .password-card .tricolor {
+        margin: 0 0 20px;
+      }
+
+      .password-card h1 {
+        margin: 0 0 6px;
+        font-size: 1.35rem;
+        font-weight: 700;
+      }
+
+      .password-card p {
+        margin: 0 0 18px;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+
+      .password-form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        text-align: left;
+      }
+
+      .password-form input[type="password"] {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid var(--fg);
+        background: #fff;
+        color: var(--fg);
+        font: inherit;
+      }
+
+      .password-form button {
+        appearance: none;
+        padding: 8px 12px;
+        border: 1px solid var(--fg);
+        background: var(--bar-1);
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .password-form button:hover {
+        background: var(--bar-3);
+      }
+
+      .password-error {
+        min-height: 1.2em;
+        margin: 2px 0 0;
+        color: #b00020;
+        font-size: 0.84rem;
+        visibility: hidden;
+      }
+
+      .password-error.visible {
+        visibility: visible;
+      }
     </style>
   </head>
   <body>
+    <!-- Password gate - presentation gate only, not real security -->
+    <div class="password-gate" id="password-gate">
+      <div class="password-card">
+        <div class="tricolor" aria-hidden="true">
+          <span class="c1"></span><span class="c2"></span><span class="c3"></span>
+        </div>
+        <h1>Blue Cross VT: News Mentions</h1>
+        <p>This page is password protected. Enter the password to continue.</p>
+        <form class="password-form" id="password-form" autocomplete="off">
+          <label class="visually-hidden" for="password-input">Password</label>
+          <input
+            type="password"
+            id="password-input"
+            name="password"
+            placeholder="Enter password"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+            aria-describedby="password-error"
+          >
+          <button type="submit">Enter</button>
+          <p class="password-error" id="password-error" role="alert">Incorrect password</p>
+        </form>
+      </div>
+    </div>
+
     <div class="page">
       <div class="topbar">
         <a class="button" href="feed.rss">RSS Feed</a>
@@ -402,6 +542,79 @@
         </dl>
       </footer>
     </div>
+
+    <script>
+      // ==========================================================
+      // PASSWORD GATE
+      // NOTE: This is a PRESENTATION GATE only, not real security.
+      // The password is visible in the page source by design.
+      // For actual access control, use server-side authentication.
+      // ==========================================================
+      (function () {
+        const gate = document.getElementById("password-gate");
+        const form = document.getElementById("password-form");
+        const input = document.getElementById("password-input");
+        const errorEl = document.getElementById("password-error");
+        const correctPassword = "REDACTED-OLD-PASSWORD";
+        const STORAGE_KEY = "bcbsNewsAuth";
+
+        function storageAvailable() {
+          try {
+            const testKey = "__bcbs_test__";
+            localStorage.setItem(testKey, "1");
+            localStorage.removeItem(testKey);
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
+
+        const isAuthenticated =
+          storageAvailable() && localStorage.getItem(STORAGE_KEY) === "true";
+
+        if (isAuthenticated) {
+          // Returning visitor - hide immediately with no flash or transition.
+          document.documentElement.classList.add("authenticated");
+          if (gate) {
+            gate.classList.add("instant-hidden");
+          }
+          return;
+        }
+
+        function unlock() {
+          document.documentElement.classList.add("authenticated");
+          gate.classList.add("hidden");
+          if (storageAvailable()) {
+            localStorage.setItem(STORAGE_KEY, "true");
+          }
+          window.setTimeout(() => {
+            gate.classList.add("instant-hidden");
+          }, 500);
+        }
+
+        if (form) {
+          form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const entered = (input.value || "").trim().toLowerCase();
+            if (entered === correctPassword) {
+              errorEl.classList.remove("visible");
+              unlock();
+            } else {
+              errorEl.classList.add("visible");
+              input.value = "";
+              input.focus();
+            }
+          });
+        }
+
+        if (input) {
+          input.addEventListener("input", () => {
+            errorEl.classList.remove("visible");
+          });
+          window.setTimeout(() => input.focus(), 60);
+        }
+      })();
+    </script>
 
     <script>
       const storiesEl = document.getElementById("stories");
