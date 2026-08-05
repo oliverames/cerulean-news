@@ -125,6 +125,18 @@
         letter-spacing: 0;
       }
 
+      .title-row {
+        display: flex;
+        align-items: baseline;
+        gap: 24px;
+        margin: 0 0 6px;
+      }
+
+      .title-row h1 {
+        flex: 0 0 auto;
+        margin: 0;
+      }
+
       .tricolor {
         display: flex;
         height: 5px;
@@ -138,7 +150,8 @@
 
       .dateline {
         font-style: italic;
-        margin: 0 0 18px;
+        margin: 0 0 0 auto;
+        text-align: right;
       }
 
       a {
@@ -162,10 +175,24 @@
 
       .sections {
         margin: 0 0 22px;
-        padding: 10px 0 14px;
-        border-top: 1px solid var(--rule);
+        padding: 0 0 14px;
         border-bottom: 1px solid var(--rule);
         font-size: 0.92rem;
+      }
+
+      @media (max-width: 640px) {
+        .title-row {
+          display: block;
+        }
+
+        .title-row h1 {
+          margin-bottom: 4px;
+        }
+
+        .dateline {
+          margin: 0;
+          text-align: left;
+        }
       }
 
       .sections .label {
@@ -580,12 +607,13 @@
       </div>
 
       <main aria-labelledby="reader-title">
-        <h1 id="reader-title" tabindex="-1">Blue News</h1>
+        <div class="title-row">
+          <h1 id="reader-title" tabindex="-1">Blue News</h1>
+          <p class="dateline" id="dateline">Loading&hellip;</p>
+        </div>
         <div class="tricolor" aria-hidden="true">
           <span class="c1"></span><span class="c2"></span><span class="c3"></span>
         </div>
-
-        <p class="dateline" id="dateline">Loading&hellip;</p>
 
         <nav class="sections" id="sections" aria-label="Filter by section" hidden>
           <span class="label">Sections:</span>

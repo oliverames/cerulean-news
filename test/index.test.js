@@ -2634,6 +2634,7 @@ test("reader keeps gated content inert and exposes comment disclosure state", as
   assert.match(reader, /id="reader-page" hidden inert aria-hidden="true"/);
   assert.match(reader, /<title>Blue News<\/title>/);
   assert.equal((reader.match(/>Blue News<\/h1>/g) || []).length, 2);
+  assert.match(reader, /<div class="title-row">/);
   assert.match(reader, /removeAttribute\("hidden"\)/);
   assert.match(reader, /removeAttribute\("inert"\)/);
   assert.match(reader, /aria-modal="true"/);
