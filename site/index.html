@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Blue Cross VT: News Mentions</title>
+    <title>Blue News</title>
     <meta
       name="description"
       content="Text-only browser for mentions of Blue Cross and Blue Shield of Vermont across Vermont news outlets."
@@ -13,8 +13,8 @@
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="manifest" href="site.webmanifest">
-    <link rel="alternate" type="application/rss+xml" title="Blue Cross VT News Mentions" href="feed.rss">
-    <link rel="alternate" type="application/feed+json" title="Blue Cross VT News Mentions JSON Feed" href="feed.json">
+    <link rel="alternate" type="application/rss+xml" title="Blue News" href="feed.rss">
+    <link rel="alternate" type="application/feed+json" title="Blue News JSON Feed" href="feed.json">
     <meta name="theme-color" content="#0077C8">
     <!-- Early auth check - runs before body parses to prevent any flash of the password gate -->
     <script>
@@ -211,7 +211,13 @@
       }
 
       ul.stories > li {
-        margin: 0 0 22px;
+        margin: 0;
+        padding: 0 0 16px;
+      }
+
+      ul.stories > li + li {
+        padding-top: 18px;
+        border-top: 1px solid var(--rule-soft);
       }
 
       ul.stories .headline {
@@ -247,8 +253,6 @@
 
       ul.stories .reason {
         margin: 8px 0 0;
-        padding-top: 6px;
-        border-top: 1px solid var(--rule-soft);
         color: var(--muted);
         font-size: 0.84rem;
         line-height: 1.4;
@@ -535,7 +539,7 @@
         <div class="tricolor" aria-hidden="true">
           <span class="c1"></span><span class="c2"></span><span class="c3"></span>
         </div>
-        <h1 id="password-gate-title">Blue Cross VT: News Mentions</h1>
+        <h1 id="password-gate-title">Blue News</h1>
         <p id="password-gate-description">
           This page is password protected. Enter the password to continue.
         </p>
@@ -576,7 +580,7 @@
       </div>
 
       <main aria-labelledby="reader-title">
-        <h1 id="reader-title" tabindex="-1">Blue Cross VT: News Mentions</h1>
+        <h1 id="reader-title" tabindex="-1">Blue News</h1>
         <div class="tricolor" aria-hidden="true">
           <span class="c1"></span><span class="c2"></span><span class="c3"></span>
         </div>

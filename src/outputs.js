@@ -181,7 +181,7 @@ ${categories}
 <rss version="2.0"
   xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Blue Cross VT News Mentions</title>
+    <title>Blue News</title>
     <link>${escapeXml(siteUrl)}</link>
     <description>Mentions of BCBSVT, Blue Cross VT, and Blue Cross and Blue Shield of Vermont from Vermont news outlets.</description>
     <language>en-us</language>
@@ -203,7 +203,7 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
 
   return {
     version: "https://jsonfeed.org/version/1.1",
-    title: "Blue Cross VT News Mentions",
+    title: "Blue News",
     home_page_url: SITE_URL || "",
     feed_url: options.feedUrl ?? JSON_FEED_URL ?? "",
     generatedAt: now.toISOString(),

@@ -1935,7 +1935,7 @@ test("buildRss emits valid channel and escaped item fields", () => {
   );
 
   assert.match(rss, /<rss version="2.0"/);
-  assert.match(rss, /<title>Blue Cross VT News Mentions<\/title>/);
+  assert.match(rss, /<title>Blue News<\/title>/);
   assert.match(rss, /WCAX: Blue Cross &amp; rates/);
   assert.match(rss, /<category>Blue Cross<\/category>/);
   assert.match(rss, /<strong>Comments:<\/strong>/);
@@ -1969,6 +1969,7 @@ test("buildJsonSummary creates auditable item output", () => {
 
   assert.equal(summary.itemCount, 1);
   assert.equal(summary.version, "https://jsonfeed.org/version/1.1");
+  assert.equal(summary.title, "Blue News");
   assert.equal(summary.sources[0].name, "Seven Days");
   assert.equal(summary.items[0].id, "https://example.com/story");
   assert.equal(summary.items[0].url, "https://example.com/story");
@@ -2631,6 +2632,8 @@ test("reader keeps gated content inert and exposes comment disclosure state", as
   );
 
   assert.match(reader, /id="reader-page" hidden inert aria-hidden="true"/);
+  assert.match(reader, /<title>Blue News<\/title>/);
+  assert.equal((reader.match(/>Blue News<\/h1>/g) || []).length, 2);
   assert.match(reader, /removeAttribute\("hidden"\)/);
   assert.match(reader, /removeAttribute\("inert"\)/);
   assert.match(reader, /aria-modal="true"/);

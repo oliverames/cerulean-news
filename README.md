@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="site/readme-icon.svg" width="80" height="80" alt="Blue Cross VT News Mentions">
+  <img src="site/readme-icon.svg" width="80" height="80" alt="Blue News">
 </p>
 
-<h1 align="center">Blue Cross VT News Mentions</h1>
+<h1 align="center">Blue News</h1>
 
 <p align="center">
   <strong>A text-first news monitor for Blue Cross VT mentions and Vermont health care coverage.</strong>
@@ -26,7 +26,7 @@
 
 ---
 
-Blue Cross VT News Mentions collects public news items that matter to a Vermont health care communications team: direct Blue Cross VT mentions first, Vermont health care coverage second, then regional and national policy stories when they have a clear payer, coverage, or system angle. It publishes a plain reader, RSS feed, JSON Feed, and audit feed from a scheduled GitHub Actions workflow.
+Blue News collects public news items that matter to a Vermont health care communications team: direct Blue Cross VT mentions first, Vermont health care coverage second, then regional and national policy stories when they have a clear payer, coverage, or system angle. It publishes a plain reader, RSS feed, JSON Feed, and audit feed from a scheduled GitHub Actions workflow.
 
 The project is intentionally text-heavy. It follows the spirit of `text.npr.org`: fast, readable, useful, and clear about what was collected.
 

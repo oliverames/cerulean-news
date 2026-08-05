@@ -1,6 +1,6 @@
 {
-  "name": "Blue Cross VT News Mentions",
-  "short_name": "BCVT News",
+  "name": "Blue News",
+  "short_name": "Blue News",
   "description": "News monitor for Blue Cross VT mentions and Vermont health care coverage.",
   "start_url": ".",
   "display": "standalone",
