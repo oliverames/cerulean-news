@@ -226,6 +226,7 @@ export {
   cleanStorySnippet,
   cleanText,
   escapeXml,
+  normalizePreviewText,
   wrapCdata,
 } from "./utils.js";
 export {

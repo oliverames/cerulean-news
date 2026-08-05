@@ -25,6 +25,7 @@ import {
   dedupeResolvedItems,
   mergeWithArchive,
   mergeFacebookPagePostItem,
+  normalizePreviewText,
   parseBlueCrossVtListingItems,
   parseBcbsAssociationNewsItems,
   parseCnnHealthSitemapItems,
@@ -2329,6 +2330,27 @@ test("extractArticlePreview truncates on a word boundary and rejects boilerplate
   );
 });
 
+test("publisher previews reject newsletter greetings while preserving article leads", () => {
+  assert.equal(
+    normalizePreviewText(
+      "Get your daily dose of health and medicine with STAT's free newsletter.",
+    ),
+    "",
+  );
+  assert.equal(
+    normalizePreviewText(
+      "Good morning, everyone, and welcome to another working week.",
+    ),
+    "",
+  );
+  assert.equal(
+    normalizePreviewText(
+      "WASHINGTON — State Medicaid directors warned that coverage losses are likely.",
+    ),
+    "WASHINGTON — State Medicaid directors warned that coverage losses are likely.",
+  );
+});
+
 test("extractArticlePreview skips STAT author biography text", () => {
   const preview = extractArticlePreview(
     `
@@ -2596,7 +2618,29 @@ test("RSS, JSON, and the reader label publisher previews separately", async () =
   assert.match(json.items[0].content_text, /Publisher preview:/);
   assert.match(reader, /item\.previewText/);
   assert.match(reader, /Publisher preview:/);
+  assert.match(reader, /createElement\("blockquote"\)/);
+  assert.match(reader, /className = "publisher-preview"/);
+  assert.match(reader, /function displayablePreviewText\(value = ""\)/);
   assert.match(reader, /\.textContent\s*=/);
+});
+
+test("reader keeps gated content inert and exposes comment disclosure state", async () => {
+  const reader = await readFile(
+    path.resolve(process.cwd(), "site", "index.html"),
+    "utf8",
+  );
+
+  assert.match(reader, /id="reader-page" hidden inert aria-hidden="true"/);
+  assert.match(reader, /removeAttribute\("hidden"\)/);
+  assert.match(reader, /removeAttribute\("inert"\)/);
+  assert.match(reader, /aria-modal="true"/);
+  assert.match(reader, /<main aria-labelledby="reader-title">/);
+  assert.match(reader, /id="results-status"/);
+  assert.match(reader, /function announceResultCount\(count\)/);
+  assert.match(reader, /setAttribute\("aria-expanded", "false"\)/);
+  assert.match(reader, /setAttribute\(\s*"aria-expanded",\s*String\(!commentsContainer\.hidden\)/);
+  assert.match(reader, /window\.scrollTo\(0, 0\)/);
+  assert.match(reader, /readerTitleEl\.focus\(\{ preventScroll: true \}\)/);
 });
 
 test("normalizeCrawlState preserves preview cache state", () => {

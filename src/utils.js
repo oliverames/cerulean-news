@@ -19,8 +19,14 @@ export function cleanText(value = "") {
     .trim();
 }
 
+const PREVIEW_PROMOTION_PATTERN =
+  /^(?:get (?:our|your) (?:daily|weekly) dose\b|good morning, everyone\b)/i;
+
 export function normalizePreviewText(value = "", maxCharacters = 600) {
   const cleaned = cleanText(value);
+  if (PREVIEW_PROMOTION_PATTERN.test(cleaned)) {
+    return "";
+  }
   if (cleaned.length <= maxCharacters) {
     return cleaned;
   }

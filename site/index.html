@@ -34,9 +34,11 @@
         --link: #0000cc;
         --visited: #551a8b;
         --rule: #ccc;
+        --rule-soft: #e1e1e1;
         --surface: #f5f8fc;
         --rule-blue: #b7cbe9;
         --bar-1: #0033a0;
+        --bar-1-hover: #002677;
         --bar-2: #111;
         --bar-3: #418fde;
       }
@@ -71,6 +73,10 @@
         border: 1px solid var(--fg);
         color: var(--fg);
         text-decoration: none;
+      }
+
+      .topbar .button:hover {
+        background: var(--surface);
       }
 
       .topbar .search {
@@ -143,6 +149,17 @@
         color: var(--visited);
       }
 
+      a:hover {
+        text-decoration-thickness: 2px;
+      }
+
+      a:focus-visible,
+      button:focus-visible,
+      input:focus-visible {
+        outline: 3px solid var(--bar-3);
+        outline-offset: 2px;
+      }
+
       .sections {
         margin: 0 0 22px;
         padding: 10px 0 14px;
@@ -166,16 +183,16 @@
 
       .section-option {
         display: inline-flex;
-        align-items: baseline;
+        align-items: center;
         gap: 4px;
         line-height: 1.25;
+        min-height: 24px;
         white-space: nowrap;
       }
 
       .section-option input {
         flex: 0 0 auto;
         margin: 0;
-        transform: translateY(1px);
       }
 
       .section-option.off {
@@ -198,19 +215,43 @@
       }
 
       ul.stories .headline {
+        margin: 0;
         font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.4;
       }
 
       ul.stories .summary {
+        margin: 5px 0 0;
         font-size: 0.9rem;
-        margin-top: 3px;
+        line-height: 1.48;
+      }
+
+      ul.stories .publisher-preview {
+        margin: 10px 0 0;
+        padding: 7px 0 7px 12px;
+        border-left: 2px solid var(--rule-blue);
+        color: var(--fg);
+        font-size: 0.875rem;
+        line-height: 1.5;
+      }
+
+      ul.stories .publisher-preview-label {
+        display: block;
+        margin-bottom: 2px;
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 700;
+        line-height: 1.35;
       }
 
       ul.stories .reason {
-        margin: 4px 0 0;
+        margin: 8px 0 0;
+        padding-top: 6px;
+        border-top: 1px solid var(--rule-soft);
         color: var(--muted);
         font-size: 0.84rem;
-        line-height: 1.35;
+        line-height: 1.4;
       }
 
       ul.stories .reason-label {
@@ -244,6 +285,7 @@
         font: inherit;
         font-size: 0.8rem;
         margin-top: 9px;
+        min-height: 24px;
         padding: 0;
         text-decoration: underline;
       }
@@ -457,7 +499,7 @@
       }
 
       .password-form button:hover {
-        background: var(--bar-3);
+        background: var(--bar-1-hover);
       }
 
       .password-error {
@@ -471,17 +513,32 @@
       .password-error.visible {
         visibility: visible;
       }
+
+      @media (prefers-reduced-motion: reduce) {
+        .password-gate {
+          transition: none;
+        }
+      }
     </style>
   </head>
   <body>
     <!-- Password gate - presentation gate only, not real security -->
-    <div class="password-gate" id="password-gate">
+    <div
+      class="password-gate"
+      id="password-gate"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="password-gate-title"
+      aria-describedby="password-gate-description"
+    >
       <div class="password-card">
         <div class="tricolor" aria-hidden="true">
           <span class="c1"></span><span class="c2"></span><span class="c3"></span>
         </div>
-        <h1>Blue Cross VT: News Mentions</h1>
-        <p>This page is password protected. Enter the password to continue.</p>
+        <h1 id="password-gate-title">Blue Cross VT: News Mentions</h1>
+        <p id="password-gate-description">
+          This page is password protected. Enter the password to continue.
+        </p>
         <form class="password-form" id="password-form" autocomplete="off">
           <label class="visually-hidden" for="password-input">Password</label>
           <input
@@ -494,6 +551,7 @@
             autocorrect="off"
             spellcheck="false"
             aria-describedby="password-error"
+            aria-invalid="false"
           >
           <button type="submit">Enter</button>
           <p class="password-error" id="password-error" role="alert">Incorrect password</p>
@@ -501,33 +559,49 @@
       </div>
     </div>
 
-    <div class="page">
+    <div class="page" id="reader-page" hidden inert aria-hidden="true">
       <div class="topbar">
         <a class="button" href="feed.rss">RSS Feed</a>
         <a class="button" href="feed.json">JSON Feed</a>
         <label class="search" for="search-input">
           <span class="visually-hidden">Search stories</span>
-          <input id="search-input" type="search" autocomplete="off" placeholder="Search">
+          <input
+            id="search-input"
+            type="search"
+            autocomplete="off"
+            placeholder="Search"
+            aria-controls="stories"
+          >
         </label>
       </div>
 
-      <h1>Blue Cross VT: News Mentions</h1>
-      <div class="tricolor" aria-hidden="true">
-        <span class="c1"></span><span class="c2"></span><span class="c3"></span>
-      </div>
+      <main aria-labelledby="reader-title">
+        <h1 id="reader-title" tabindex="-1">Blue Cross VT: News Mentions</h1>
+        <div class="tricolor" aria-hidden="true">
+          <span class="c1"></span><span class="c2"></span><span class="c3"></span>
+        </div>
 
-      <p class="dateline" id="dateline">Loading&hellip;</p>
+        <p class="dateline" id="dateline">Loading&hellip;</p>
 
-      <nav class="sections" id="sections" aria-label="Filter by section" hidden>
-        <span class="label">Sections:</span>
-        <span id="section-links"></span>
-      </nav>
+        <nav class="sections" id="sections" aria-label="Filter by section" hidden>
+          <span class="label">Sections:</span>
+          <span id="section-links"></span>
+        </nav>
 
-      <ul class="stories" id="stories">
-        <li class="status">Loading stories&hellip;</li>
-      </ul>
+        <p
+          class="visually-hidden"
+          id="results-status"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        ></p>
 
-      <nav class="pager" id="pager-bottom" aria-label="Article pages" hidden></nav>
+        <ul class="stories" id="stories" aria-busy="true">
+          <li class="status" role="status">Loading stories&hellip;</li>
+        </ul>
+
+        <nav class="pager" id="pager-bottom" aria-label="Article pages" hidden></nav>
+      </main>
 
       <footer>
         <dl class="site-notes">
@@ -555,8 +629,19 @@
         const form = document.getElementById("password-form");
         const input = document.getElementById("password-input");
         const errorEl = document.getElementById("password-error");
+        const readerPage = document.getElementById("reader-page");
+        const readerTitle = document.getElementById("reader-title");
         const correctPassword = "REDACTED-OLD-PASSWORD";
         const STORAGE_KEY = "bcbsNewsAuth";
+
+        function revealReader({ focusHeading = false } = {}) {
+          readerPage.removeAttribute("hidden");
+          readerPage.removeAttribute("inert");
+          readerPage.removeAttribute("aria-hidden");
+          if (focusHeading) {
+            readerTitle.focus({ preventScroll: true });
+          }
+        }
 
         function storageAvailable() {
           try {
@@ -578,15 +663,18 @@
           if (gate) {
             gate.classList.add("instant-hidden");
           }
+          revealReader();
           return;
         }
 
         function unlock() {
           document.documentElement.classList.add("authenticated");
           gate.classList.add("hidden");
+          gate.setAttribute("aria-hidden", "true");
           if (storageAvailable()) {
             localStorage.setItem(STORAGE_KEY, "true");
           }
+          revealReader({ focusHeading: true });
           window.setTimeout(() => {
             gate.classList.add("instant-hidden");
           }, 500);
@@ -598,9 +686,11 @@
             const entered = (input.value || "").trim().toLowerCase();
             if (entered === correctPassword) {
               errorEl.classList.remove("visible");
+              input.setAttribute("aria-invalid", "false");
               unlock();
             } else {
               errorEl.classList.add("visible");
+              input.setAttribute("aria-invalid", "true");
               input.value = "";
               input.focus();
             }
@@ -610,6 +700,7 @@
         if (input) {
           input.addEventListener("input", () => {
             errorEl.classList.remove("visible");
+            input.setAttribute("aria-invalid", "false");
           });
           window.setTimeout(() => input.focus(), 60);
         }
@@ -622,11 +713,16 @@
       const sectionLinksEl = document.getElementById("section-links");
       const datelineEl = document.getElementById("dateline");
       const pagerBottomEl = document.getElementById("pager-bottom");
+      const readerTitleEl = document.getElementById("reader-title");
+      const resultsStatusEl = document.getElementById("results-status");
       const searchInputEl = document.getElementById("search-input");
 
       let allItems = [];
+      let resultsAnnouncementTimer = null;
       let selectedSectionState = null;
       const pageSize = 25;
+      const previewPromotionPattern =
+        /^(?:get (?:our|your) (?:daily|weekly) dose\b|good morning, everyone\b)/i;
 
       function hashParam(name) {
         const match = new RegExp(`(?:^|[#&])${name}=([^&]*)`).exec(
@@ -714,7 +810,7 @@
           item.title,
           item.summary,
           item.snippet,
-          item.previewText,
+          displayablePreviewText(item.previewText),
           item.reason,
           item.sourceName,
           ...(item.matchedTerms || []),
@@ -723,6 +819,11 @@
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
+      }
+
+      function displayablePreviewText(value = "") {
+        const previewText = String(value).trim();
+        return previewPromotionPattern.test(previewText) ? "" : previewText;
       }
 
       function searchItems(items) {
@@ -903,6 +1004,23 @@
         container.hidden = false;
       }
 
+      function announceResultCount(count) {
+        window.clearTimeout(resultsAnnouncementTimer);
+        if (count === 0) {
+          resultsStatusEl.textContent = "";
+          return;
+        }
+
+        const noun = count === 1 ? "story" : "stories";
+        const search = (searchInputEl.value || "").trim();
+        const message = search
+          ? `${count} ${noun} match “${search}.”`
+          : `${count} ${noun} in the selected sections.`;
+        resultsAnnouncementTimer = window.setTimeout(() => {
+          resultsStatusEl.textContent = message;
+        }, 150);
+      }
+
       function renderStories() {
         const items = orderedItems(searchItems(sectionItems()));
         const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
@@ -910,11 +1028,14 @@
         const pageItems = items.slice((page - 1) * pageSize, page * pageSize);
 
         storiesEl.replaceChildren();
+        storiesEl.setAttribute("aria-busy", "false");
+        announceResultCount(items.length);
         renderPager(pagerBottomEl, items.length, page, pageCount);
 
         if (pageItems.length === 0) {
           const li = document.createElement("li");
           li.className = "status";
+          li.setAttribute("role", "status");
           li.textContent = activeSearchTerms().length > 0
             ? "No stories match this search."
             : "No stories match this section.";
@@ -922,7 +1043,7 @@
           return;
         }
 
-        for (const item of pageItems) {
+        for (const [itemIndex, item] of pageItems.entries()) {
           const li = document.createElement("li");
 
           const date = formatDate(item.pubDate, {
@@ -939,7 +1060,7 @@
           ].filter(Boolean).join(" · ");
           li.appendChild(meta);
 
-          const headline = document.createElement("div");
+          const headline = document.createElement("h2");
           headline.className = "headline";
           const link = document.createElement("a");
           // Links come from scraped feed content — only allow http(s).
@@ -956,24 +1077,26 @@
           li.appendChild(headline);
 
           if (item.summary || item.snippet) {
-            const summary = document.createElement("div");
+            const summary = document.createElement("p");
             summary.className = "summary";
             summary.appendChild(document.createTextNode(item.summary || item.snippet));
             li.appendChild(summary);
           }
 
-          if (item.access === "Paywall likely" && item.previewText) {
-            const preview = document.createElement("div");
-            preview.className = "summary";
-            const previewLabel = document.createElement("strong");
+          const previewText = displayablePreviewText(item.previewText);
+          if (item.access === "Paywall likely" && previewText) {
+            const preview = document.createElement("blockquote");
+            preview.className = "publisher-preview";
+            const previewLabel = document.createElement("span");
+            previewLabel.className = "publisher-preview-label";
             previewLabel.textContent = "Publisher preview: ";
             preview.appendChild(previewLabel);
-            preview.appendChild(document.createTextNode(item.previewText));
+            preview.appendChild(document.createTextNode(previewText));
             li.appendChild(preview);
           }
 
           if (item.reason) {
-            const reason = document.createElement("div");
+            const reason = document.createElement("p");
             reason.className = "reason";
             const reasonLabel = document.createElement("span");
             reasonLabel.className = "reason-label";
@@ -988,14 +1111,22 @@
             commentsTitle.type = "button";
             commentsTitle.className = "comments-title";
             const commentTotal = countComments(item.comments);
+            const commentsId = `comments-${page}-${itemIndex}`;
+            commentsTitle.setAttribute("aria-controls", commentsId);
+            commentsTitle.setAttribute("aria-expanded", "false");
             commentsTitle.textContent = `Show comments (${commentTotal})`;
             li.appendChild(commentsTitle);
 
             const commentsContainer = document.createElement("div");
+            commentsContainer.id = commentsId;
             commentsContainer.hidden = true;
             commentsContainer.appendChild(renderComments(item.comments, "comments"));
             commentsTitle.addEventListener("click", () => {
               commentsContainer.hidden = !commentsContainer.hidden;
+              commentsTitle.setAttribute(
+                "aria-expanded",
+                String(!commentsContainer.hidden),
+              );
               commentsTitle.textContent = commentsContainer.hidden
                 ? `Show comments (${commentTotal})`
                 : `Hide comments (${commentTotal})`;
@@ -1052,8 +1183,10 @@
       function renderLoading() {
         datelineEl.textContent = "Loading…";
         storiesEl.replaceChildren();
+        storiesEl.setAttribute("aria-busy", "true");
         const li = document.createElement("li");
         li.className = "status";
+        li.setAttribute("role", "status");
         li.textContent = "Loading stories…";
         storiesEl.appendChild(li);
       }
@@ -1085,8 +1218,10 @@
         } catch (error) {
           datelineEl.textContent = "";
           storiesEl.replaceChildren();
+          storiesEl.setAttribute("aria-busy", "false");
           const li = document.createElement("li");
           li.className = "status";
+          li.setAttribute("role", "alert");
           li.textContent = `Could not load feed.json (${error.message}). `;
           const retry = document.createElement("button");
           retry.type = "button";
@@ -1105,7 +1240,11 @@
         renderStories();
       });
 
-      window.addEventListener("hashchange", renderAll);
+      window.addEventListener("hashchange", () => {
+        renderAll();
+        window.scrollTo(0, 0);
+        readerTitleEl.focus({ preventScroll: true });
+      });
       load();
     </script>
   </body>
