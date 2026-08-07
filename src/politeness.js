@@ -6,14 +6,14 @@
 // hourly workflow would otherwise re-download in full every run.
 import { parseNonNegativeInteger } from "./utils.js";
 
-// Blue Cross serves both listing pages with Cache-Control: max-age=86400, so
-// honoring their own freshness window turns 24 fetches a day into a handful.
-// The cap keeps the reader from going a full day stale; raise it toward
-// 86400000 to be stricter still, or lower it if the newsroom starts posting
-// on a tighter cycle.
+// Blue Cross serves both listing pages with Cache-Control: max-age=86400, and
+// we honor that in full: one fetch a day per page instead of 24. The cap is a
+// backstop, not a policy dial — it keeps an origin advertising an absurd
+// max-age from parking a source for months. Lower it if a newsroom ever needs
+// to be picked up sooner than it says.
 const CACHE_FRESHNESS_CAP_MS = parseNonNegativeInteger(
   process.env.RSS_CACHE_FRESHNESS_CAP_MS,
-  6 * 60 * 60 * 1000,
+  24 * 60 * 60 * 1000,
 );
 const BLUE_CROSS_DELAY_MS = parseNonNegativeInteger(
   process.env.RSS_BLUECROSSVT_DELAY_MS,

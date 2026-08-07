@@ -135,7 +135,7 @@ The browser does not recrawl sources. GitHub Actions does the collection and dep
 | `RSS_DOMAIN_DELAY_MS` | No | `1000` | Politeness delay between requests to the same domain (`0` disables it for local runs) |
 | `RSS_TOWNNEWS_DELAY_MS` | No | `8000` | Shared delay between TownNews search-feed requests across outlet domains (`0` disables it) |
 | `RSS_BLUECROSSVT_DELAY_MS` | No | `5000` | Delay between requests to `bluecrossvt.org`, applied across its listing pages and any article page reached through a search result |
-| `RSS_CACHE_FRESHNESS_CAP_MS` | No | `21600000` | Ceiling on how long a server's own `Cache-Control: max-age` may defer the next fetch. Raise toward `86400000` to honor `bluecrossvt.org`'s full 24-hour window, or lower it if the newsroom starts posting more often |
+| `RSS_CACHE_FRESHNESS_CAP_MS` | No | `86400000` | Ceiling on how long a server's own `Cache-Control: max-age` may defer the next fetch. A backstop against an origin advertising an absurd `max-age`, not a policy dial; lower it only if a source needs to be picked up sooner than it says |
 | `RSS_TIMEOUT_MS` | No | `12000` | Request timeout in milliseconds |
 | `RSS_FETCH_ATTEMPTS` | No | `3` | Fetch attempts before a source or article is marked failed |
 | `RSS_MAX_RESPONSE_BYTES` | No | `10485760` | Maximum decompressed response size before a fetch is abandoned |
@@ -168,11 +168,11 @@ Source cooldowns are automatic when a primary feed has a fallback. HTTP 403 prim
 
 `bluecrossvt.org` is the subject of this feed rather than an incidental source, and the hourly workflow polls two of its listing pages. `src/politeness.js` holds a per-host policy that keeps that load minimal:
 
-- **Their cache window, not ours.** Both listing pages send `Cache-Control: max-age=86400`. The generator stores the remaining lifetime (`max-age` minus `Age`) and skips the fetch entirely while it lasts, capped by `RSS_CACHE_FRESHNESS_CAP_MS` so the reader does not fall a full day behind.
+- **Their cache window, not ours.** Both listing pages send `Cache-Control: max-age=86400`, and that is honored in full: the generator stores the remaining lifetime (`max-age` minus `Age`) and skips the fetch entirely while it lasts, so each page is fetched once a day rather than 24 times. `RSS_CACHE_FRESHNESS_CAP_MS` is only a backstop against an origin advertising an absurd `max-age`. The tradeoff is deliberate: a new Blue Cross post can take up to a day to reach the reader.
 - **Revalidation that works.** These pages advertise a weak `ETag` the origin never validates against, and RFC 9110 makes `If-None-Match` suppress `If-Modified-Since` whenever both are sent, so the pair returned a full 119 KB body every hour. After one such response the generator records `preferLastModified` for that URL and sends `If-Modified-Since` alone, which returns `304` with an empty body.
 - **One queue per host.** The listing pages and any article page reached through a Google News result share a single request queue with a five-second gap (`RSS_BLUECROSSVT_DELAY_MS`), so source concurrency cannot stack requests on them.
 
-Both the freshness deadline and the revalidation verdict persist in `feed-audit.json`, so they carry across runs. Together they take a typical run from two full-body fetches to zero, and a day from roughly 48 requests and 5.7 MB to a handful of conditional requests that mostly return nothing.
+Both the freshness deadline and the revalidation verdict persist in `feed-audit.json`, so they carry across runs. Together they take a typical run from two full-body fetches to zero, and a day from roughly 48 requests and 5.7 MB to two conditional requests that usually return `304` with an empty body.
 
 ## Architecture
 

@@ -3379,7 +3379,7 @@ test("Cache-Control freshness subtracts Age and respects the cap", () => {
   const now = new Date("2026-08-07T12:00:00Z");
   const headersFor = (values) => ({ get: (name) => values[name] ?? "" });
 
-  // max-age 86400 with Age 3600 leaves 23h, capped here at 6h.
+  // max-age 86400 with Age 3600 leaves 23h; the cap passed here clamps it.
   assert.equal(
     freshUntilFromHeaders(
       headersFor({ "cache-control": "max-age=86400, public", age: "3600" }),
