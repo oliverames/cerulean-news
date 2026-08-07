@@ -47,6 +47,8 @@ import {
   isLikelyPaywalled,
   normalizeCrawlState,
   readResponseTextWithLimit,
+  freshUntilFromHeaders,
+  politenessPolicyFor,
   TOPIC_TERMS,
 } from "../src/index.js";
 
@@ -3357,4 +3359,180 @@ test("fetchText gives up in-run when Retry-After exceeds the sleep cap, and cool
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
+});
+
+// bluecrossvt.org is the subject of this feed, so its politeness settings get
+// held in place by tests rather than by comments alone.
+const BLUE_CROSS_NEWS_URL = "https://www.bluecrossvt.org/health-community/news";
+
+test("bluecrossvt.org gets a slower shared queue and honors its cache headers", () => {
+  const policy = politenessPolicyFor(BLUE_CROSS_NEWS_URL);
+  assert.ok(policy, "expected a host policy for bluecrossvt.org");
+  assert.equal(policy.throttleGroup, "bluecrossvt.org");
+  assert.ok(policy.throttleDelayMs >= 5000);
+  assert.ok(policy.honorCacheControl);
+  // Every other outlet keeps the global defaults.
+  assert.equal(politenessPolicyFor("https://vtdigger.org/feed/"), null);
+});
+
+test("Cache-Control freshness subtracts Age and respects the cap", () => {
+  const now = new Date("2026-08-07T12:00:00Z");
+  const headersFor = (values) => ({ get: (name) => values[name] ?? "" });
+
+  // max-age 86400 with Age 3600 leaves 23h, capped here at 6h.
+  assert.equal(
+    freshUntilFromHeaders(
+      headersFor({ "cache-control": "max-age=86400, public", age: "3600" }),
+      now,
+      6 * 60 * 60 * 1000,
+    ),
+    "2026-08-07T18:00:00.000Z",
+  );
+  // Under the cap, the server's own remaining lifetime is used verbatim.
+  assert.equal(
+    freshUntilFromHeaders(
+      headersFor({ "cache-control": "max-age=7200", age: "1800" }),
+      now,
+      6 * 60 * 60 * 1000,
+    ),
+    "2026-08-07T13:30:00.000Z",
+  );
+  // No reusable signal: no-store, no max-age, or already stale.
+  assert.equal(freshUntilFromHeaders(headersFor({ "cache-control": "no-store" }), now), "");
+  assert.equal(freshUntilFromHeaders(headersFor({ "cache-control": "public" }), now), "");
+  assert.equal(
+    freshUntilFromHeaders(
+      headersFor({ "cache-control": "max-age=600", age: "900" }),
+      now,
+    ),
+    "",
+  );
+});
+
+test("a weak ETag the origin ignores stops being sent, so revalidation returns 304", async () => {
+  const requests = [];
+  const etag = 'W/"1786040101"';
+  const lastModified = "Thu, 06 Aug 2026 18:15:01 GMT";
+  // Mimics bluecrossvt.org: advertises a weak ETag it never validates, but
+  // honors If-Modified-Since when If-None-Match is absent.
+  const server = createServer((request, response) => {
+    requests.push({
+      ifNoneMatch: request.headers["if-none-match"] || "",
+      ifModifiedSince: request.headers["if-modified-since"] || "",
+    });
+    const canUseIms =
+      !request.headers["if-none-match"] &&
+      request.headers["if-modified-since"] === lastModified;
+    if (canUseIms) {
+      response.writeHead(304, { etag, "last-modified": lastModified });
+      response.end();
+      return;
+    }
+    response.writeHead(200, {
+      "content-type": "text/html",
+      etag,
+      "last-modified": lastModified,
+    });
+    response.end("<html><body>listing</body></html>");
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+
+  try {
+    const url = `http://127.0.0.1:${server.address().port}/health-community/news`;
+    const first = await fetchText(url, "text/html", {
+      conditionalHeaders: { etag, lastModified },
+    });
+    assert.equal(first.notModified, undefined);
+    assert.equal(
+      first.preferLastModified,
+      true,
+      "unchanged validators on a 200 mean the ETag round trip is useless",
+    );
+
+    const second = await fetchText(url, "text/html", {
+      conditionalHeaders: { etag, lastModified, preferLastModified: true },
+    });
+    assert.equal(second.notModified, true);
+    assert.equal(second.text, "");
+
+    assert.equal(requests.length, 2);
+    assert.equal(requests[0].ifNoneMatch, etag);
+    assert.equal(requests[1].ifNoneMatch, "", "If-None-Match must be dropped");
+    assert.equal(requests[1].ifModifiedSince, lastModified);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("a source stays unfetched while the origin's declared cache is still fresh", async () => {
+  let requestCount = 0;
+  const server = createServer((_request, response) => {
+    requestCount += 1;
+    response.writeHead(200, { "content-type": "text/html" });
+    response.end("<html><body>listing</body></html>");
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+
+  try {
+    const listingUrl = `http://127.0.0.1:${server.address().port}/health-community/news`;
+    const source = { name: "Fresh Listing", listingUrl, scanArticle: false };
+    const now = new Date("2026-08-07T12:00:00Z");
+    const crawlState = normalizeCrawlState({
+      sourceState: {
+        "Fresh Listing": {
+          feedHeaders: {
+            [listingUrl]: {
+              etag: "",
+              lastModified: "",
+              checkedAt: "2026-08-07T11:00:00.000Z",
+              freshUntil: "2026-08-07T17:00:00.000Z",
+            },
+          },
+        },
+      },
+    });
+
+    const metrics = { collection: {} };
+    const fresh = await collectFeedItems([source], now, crawlState, metrics);
+    assert.equal(requestCount, 0, "a fresh cached copy must not be re-fetched");
+    assert.equal(metrics.collection.cacheFreshSkips, 1);
+    assert.equal(fresh.sourceResults[0].ok, true);
+
+    // Once the window lapses the source is fetched again.
+    const later = new Date("2026-08-07T18:00:00Z");
+    await collectFeedItems([source], later, crawlState, { collection: {} });
+    assert.equal(requestCount, 1);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("crawl state round-trips freshUntil and preferLastModified through the audit JSON", () => {
+  const state = normalizeCrawlState({
+    sourceState: {
+      "BlueCrossVT Newsroom": {
+        feedHeaders: {
+          [BLUE_CROSS_NEWS_URL]: {
+            etag: 'W/"1786040101"',
+            lastModified: "Thu, 06 Aug 2026 18:15:01 GMT",
+            checkedAt: "2026-08-07T12:00:00.000Z",
+            freshUntil: "2026-08-07T18:00:00.000Z",
+            preferLastModified: true,
+          },
+        },
+      },
+    },
+  });
+  const headers =
+    state.sourceState["BlueCrossVT Newsroom"].feedHeaders[BLUE_CROSS_NEWS_URL];
+  assert.equal(headers.freshUntil, "2026-08-07T18:00:00.000Z");
+  assert.equal(headers.preferLastModified, true);
+
+  // A malformed freshUntil is dropped rather than parking the source forever.
+  const bad = normalizeCrawlState({
+    sourceState: {
+      X: { feedHeaders: { "https://x.test/": { checkedAt: "now", freshUntil: "soon" } } },
+    },
+  });
+  assert.equal(bad.sourceState.X.feedHeaders["https://x.test/"].freshUntil, "");
 });

@@ -8,6 +8,7 @@ import {
   sleep,
 } from "./utils.js";
 import { isObituaryItem } from "./filters.js";
+import { freshUntilFromHeaders, politenessPolicyFor } from "./politeness.js";
 import {
   mergeFacebookPagePostItem,
   parseBcbsAssociationNewsItems,
@@ -67,11 +68,7 @@ const MAX_RETRY_SLEEP_MS = 15000;
 // below runs synchronously (no await between them), so concurrent callers
 // cannot grab the same slot — the previous timestamp-based check raced when
 // multiple workers hit the same domain at once.
-export async function throttleRequest(
-  url,
-  throttleGroup = "",
-  throttleDelayMs = PER_DOMAIN_DELAY_MS,
-) {
+export async function throttleRequest(url, throttleGroup = "", throttleDelayMs) {
   let hostname = "";
   try {
     hostname = new URL(url).hostname;
@@ -82,8 +79,14 @@ export async function throttleRequest(
     return;
   }
 
-  const queueKey = throttleGroup || hostname;
-  const delayMs = parseNonNegativeInteger(throttleDelayMs, PER_DOMAIN_DELAY_MS);
+  // An explicit per-source override wins; otherwise a host policy sets the
+  // pace, falling back to the global per-domain delay.
+  const policy = politenessPolicyFor(url);
+  const delayMs = parseNonNegativeInteger(
+    throttleDelayMs ?? policy?.throttleDelayMs,
+    PER_DOMAIN_DELAY_MS,
+  );
+  const queueKey = throttleGroup || policy?.throttleGroup || hostname;
   const previousSlot = DOMAIN_QUEUES.get(queueKey) || Promise.resolve();
   DOMAIN_QUEUES.set(
     queueKey,
@@ -223,8 +226,40 @@ function responseHeaderState(response) {
   };
 }
 
+// RFC 9110 tells a server to ignore If-Modified-Since whenever If-None-Match
+// is present. Some origins (bluecrossvt.org among them) serve a weak ETag
+// they never actually validate against, so sending both turns a would-be 304
+// into a full body. preferLastModified records that verdict per URL once
+// we have observed it, and drops If-None-Match from then on.
+function conditionalRequestHeaders(conditional = {}) {
+  const headers = {};
+  const useEtag = conditional.etag && !conditional.preferLastModified;
+  if (useEtag) {
+    headers["if-none-match"] = conditional.etag;
+  }
+  if (conditional.lastModified) {
+    headers["if-modified-since"] = conditional.lastModified;
+  }
+  return headers;
+}
+
+// A 200 whose validators exactly match the ones we sent means the origin
+// declined to revalidate rather than that the page changed.
+function revalidationWasIneffective(response, conditional = {}) {
+  if (!conditional.etag || !conditional.lastModified) {
+    return false;
+  }
+  if (conditional.preferLastModified) {
+    return false; // Already down to one validator; nothing left to drop.
+  }
+  const { etag, lastModified } = responseHeaderState(response);
+  return etag === conditional.etag && lastModified === conditional.lastModified;
+}
+
 export async function fetchText(url, accept, options = {}) {
   let lastError = null;
+  const policy = politenessPolicyFor(url);
+  const now = options.now || new Date();
 
   for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt += 1) {
     try {
@@ -239,13 +274,8 @@ export async function fetchText(url, accept, options = {}) {
         "sec-fetch-mode": "navigate",
         "sec-fetch-site": "none",
         "sec-fetch-user": "?1",
+        ...conditionalRequestHeaders(options.conditionalHeaders),
       };
-      if (options.conditionalHeaders?.etag) {
-        headers["if-none-match"] = options.conditionalHeaders.etag;
-      }
-      if (options.conditionalHeaders?.lastModified) {
-        headers["if-modified-since"] = options.conditionalHeaders.lastModified;
-      }
 
       const response = await fetch(url, {
         headers,
@@ -259,6 +289,9 @@ export async function fetchText(url, accept, options = {}) {
           url: response.url || url,
           notModified: true,
           ...responseHeaderState(response),
+          freshUntil: policy?.honorCacheControl
+            ? freshUntilFromHeaders(response.headers, now, policy.cacheFreshnessCapMs)
+            : "",
         };
       }
 
@@ -278,6 +311,12 @@ export async function fetchText(url, accept, options = {}) {
         text: await readResponseTextWithLimit(response),
         url: response.url,
         ...responseHeaderState(response),
+        preferLastModified:
+          options.conditionalHeaders?.preferLastModified === true ||
+          revalidationWasIneffective(response, options.conditionalHeaders),
+        freshUntil: policy?.honorCacheControl
+          ? freshUntilFromHeaders(response.headers, now, policy.cacheFreshnessCapMs)
+          : "",
       };
     } catch (error) {
       lastError = error;
@@ -373,14 +412,33 @@ function feedHeaderStateFor(sourceState, url) {
 }
 
 function updateFeedHeaderState(sourceState, url, result, now) {
-  if (!result.etag && !result.lastModified) {
+  const previous = feedHeaderStateFor(sourceState, url);
+  // A 304 carries no body and often no validators; keep the ones we already
+  // hold rather than forgetting how to revalidate next run.
+  const etag = result.etag || (result.notModified ? previous.etag : "") || "";
+  const lastModified =
+    result.lastModified || (result.notModified ? previous.lastModified : "") || "";
+  const freshUntil = result.freshUntil || "";
+  if (!etag && !lastModified && !freshUntil) {
     return;
   }
+
   sourceState.feedHeaders[url] = {
-    etag: result.etag || "",
-    lastModified: result.lastModified || "",
+    etag,
+    lastModified,
     checkedAt: now.toISOString(),
+    freshUntil,
+    preferLastModified:
+      result.preferLastModified === true || previous.preferLastModified === true,
   };
+}
+
+// True while the origin's own Cache-Control says the copy we last saw is
+// still good. Re-fetching inside that window is traffic the server already
+// told us it did not need.
+function cachedResponseStillFresh(sourceState, url, now) {
+  const freshUntil = parseDate(feedHeaderStateFor(sourceState, url).freshUntil);
+  return Boolean(freshUntil) && freshUntil.valueOf() > now.valueOf();
 }
 
 function activeCooldownUntil(sourceState, now) {
@@ -416,10 +474,17 @@ function setPrimaryCooldown(sourceState, error, now) {
 }
 
 async function fetchSourceText(source, sourceState, url, accept, metrics, now) {
+  if (cachedResponseStillFresh(sourceState, url, now)) {
+    bumpMetric(metrics, "collection", "cacheFreshSkips");
+    console.log(`Skipped ${url}: server-declared cache still fresh`);
+    return { text: "", url, notModified: true, cacheFresh: true };
+  }
+
   await throttleSourceRequest(source, url);
   bumpMetric(metrics, "collection", "sourceFetches");
   const result = await fetchText(url, accept, {
     conditionalHeaders: feedHeaderStateFor(sourceState, url),
+    now,
   });
   updateFeedHeaderState(sourceState, url, result, now);
   if (result.notModified) {

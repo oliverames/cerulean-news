@@ -14,6 +14,7 @@ src/sources.js    DEFAULT_SOURCES, Google News queries, env-configured Facebook 
 src/matching.js   Brand/topic term patterns, canonicalization, snippets
 src/parsers.js    RSS/Atom, listing pages, article text, Facebook no-login HTML
 src/fetching.js   fetchText (retries, size cap), per-domain throttle, source collection
+src/politeness.js Per-host crawl policy (request pacing, Cache-Control freshness)
 src/enrich.js     Article scanning, Google News link resolution, term matching
 src/relevance.js  Deterministic relevance rules, access/source labels
 src/archive.js    Previous-state loading, archive merge, resolved-item dedupe

@@ -61,6 +61,7 @@ function createCrawlMetrics(sources, startedAt) {
       sourceFallbacks: 0,
       sourceCooldowns: 0,
       notModifiedFeeds: 0,
+      cacheFreshSkips: 0,
       skippedSources: 0,
       feedItemsCollected: 0,
       dedupedFeedItems: 0,
@@ -266,7 +267,9 @@ export {
   filterSourceItemsByDateWindow,
   isSourceWindowClosed,
   readResponseTextWithLimit,
+  throttleRequest,
 } from "./fetching.js";
+export { freshUntilFromHeaders, politenessPolicyFor } from "./politeness.js";
 export { isObituaryItem } from "./filters.js";
 export { enrichAndFilterItems, selectPreviewBackfillItems } from "./enrich.js";
 export { applyDeterministicRelevance, isLikelyPaywalled } from "./relevance.js";

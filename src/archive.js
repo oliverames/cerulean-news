@@ -42,7 +42,17 @@ function normalizeHeaderState(value) {
     if (!etag && !lastModified && !checkedAt) {
       continue;
     }
-    normalized[url] = { etag, lastModified, checkedAt };
+    // freshUntil defers the next fetch and preferLastModified remembers that
+    // this origin ignores its own ETag; both only pay off across runs, so
+    // they have to survive the audit-JSON round trip.
+    const freshUntil = normalizeString(headers.freshUntil);
+    normalized[url] = {
+      etag,
+      lastModified,
+      checkedAt,
+      freshUntil: parseDate(freshUntil) ? freshUntil : "",
+      preferLastModified: headers.preferLastModified === true,
+    };
   }
   return normalized;
 }

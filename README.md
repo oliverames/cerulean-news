@@ -134,6 +134,8 @@ The browser does not recrawl sources. GitHub Actions does the collection and dep
 | `RSS_SOURCE_CONCURRENCY` | No | `4` | Number of sources to fetch at once |
 | `RSS_DOMAIN_DELAY_MS` | No | `1000` | Politeness delay between requests to the same domain (`0` disables it for local runs) |
 | `RSS_TOWNNEWS_DELAY_MS` | No | `8000` | Shared delay between TownNews search-feed requests across outlet domains (`0` disables it) |
+| `RSS_BLUECROSSVT_DELAY_MS` | No | `5000` | Delay between requests to `bluecrossvt.org`, applied across its listing pages and any article page reached through a search result |
+| `RSS_CACHE_FRESHNESS_CAP_MS` | No | `21600000` | Ceiling on how long a server's own `Cache-Control: max-age` may defer the next fetch. Raise toward `86400000` to honor `bluecrossvt.org`'s full 24-hour window, or lower it if the newsroom starts posting more often |
 | `RSS_TIMEOUT_MS` | No | `12000` | Request timeout in milliseconds |
 | `RSS_FETCH_ATTEMPTS` | No | `3` | Fetch attempts before a source or article is marked failed |
 | `RSS_MAX_RESPONSE_BYTES` | No | `10485760` | Maximum decompressed response size before a fetch is abandoned |
@@ -162,6 +164,16 @@ Gemini rate limits vary by project, model, and usage tier. The summarizer starts
 
 Source cooldowns are automatic when a primary feed has a fallback. HTTP 403 primary failures cool down for 24 hours, HTTP 429 failures use `Retry-After` (delta-seconds or HTTP-date form, capped at 24 hours) when present or two hours otherwise, and other primary errors cool down for one hour. During cooldown, the run goes straight to the fallback feed and records the reason in the audit feed. In-run retries treat HTTP 429 and 408 as transient and sleep up to 15 seconds between attempts; if `Retry-After` asks for longer than that, the fetch fails fast and the cooldown machinery takes over. Non-UTF-8 responses decode using the `Content-Type` charset or the document's own declaration, with bytes that validate as UTF-8 always taking precedence. Feed and article responses also store `ETag` and `Last-Modified` validators when servers provide them.
 
+## Crawl Politeness
+
+`bluecrossvt.org` is the subject of this feed rather than an incidental source, and the hourly workflow polls two of its listing pages. `src/politeness.js` holds a per-host policy that keeps that load minimal:
+
+- **Their cache window, not ours.** Both listing pages send `Cache-Control: max-age=86400`. The generator stores the remaining lifetime (`max-age` minus `Age`) and skips the fetch entirely while it lasts, capped by `RSS_CACHE_FRESHNESS_CAP_MS` so the reader does not fall a full day behind.
+- **Revalidation that works.** These pages advertise a weak `ETag` the origin never validates against, and RFC 9110 makes `If-None-Match` suppress `If-Modified-Since` whenever both are sent, so the pair returned a full 119 KB body every hour. After one such response the generator records `preferLastModified` for that URL and sends `If-Modified-Since` alone, which returns `304` with an empty body.
+- **One queue per host.** The listing pages and any article page reached through a Google News result share a single request queue with a five-second gap (`RSS_BLUECROSSVT_DELAY_MS`), so source concurrency cannot stack requests on them.
+
+Both the freshness deadline and the revalidation verdict persist in `feed-audit.json`, so they carry across runs. Together they take a typical run from two full-body fetches to zero, and a day from roughly 48 requests and 5.7 MB to a handful of conditional requests that mostly return nothing.
+
 ## Architecture
 
 ```text
@@ -170,6 +182,7 @@ src/sources.js     Default source list, Google News queries, parked Facebook sou
 src/matching.js    Brand terms, topic terms, canonical labels, snippets
 src/parsers.js     RSS, Atom, listing pages, article text and comments, Facebook public HTML
 src/fetching.js    Fetch retries, size caps, source collection, domain throttling
+src/politeness.js  Per-host crawl policy: request pacing and cache freshness
 src/enrich.js      Google News decoding, article scanning, match enrichment
 src/relevance.js   Deterministic relevance, source type, access labels
 src/archive.js     Audit loading, archive retention, dedupe rules
