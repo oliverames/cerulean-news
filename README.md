@@ -64,11 +64,11 @@ The default source list combines Vermont outlets, official Blue Cross and health
 | --- | --- | --- |
 | Vermont news outlets | WCAX, VTDigger, Vermont Public, Seven Days, MyNBC5, MyChamplainValley, Burlington Free Press, The Rake Vermont, Poultney Journal, Magic 96.7, The Vermont Cynic, Addison Independent, Valley News, Caledonian-Record, The Chronicle/Barton Chronicle, The Commons, The Bridge, Community News Service, Waterbury Roundabout, and more | RSS, Atom, first-party sitemaps, outlet search feeds, or site-scoped Google News depending on what each outlet exposes; blocked primary feeds can fall back to site-scoped Google News |
 | Official pages | BlueCrossVT Newsroom, BlueCrossVT Be Well VT Blog, UVM Health Newsroom, BCBSA Association News | Public listing pages are parsed because normal RSS feeds are not available |
-| Search feeds | Blue Cross VT brand searches (site-, phrase-, Boolean-, and full-name-scoped), Jan. 1, 2026 Blue Cross VT backfill, Vermont health search, Kristina source search, health insurance search, trade search, national policy search, outlet fallbacks | Google News degrades long OR queries, so each brand search is split into small homogeneous chunks; search feeds are capped and bounded to avoid turning the reader into generic health news |
+| Search feeds | Blue Cross VT brand searches (site-, phrase-, Boolean-, and full-name-scoped), Vermont health search, Kristina source search, health insurance search, trade search, national policy search, outlet fallbacks | Google News degrades long OR queries, so each brand search is split into small homogeneous chunks; search feeds are capped and bounded to avoid turning the reader into generic health news |
 | National health feeds | ABC Health, CBS Health, CNN Health, STAT, Fierce Healthcare, Healthcare Dive, KFF Health News, The Hill, NPR Health | Broad national items are filtered unless they have a payer, policy, coverage, or regional angle |
 | Social surfaces | Public Facebook pages for selected Vermont outlets | Parked by default; set `ENABLE_SOCIAL_SOURCES=true` for a deliberate one-off Facebook collection run |
 
-Direct Blue Cross VT mentions are kept indefinitely. Other stories are kept for three months. The 2026 backfill source is bounded to Jan. 1 through June 13, 2026; after that window closes, the source skips itself and the archive carries those items forward.
+Direct Blue Cross VT mentions are kept indefinitely. Other stories are kept for three months. (The 2026 backfill search that covered Jan. 1 through June 13, 2026 has been retired; its items remain in the archive.)
 
 ## How Matching Works
 
@@ -135,7 +135,8 @@ The browser does not recrawl sources. GitHub Actions does the collection and dep
 | `RSS_DOMAIN_DELAY_MS` | No | `1000` | Politeness delay between requests to the same domain (`0` disables it for local runs) |
 | `RSS_TOWNNEWS_DELAY_MS` | No | `8000` | Shared delay between TownNews search-feed requests across outlet domains (`0` disables it) |
 | `RSS_BLUECROSSVT_DELAY_MS` | No | `5000` | Delay between requests to `bluecrossvt.org`, applied across its listing pages and any article page reached through a search result |
-| `RSS_CACHE_FRESHNESS_CAP_MS` | No | `86400000` | Ceiling on how long a server's own `Cache-Control: max-age` may defer the next fetch. A backstop against an origin advertising an absurd `max-age`, not a policy dial; lower it only if a source needs to be picked up sooner than it says |
+| `RSS_CACHE_FRESHNESS_CAP_MS` | No | `86400000` | Ceiling on how long a politeness-policy host's own `Cache-Control: max-age` may defer the next fetch. A backstop against an origin advertising an absurd `max-age`, not a policy dial; lower it only if a source needs to be picked up sooner than it says |
+| `RSS_GLOBAL_CACHE_FRESHNESS_CAP_MS` | No | `3600000` | Ceiling on Cache-Control freshness for origins without a politeness policy. About half of the watched origins send `max-age`; their declared freshness is honored up to this cap, and `0` disables the deferral entirely |
 | `RSS_TIMEOUT_MS` | No | `12000` | Request timeout in milliseconds |
 | `RSS_FETCH_ATTEMPTS` | No | `3` | Fetch attempts before a source or article is marked failed |
 | `RSS_MAX_RESPONSE_BYTES` | No | `10485760` | Maximum decompressed response size before a fetch is abandoned |
@@ -175,6 +176,8 @@ Source cooldowns are automatic when a primary feed has a fallback. HTTP 403 prim
 - **One queue per host.** The listing pages and any article page reached through a Google News result share a single request queue with a five-second gap (`RSS_BLUECROSSVT_DELAY_MS`), so source concurrency cannot stack requests on them.
 
 Both the freshness deadline and the revalidation verdict persist in `feed-audit.json`, so they carry across runs. Together they take a typical run from two full-body fetches to zero, and a day from roughly 48 requests and 5.7 MB to two conditional requests that usually return `304` with an empty body.
+
+Every other origin gets the same treatment in a bounded form: a measured sample of production sources showed about half sending useful `max-age` values (mostly 5-15 minutes) and one advertising 31 days. Their declared freshness is honored up to `RSS_GLOBAL_CACHE_FRESHNESS_CAP_MS` (one hour by default), which trims redundant re-fetches when runs land close together without letting an absurd `max-age` park a source for more than one cycle.
 
 ## Architecture
 
