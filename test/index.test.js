@@ -187,7 +187,7 @@ test("default sources cover recurring Kristina export outlets", () => {
         .join(" "),
     ).join(" "),
   ).replaceAll("+", " ");
-  assert.equal(DEFAULT_SOURCES.length, 92);
+  assert.equal(DEFAULT_SOURCES.length, 91);
 
   const expectedHosts = [
     "bcbs.com",
@@ -332,10 +332,6 @@ test("default sources cover recurring Kristina export outlets", () => {
       `DEFAULT_SOURCES should include Kristina Boolean query: ${booleanQuery}`,
     );
   }
-  assert.match(sourceText, /Google News Blue Cross VT Backfill Since Jan 1 2026/);
-  assert.match(sourceText, /when:180d/);
-  assert.match(sourceText, /2026-01-01T00:00:00Z/);
-  assert.match(sourceText, /2026-06-13T00:00:00Z/);
   assert.match(sourceText, /site:vermontbiz\.com/);
   assert.match(sourceText, /site:mountaintimes\.info/);
 
@@ -2875,7 +2871,14 @@ test("extractArticleComments reads server-rendered article comments", () => {
       author: "Jane Reader",
       text: "This affects BCBS VT members in Vermont.",
       date: "2026-06-16T14:00:00.000Z",
-      replies: [],
+      replies: [
+        {
+          author: "",
+          text: "Nested reply text.",
+          date: null,
+          replies: [],
+        },
+      ],
     },
     {
       author: "Json Reader",
@@ -3555,7 +3558,6 @@ test("every curated source is either a registered Vermont outlet or an explicit 
     "Google News Health Insurance Search",
     "Google News Health Trade Search",
     "Google News National Health Policy Search",
-    "Google News Blue Cross VT Backfill Since Jan 1 2026",
     // Brand-owned listings classify as brand regardless of region.
     "BCBSA Association News",
     "BlueCrossVT Newsroom",
@@ -3671,8 +3673,7 @@ test("Blue Cross brand searches stay small and never mix site: with phrases", ()
   // invariants keep the brand searches inside the shape that Google News
   // actually evaluates.
   const brandSources = DEFAULT_SOURCES.filter((source) =>
-    source.name.startsWith("Google News Blue Cross") &&
-    source.name !== "Google News Blue Cross VT Backfill Since Jan 1 2026",
+    source.name.startsWith("Google News Blue Cross"),
   );
   assert.ok(brandSources.length >= 7, "expected the split brand searches");
 
@@ -3703,4 +3704,115 @@ test("fetchText surfaces the undici cause code on network failures", async () =>
     () => fetchText("http://127.0.0.1:47654/feed.xml", "text/plain"),
     (error) => /^fetch failed \(.+\)$/.test(error.message),
   );
+});
+
+test("parseFacebookPageHtml bounds anchor-path descriptions to the nearest post container", () => {
+  const pageFiller = "Page boilerplate. ".repeat(400);
+  const postText =
+    "BlueCross BlueShield of Vermont is partnering with local clinics on a new preventive care program.";
+  const html = `<html><head><title>VTDigger</title></head><body>
+    <div>${pageFiller}
+      <article>
+        <div><p>${postText}</p></div>
+        <a href="/vtdigger/posts/789?refid=7">Full Story</a>
+      </article>
+    </div>
+  </body></html>`;
+
+  const [item] = parseFacebookPageHtml(html, {
+    name: "VTDigger Facebook page",
+    facebookPageUrl: "https://www.facebook.com/vtdigger",
+    now: new Date("2026-08-25T18:00:00Z"),
+  });
+
+  assert.ok(item, "expected a parsed post");
+  assert.match(item.description, /preventive care program/);
+  assert.ok(
+    item.description.length <= 1200,
+    `description should stay bounded, got ${item.description.length}`,
+  );
+  assert.doesNotMatch(item.description, /boilerplate/);
+  assert.match(item.feedContent, /preventive care program/);
+  assert.doesNotMatch(item.feedContent, /boilerplate/);
+});
+
+test("every origin's Cache-Control freshness is honored up to the global cap", async () => {
+  let requestCount = 0;
+  const server = createServer((_request, response) => {
+    requestCount += 1;
+    response.writeHead(200, {
+      "content-type": "text/html",
+      "cache-control": "public, max-age=7200",
+    });
+    response.end("<html><body>feed</body></html>");
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+
+  try {
+    const feedUrl = `http://127.0.0.1:${server.address().port}/feed.xml`;
+    const source = { name: "Capped Fresh Outlet", listingUrl: feedUrl };
+    const now = new Date("2026-08-25T12:00:00Z");
+    const crawlState = normalizeCrawlState();
+    const metrics = { collection: {} };
+
+    await collectFeedItems([source], now, crawlState, metrics);
+    assert.equal(requestCount, 1);
+    const stored = crawlState.sourceState["Capped Fresh Outlet"].feedHeaders[feedUrl];
+    const freshMs = new Date(stored.freshUntil).valueOf() - now.valueOf();
+    assert.ok(
+      freshMs > 0 && freshMs <= 60 * 60 * 1000,
+      `freshUntil must be capped at one hour, got ${freshMs}ms`,
+    );
+
+    await collectFeedItems([source], now, crawlState, { collection: {} });
+    assert.equal(requestCount, 1, "a fresh cached copy must not be re-fetched");
+
+    // After the cap lapses, the source is fetched again.
+    await collectFeedItems(
+      [source],
+      new Date("2026-08-25T13:01:00Z"),
+      crawlState,
+      { collection: {} },
+    );
+    assert.equal(requestCount, 2);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("RSS_GLOBAL_CACHE_FRESHNESS_CAP_MS=0 disables non-policy freshness deferral", async () => {
+  const original = process.env.RSS_GLOBAL_CACHE_FRESHNESS_CAP_MS;
+  process.env.RSS_GLOBAL_CACHE_FRESHNESS_CAP_MS = "0";
+  let requestCount = 0;
+  const server = createServer((_request, response) => {
+    requestCount += 1;
+    response.writeHead(200, {
+      "content-type": "text/html",
+      "cache-control": "public, max-age=86400",
+    });
+    response.end("<html><body>feed</body></html>");
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+
+  try {
+    const feedUrl = `http://127.0.0.1:${server.address().port}/feed.xml`;
+    const source = { name: "Disabled Cap Outlet", listingUrl: feedUrl };
+    const now = new Date("2026-08-25T12:00:00Z");
+    const crawlState = normalizeCrawlState();
+
+    await collectFeedItems([source], now, crawlState, { collection: {} });
+    await collectFeedItems([source], now, crawlState, { collection: {} });
+    assert.equal(requestCount, 2, "no freshness window may be stored when disabled");
+    assert.equal(
+      crawlState.sourceState["Disabled Cap Outlet"].feedHeaders[feedUrl]?.freshUntil || "",
+      "",
+    );
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    if (original === undefined) {
+      delete process.env.RSS_GLOBAL_CACHE_FRESHNESS_CAP_MS;
+    } else {
+      process.env.RSS_GLOBAL_CACHE_FRESHNESS_CAP_MS = original;
+    }
+  }
 });

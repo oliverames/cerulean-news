@@ -15,37 +15,6 @@ function googleNewsSearchUrl(query) {
   return `https://news.google.com/rss/search?${params.toString()}`;
 }
 
-const BLUE_CROSS_VT_BACKFILL_TERMS = [
-  "bluecrossvt.org",
-  '"Blue Cross VT"',
-  '"blue cross" AND VT',
-  '"blue cross" AND Vermont',
-  '"bluecross" AND VT',
-  '"bluecross" AND Vermont',
-  '"BCBS" AND VT',
-  '"bcbs" AND Vermont',
-  '"BCBSVT"',
-  '"BCBS VT"',
-  '"BlueCrossVT"',
-  '"Blue CrossVT"',
-  '"BlueCross VT"',
-  '"Blue Cross Vermont"',
-  '"Blue Cross and Blue Shield" AND Vermont',
-  '"Blue Cross and Blue Shield" AND VT',
-  '"Blue Cross and Blue Shield of Vermont"',
-  '"Bluecross Blueshield" AND Vermont',
-  '"BlueCross and BlueShield of Vermont"',
-  '"BlueCross & BlueShield of Vermont"',
-  '"Blue Cross of Vermont"',
-  '"Vermont Blue Advantage"',
-  '"Vermont Blues plan"',
-  '"Vermont largest health insurer"',
-  '"Vermont largest private insurer"',
-];
-
-const BLUE_CROSS_VT_BACKFILL_QUERY =
-  BLUE_CROSS_VT_BACKFILL_TERMS.join(" OR ");
-
 const LOCAL_OUTLET_FALLBACK_TERMS = [
   '"health care"',
   '"health insurance"',
@@ -75,23 +44,6 @@ function localOutletSearchSource(name, homepage, site, days = 30) {
     name,
     homepage,
     ...localOutletFallbackFeed(site, days),
-  };
-}
-
-// Once maxPubDate passes, collectFeedItems skips this source automatically
-// (see isSourceWindowClosed); its items persist via the archive. The
-// definition is kept for provenance and can be deleted at leisure.
-function blueCrossVtBackfillSource(name, minPubDate, maxPubDate) {
-  return {
-    name,
-    homepage: "https://news.google.com/",
-    feedUrl: googleNewsSearchUrl(`(${BLUE_CROSS_VT_BACKFILL_QUERY}) when:180d`),
-    isSearchFeed: true,
-    searchFallbackTerms: ["Blue Cross"],
-    scanArticle: false,
-    minPubDate: `${minPubDate}T00:00:00Z`,
-    maxPubDate: `${maxPubDate}T00:00:00Z`,
-    maxItems: 100,
   };
 }
 
@@ -625,11 +577,6 @@ export const DEFAULT_SOURCES = [
     maxItemAgeDays: 30,
     maxItems: 15,
   },
-  blueCrossVtBackfillSource(
-    "Google News Blue Cross VT Backfill Since Jan 1 2026",
-    "2026-01-01",
-    "2026-06-13",
-  ),
   {
     name: "Google News Vermont Health Search",
     homepage: "https://news.google.com/",

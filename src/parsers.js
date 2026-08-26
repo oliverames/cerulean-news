@@ -611,6 +611,33 @@ function isFacebookPostLink(href = "") {
   return /\/posts\/|story\.php|permalink\.php/i.test(href);
 }
 
+// Facebook wraps post links in containers of unpredictable depth: the
+// nearest wrappers carry the post text while outer ones accumulate
+// page-wide boilerplate. Walk outward from the link and take the first
+// text-bearing container that stays bounded; if every level is oversized,
+// fall back to the shortest one, hard-truncated.
+const MAX_FACEBOOK_POST_DESCRIPTION_CHARS = 1200;
+
+function facebookPostDescription($link) {
+  const linkText = cleanText($link.text());
+  const minimumLength = Math.max(20, linkText.length + 1);
+  let shortest = "";
+  let node = $link.parent();
+
+  for (let depth = 0; depth < 6 && node.length > 0; depth += 1) {
+    const text = cleanText(node.text());
+    if (text.length >= minimumLength && text.length <= MAX_FACEBOOK_POST_DESCRIPTION_CHARS) {
+      return text;
+    }
+    if (text.length > 0 && (!shortest || text.length < shortest.length)) {
+      shortest = text;
+    }
+    node = node.parent();
+  }
+
+  return shortest.slice(0, MAX_FACEBOOK_POST_DESCRIPTION_CHARS);
+}
+
 function decodeFacebookJsonString(value) {
   try {
     return JSON.parse(`"${value}"`);
@@ -696,12 +723,12 @@ export function parseFacebookPageHtml(html, source) {
       return;
     }
 
-    const container = $(element).closest("article, section, div, li");
-    const rawText = cleanText(container.text() || $(element).text());
-    const description = rawText
-      .replace(/\b(?:Like|Comment|Share|Full Story)\b/gi, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+    const description = cleanText(
+      facebookPostDescription($(element)).replace(
+        /\b(?:Like|Comment|Share|Full Story)\b/gi,
+        " ",
+      ),
+    );
     if (!description) {
       return;
     }
@@ -1068,13 +1095,13 @@ export function extractArticleComments(html) {
   const comments = [];
   const seen = new Set();
   const selector = ARTICLE_COMMENT_SELECTORS.join(",");
+  // Comment elements arrive in document order, so a parent's entry exists
+  // before its nested replies are visited. Replies attach to the nearest
+  // enclosing captured comment instead of being dropped.
+  const entriesByElement = new Map();
 
   $(selector).each((_, element) => {
     const $comment = $(element);
-    if ($comment.parents(selector).length > 0) {
-      return;
-    }
-
     const normalized = normalizeArticleComment(
       {
         author: extractArticleCommentAuthor($comment),
@@ -1083,7 +1110,20 @@ export function extractArticleComments(html) {
       },
       seen,
     );
-    if (normalized) {
+    if (!normalized) {
+      return;
+    }
+    entriesByElement.set(element, normalized);
+
+    let parentEntry = null;
+    $comment.parents().each((__, candidate) => {
+      if (!parentEntry && entriesByElement.has(candidate)) {
+        parentEntry = entriesByElement.get(candidate);
+      }
+    });
+    if (parentEntry) {
+      parentEntry.replies.push(normalized);
+    } else {
       comments.push(normalized);
     }
   });

@@ -31,6 +31,17 @@ const SOURCE_CONCURRENCY = parsePositiveInteger(
   process.env.RSS_SOURCE_CONCURRENCY,
   4,
 );
+// Every origin gets its declared Cache-Control freshness honored, not just
+// politeness-policy hosts — about half of production origins send max-age.
+// Non-policy origins are capped hard (one sends 31 days) so an absurd
+// max-age can defer a source by at most this window; read per call so
+// tests can exercise the dial.
+function globalCacheFreshnessCapMs() {
+  return parseNonNegativeInteger(
+    process.env.RSS_GLOBAL_CACHE_FRESHNESS_CAP_MS,
+    60 * 60 * 1000,
+  );
+}
 const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 const MAX_FETCH_ATTEMPTS = parsePositiveInteger(
@@ -280,6 +291,15 @@ export async function fetchText(url, accept, options = {}) {
   let lastError = null;
   const policy = politenessPolicyFor(url);
   const now = options.now || new Date();
+  // A zero cap disables freshness deferral for non-policy origins; policy
+  // hosts keep their own nonzero caps from politeness.js.
+  const freshCapMs = policy?.honorCacheControl
+    ? policy.cacheFreshnessCapMs
+    : globalCacheFreshnessCapMs();
+  const freshUntilFor = (headers) =>
+    freshCapMs > 0
+      ? freshUntilFromHeaders(headers, now, freshCapMs)
+      : "";
 
   for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt += 1) {
     try {
@@ -309,9 +329,7 @@ export async function fetchText(url, accept, options = {}) {
           url: response.url || url,
           notModified: true,
           ...responseHeaderState(response),
-          freshUntil: policy?.honorCacheControl
-            ? freshUntilFromHeaders(response.headers, now, policy.cacheFreshnessCapMs)
-            : "",
+          freshUntil: freshUntilFor(response.headers),
         };
       }
 
@@ -337,9 +355,7 @@ export async function fetchText(url, accept, options = {}) {
         preferLastModified:
           options.conditionalHeaders?.preferLastModified === true ||
           revalidationWasIneffective(response, options.conditionalHeaders),
-        freshUntil: policy?.honorCacheControl
-          ? freshUntilFromHeaders(response.headers, now, policy.cacheFreshnessCapMs)
-          : "",
+        freshUntil: freshUntilFor(response.headers),
       };
     } catch (error) {
       lastError = error;
