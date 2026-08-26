@@ -226,6 +226,14 @@ function responseHeaderState(response) {
   };
 }
 
+async function discardResponseBody(response) {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // Already consumed, errored, or absent — nothing to release.
+  }
+}
+
 // RFC 9110 tells a server to ignore If-Modified-Since whenever If-None-Match
 // is present. Some origins (bluecrossvt.org among them) serve a weak ETag
 // they never actually validate against, so sending both turns a would-be 304
@@ -296,6 +304,9 @@ export async function fetchText(url, accept, options = {}) {
       }
 
       if (!response.ok) {
+        // Drain-close the unread body so the socket returns to the pool;
+        // an unconsumed error body pins its connection until GC.
+        await discardResponseBody(response);
         const error = new Error(`HTTP ${response.status} while fetching ${url}`);
         error.status = response.status;
         const retryAfterMs = retryAfterMsFromHeader(

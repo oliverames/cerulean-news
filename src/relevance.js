@@ -34,6 +34,14 @@ const REGIONAL_SIGNAL_PATTERN =
 const NON_NEW_ENGLAND_STATE_PATTERN =
   /\b(?:alabama|alaska|arizona|arkansas|california|colorado|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maryland|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new\s+jersey|new\s+mexico|new\s+york|north\s+carolina|north\s+dakota|ohio|oklahoma|oregon|pennsylvania|south\s+carolina|south\s+dakota|tennessee|texas|utah|virginia|washington|west\s+virginia|wisconsin|wyoming)\b/i;
 
+// Washington, Georgia, and Florida are also Vermont place names (Washington
+// County plus the towns of Washington, Georgia, and Florida). A Vermont
+// outlet using them is usually citing those places, not those states, so
+// they are stripped before the out-of-region state veto tests this text.
+// The veto only gates the VERMONT_SOURCE_NAMES fallback; national outlets
+// are still filtered by the broad-national and low-priority rules.
+const AMBIGUOUS_VT_PLACE_PATTERN = /\b(?:washington|georgia|florida)\b/gi;
+
 const LOCAL_INCIDENT_PATTERN =
   /\b(?:shooting|shooter|stabbing|homicide|murder|assault|crash|collision|accident|wreck|police|sheriff|trooper|suspect|victims?|injur(?:y|ed|ies)|killed|dead|fatal|airlifted|transported)\b/i;
 
@@ -154,7 +162,9 @@ function hasRegionalSignal(item, text) {
 
   return (
     VERMONT_SOURCE_NAMES.has(item.sourceName) &&
-    !NON_NEW_ENGLAND_STATE_PATTERN.test(text)
+    !NON_NEW_ENGLAND_STATE_PATTERN.test(
+      text.replace(AMBIGUOUS_VT_PLACE_PATTERN, " "),
+    )
   );
 }
 
