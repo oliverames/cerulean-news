@@ -232,6 +232,8 @@ export {
 } from "./utils.js";
 export {
   DEFAULT_SOURCES,
+  BROAD_NATIONAL_SOURCE_NAMES,
+  VERMONT_SOURCE_NAMES,
   buildSourcesFromEnv,
   isSocialSourceItem,
   socialSourcesEnabled,

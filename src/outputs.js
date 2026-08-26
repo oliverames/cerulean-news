@@ -279,7 +279,11 @@ export async function writeOutput(
   jsonOutputPath,
   auditJsonOutputPath,
 ) {
-  await mkdir(path.dirname(rssOutputPath), { recursive: true });
+  // RSS, JSON, and audit paths are configured independently and may live in
+  // different directories; create each one before writing.
+  for (const outputPath of [rssOutputPath, jsonOutputPath, auditJsonOutputPath]) {
+    await mkdir(path.dirname(outputPath), { recursive: true });
+  }
   await writeFile(rssOutputPath, rss, "utf8");
   await writeFile(jsonOutputPath, `${JSON.stringify(jsonSummary, null, 2)}\n`);
   // The audit JSON is the persistence layer, re-downloaded and re-uploaded

@@ -9,6 +9,8 @@ import {
   buildRss,
   DEFAULT_SOURCES,
   generateFeed,
+  BROAD_NATIONAL_SOURCE_NAMES,
+  VERMONT_SOURCE_NAMES,
   cleanStorySnippet,
   buildSourcesFromEnv,
   buildSnippet,
@@ -3535,4 +3537,122 @@ test("crawl state round-trips freshUntil and preferLastModified through the audi
     },
   });
   assert.equal(bad.sourceState.X.feedHeaders["https://x.test/"].freshUntil, "");
+});
+
+test("every curated source is either a registered Vermont outlet or an explicit exception", () => {
+  const nonRegionalSourceNames = new Set([
+    ...BROAD_NATIONAL_SOURCE_NAMES,
+    "Google News Search",
+    "Google News Vermont Health Search",
+    "Google News Kristina Source Search",
+    "Google News Health Insurance Search",
+    "Google News Health Trade Search",
+    "Google News National Health Policy Search",
+    "Google News Blue Cross VT Backfill Since Jan 1 2026",
+    // Brand-owned listings classify as brand regardless of region.
+    "BCBSA Association News",
+    "BlueCrossVT Newsroom",
+    "BlueCrossVT Be Well VT Blog",
+  ]);
+
+  const uncovered = DEFAULT_SOURCES.map((source) => source.name).filter(
+    (name) =>
+      !VERMONT_SOURCE_NAMES.has(name) && !nonRegionalSourceNames.has(name),
+  );
+  assert.deepEqual(
+    uncovered,
+    [],
+    `sources missing from VERMONT_SOURCE_NAMES: ${uncovered.join(", ")}`,
+  );
+});
+
+test("Vermont outlets keep their regional signal through town and county names that collide with states", () => {
+  // Washington County is a Vermont county; pre-fix this read as Washington
+  // state and the item was rejected as out-of-region.
+  const washingtonCounty = {
+    sourceName: "Times Argus",
+    title: "Washington County clinics expand evening hours",
+    description: "The hospital board approved the schedule.",
+    matchedTerms: ["Hospitals"],
+    category: CATEGORY_TOPIC,
+  };
+  assert.equal(applyDeterministicRelevance(washingtonCounty).relevant, undefined);
+
+  // Georgia is a town in Franklin County, Vermont.
+  const georgiaTown = {
+    sourceName: "VTDigger",
+    title: "Georgia residents weigh in on a school health program",
+    description: "The community meeting drew dozens of residents.",
+    matchedTerms: ["Public health"],
+    category: CATEGORY_TOPIC,
+  };
+  assert.equal(applyDeterministicRelevance(georgiaTown).relevant, undefined);
+
+  // Small outlets newly registered as Vermont sources keep local coverage.
+  const cabot = {
+    sourceName: "Cabot Chronicle",
+    title: "Town report highlights public health programs",
+    description: "Selectboard members reviewed the year in town services.",
+    matchedTerms: ["Public health"],
+    category: CATEGORY_TOPIC,
+  };
+  assert.equal(applyDeterministicRelevance(cabot).relevant, undefined);
+
+  // The strip must not rescue national outlets: an unregistered source
+  // naming Georgia with no policy angle stays rejected.
+  const georgiaState = {
+    sourceName: "CNN Health",
+    title: "A Georgia town approves a new clinic",
+    description: "Local officials celebrated the opening.",
+    matchedTerms: ["Hospitals"],
+    category: CATEGORY_TOPIC,
+  };
+  assert.equal(applyDeterministicRelevance(georgiaState).relevant, false);
+});
+
+test("fetchText rejects HTTP errors without breaking subsequent requests on the origin", async () => {
+  let hits = 0;
+  const server = createServer((_request, response) => {
+    hits += 1;
+    if (hits === 1) {
+      response.writeHead(403, { "content-type": "text/plain" });
+      response.end("blocked".repeat(100000));
+      return;
+    }
+    response.writeHead(200, { "content-type": "text/plain" });
+    response.end("recovered");
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+
+  try {
+    const url = `http://127.0.0.1:${server.address().port}/feed.xml`;
+    await assert.rejects(
+      () => fetchText(url, "text/plain"),
+      (error) => error.status === 403,
+    );
+    const recovered = await fetchText(url, "text/plain");
+    assert.equal(recovered.text, "recovered");
+    assert.equal(hits, 2);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("generateFeed creates each configured output directory", async () => {
+  const workdir = await mkdtemp(path.join(tmpdir(), "vt-news-output-dirs-"));
+  const rssOutputPath = path.join(workdir, "rss", "feed.rss");
+  const jsonOutputPath = path.join(workdir, "json", "feed.json");
+  const auditJsonOutputPath = path.join(workdir, "audit", "feed-audit.json");
+
+  await generateFeed({
+    sources: [],
+    now: new Date("2026-08-25T12:00:00Z"),
+    rssOutputPath,
+    jsonOutputPath,
+    auditJsonOutputPath,
+  });
+
+  for (const outputPath of [rssOutputPath, jsonOutputPath, auditJsonOutputPath]) {
+    await readFile(outputPath, "utf8");
+  }
 });
