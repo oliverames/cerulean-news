@@ -187,7 +187,7 @@ test("default sources cover recurring Kristina export outlets", () => {
         .join(" "),
     ).join(" "),
   ).replaceAll("+", " ");
-  assert.equal(DEFAULT_SOURCES.length, 86);
+  assert.equal(DEFAULT_SOURCES.length, 92);
 
   const expectedHosts = [
     "bcbs.com",
@@ -369,7 +369,7 @@ test("default sources cover recurring Kristina export outlets", () => {
 
 test("current Google News searches apply their freshness window to the full query", () => {
   const currentBlueCross = DEFAULT_SOURCES.find(
-    (source) => source.name === "Google News Search",
+    (source) => source.name === "Google News Blue Cross Boolean Search A",
   );
   const vermontHealth = DEFAULT_SOURCES.find(
     (source) => source.name === "Google News Vermont Health Search",
@@ -377,7 +377,7 @@ test("current Google News searches apply their freshness window to the full quer
   const blueCrossQuery = new URL(currentBlueCross.feedUrl).searchParams.get("q");
   const vermontHealthQuery = new URL(vermontHealth.feedUrl).searchParams.get("q");
 
-  assert.match(blueCrossQuery, /^\(.+\) when:30d$/);
+  assert.match(blueCrossQuery, /\) when:30d$/);
   assert.match(vermontHealthQuery, /^\(.+\) when:7d$/);
   assert.equal(currentBlueCross.maxItemAgeDays, 30);
   assert.equal(vermontHealth.maxItemAgeDays, 7);
@@ -3542,7 +3542,14 @@ test("crawl state round-trips freshUntil and preferLastModified through the audi
 test("every curated source is either a registered Vermont outlet or an explicit exception", () => {
   const nonRegionalSourceNames = new Set([
     ...BROAD_NATIONAL_SOURCE_NAMES,
-    "Google News Search",
+    // Google News search feeds have no single home region.
+    "Google News Blue Cross Site Search",
+    "Google News Blue Cross Phrase Search",
+    "Google News Blue Cross Spelling Variant Search",
+    "Google News Blue Cross Boolean Search A",
+    "Google News Blue Cross Boolean Search B",
+    "Google News Blue Cross Full-Name Search A",
+    "Google News Blue Cross Full-Name Search B",
     "Google News Vermont Health Search",
     "Google News Kristina Source Search",
     "Google News Health Insurance Search",
@@ -3655,4 +3662,45 @@ test("generateFeed creates each configured output directory", async () => {
   for (const outputPath of [rssOutputPath, jsonOutputPath, auditJsonOutputPath]) {
     await readFile(outputPath, "utf8");
   }
+});
+
+test("Blue Cross brand searches stay small and never mix site: with phrases", () => {
+  // Live measurement (WORKLOG 2026-08-25): the original combined 23-term
+  // query returned 3 items while its own terms unioned to 49, and queries
+  // mixing site: operators with quoted phrases collapsed hardest. These
+  // invariants keep the brand searches inside the shape that Google News
+  // actually evaluates.
+  const brandSources = DEFAULT_SOURCES.filter((source) =>
+    source.name.startsWith("Google News Blue Cross") &&
+    source.name !== "Google News Blue Cross VT Backfill Since Jan 1 2026",
+  );
+  assert.ok(brandSources.length >= 7, "expected the split brand searches");
+
+  for (const source of brandSources) {
+    const query = decodeURIComponent(
+      new URL(source.feedUrl).searchParams.get("q"),
+    );
+    assert.ok(
+      query.length <= 160,
+      `${source.name} query grew to ${query.length} chars; Google News degrades long OR queries`,
+    );
+    if (query.includes("site:")) {
+      assert.equal(
+        query.includes('"'),
+        false,
+        `${source.name} mixes site: operators with quoted phrases`,
+      );
+    }
+    assert.match(query, / when:30d$/);
+    assert.deepEqual(source.searchFallbackTerms, ["Blue Cross"]);
+  }
+});
+
+test("fetchText surfaces the undici cause code on network failures", async () => {
+  // Nothing listens on this high loopback port, so the connection is
+  // refused immediately.
+  await assert.rejects(
+    () => fetchText("http://127.0.0.1:47654/feed.xml", "text/plain"),
+    (error) => /^fetch failed \(.+\)$/.test(error.message),
+  );
 });

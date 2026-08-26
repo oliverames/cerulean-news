@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <code>86 default sources</code> &bull;
+  <code>92 default sources</code> &bull;
   <code>RSS + JSON Feed</code> &bull;
   <code>hourly GitHub Pages refresh</code>
 </p>
@@ -64,7 +64,7 @@ The default source list combines Vermont outlets, official Blue Cross and health
 | --- | --- | --- |
 | Vermont news outlets | WCAX, VTDigger, Vermont Public, Seven Days, MyNBC5, MyChamplainValley, Burlington Free Press, The Rake Vermont, Poultney Journal, Magic 96.7, The Vermont Cynic, Addison Independent, Valley News, Caledonian-Record, The Chronicle/Barton Chronicle, The Commons, The Bridge, Community News Service, Waterbury Roundabout, and more | RSS, Atom, first-party sitemaps, outlet search feeds, or site-scoped Google News depending on what each outlet exposes; blocked primary feeds can fall back to site-scoped Google News |
 | Official pages | BlueCrossVT Newsroom, BlueCrossVT Be Well VT Blog, UVM Health Newsroom, BCBSA Association News | Public listing pages are parsed because normal RSS feeds are not available |
-| Search feeds | Blue Cross VT brand search, Jan. 1, 2026 Blue Cross VT backfill, Vermont health search, Kristina source search, health insurance search, trade search, national policy search, outlet fallbacks | Search feeds are capped and bounded to avoid turning the reader into generic health news |
+| Search feeds | Blue Cross VT brand searches (site-, phrase-, Boolean-, and full-name-scoped), Jan. 1, 2026 Blue Cross VT backfill, Vermont health search, Kristina source search, health insurance search, trade search, national policy search, outlet fallbacks | Google News degrades long OR queries, so each brand search is split into small homogeneous chunks; search feeds are capped and bounded to avoid turning the reader into generic health news |
 | National health feeds | ABC Health, CBS Health, CNN Health, STAT, Fierce Healthcare, Healthcare Dive, KFF Health News, The Hill, NPR Health | Broad national items are filtered unless they have a payer, policy, coverage, or regional angle |
 | Social surfaces | Public Facebook pages for selected Vermont outlets | Parked by default; set `ENABLE_SOCIAL_SOURCES=true` for a deliberate one-off Facebook collection run |
 
@@ -163,6 +163,8 @@ The browser does not recrawl sources. GitHub Actions does the collection and dep
 Gemini rate limits vary by project, model, and usage tier. The summarizer starts with `gemini-2.5-flash-lite`, batches stories, caches successful summaries in `feed-audit.json`, and caps requests per run so hourly refreshes stay conservative.
 
 Source cooldowns are automatic when a primary feed has a fallback. HTTP 403 primary failures cool down for 24 hours, HTTP 429 failures use `Retry-After` (delta-seconds or HTTP-date form, capped at 24 hours) when present or two hours otherwise, and other primary errors cool down for one hour. During cooldown, the run goes straight to the fallback feed and records the reason in the audit feed. In-run retries treat HTTP 429 and 408 as transient and sleep up to 15 seconds between attempts; if `Retry-After` asks for longer than that, the fetch fails fast and the cooldown machinery takes over. Non-UTF-8 responses decode using the `Content-Type` charset or the document's own declaration, with bytes that validate as UTF-8 always taking precedence. Feed and article responses also store `ETag` and `Last-Modified` validators when servers provide them.
+
+`www.bcbs.com` (the BCBSA listing page) serves an incomplete TLS chain: leaf certificate only, with no DigiCert intermediate. Browsers recover by fetching the missing certificate from the authority-information-access URL; Node deliberately does not do this, so every request fails with `UNABLE_TO_VERIFY_LEAF_SIGNATURE`. The workflow therefore points `NODE_EXTRA_CA_CERTS` at `certs/digicert-global-g2-tls-rsa-sha256-2020-ca1.pem`, the missing intermediate taken from DigiCert's own CA issuers endpoint. Local runs need the same variable set to fetch that source.
 
 ## Crawl Politeness
 

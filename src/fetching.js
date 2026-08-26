@@ -264,6 +264,18 @@ function revalidationWasIneffective(response, conditional = {}) {
   return etag === conditional.etag && lastModified === conditional.lastModified;
 }
 
+// undici reports network-level failures as an opaque "fetch failed" and
+// hides the real reason (DNS refusal, TLS verification, connection reset)
+// in error.cause. Surface the code in the message so audit rows and logs
+// stay diagnosable without a debugger attached to the runner.
+function withCauseDetail(error) {
+  const detail = error?.cause?.code || error?.cause?.message;
+  if (!detail || String(error.message).includes(String(detail))) {
+    return error;
+  }
+  return new Error(`${error.message} (${detail})`, { cause: error.cause });
+}
+
 export async function fetchText(url, accept, options = {}) {
   let lastError = null;
   const policy = politenessPolicyFor(url);
@@ -353,7 +365,7 @@ export async function fetchText(url, accept, options = {}) {
     }
   }
 
-  throw lastError;
+  throw withCauseDetail(lastError);
 }
 
 async function enrichFacebookPageItemsFromPosts(pageItems, source) {
