@@ -120,6 +120,13 @@ jobs:
         env:
           SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # www.bcbs.com serves an incomplete TLS chain (leaf only, no
+          # DigiCert intermediate). Browsers recover via AIA fetching but
+          # Node deliberately does not, so every fetch failed with
+          # UNABLE_TO_VERIFY_LEAF_SIGNATURE. The missing intermediate,
+          # taken from DigiCert's own CA issuers endpoint, completes the
+          # chain; see WORKLOG 2026-08-25.
+          NODE_EXTRA_CA_CERTS: ${{ github.workspace }}/certs/digicert-global-g2-tls-rsa-sha256-2020-ca1.pem
         run: npm run generate
 
       - name: Reuse live feed for static deploy

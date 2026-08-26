@@ -15,34 +15,6 @@ function googleNewsSearchUrl(query) {
   return `https://news.google.com/rss/search?${params.toString()}`;
 }
 
-const BLUE_CROSS_CURRENT_SEARCH_TERMS = [
-  "bluecrossvt.org",
-  "site:bcbs.com",
-  "site:bluewebportal.bcbs.com",
-  '"Blue Cross VT"',
-  '"blue cross" AND VT',
-  '"blue cross" AND Vermont',
-  '"bluecross" AND VT',
-  '"bluecross" AND Vermont',
-  '"BCBS" AND VT',
-  '"bcbs" AND Vermont',
-  '"BCBSVT"',
-  '"BCBS VT"',
-  '"BlueCrossVT"',
-  '"Blue CrossVT"',
-  '"BlueCross VT"',
-  '"Blue Cross Vermont"',
-  '"Blue Cross and Blue Shield" AND Vermont',
-  '"Blue Cross and Blue Shield" AND VT',
-  '"Blue Cross and Blue Shield of Vermont"',
-  '"Bluecross Blueshield" AND Vermont',
-  '"BlueCross and BlueShield of Vermont"',
-  '"BlueCross & BlueShield of Vermont"',
-  '"Blue Cross of Vermont"',
-  '"Blue Cross Blue Shield Association"',
-  '"Vermont Blue Advantage"',
-];
-
 const BLUE_CROSS_VT_BACKFILL_TERMS = [
   "bluecrossvt.org",
   '"Blue Cross VT"',
@@ -71,25 +43,14 @@ const BLUE_CROSS_VT_BACKFILL_TERMS = [
   '"Vermont largest private insurer"',
 ];
 
-const BLUE_CROSS_CURRENT_SEARCH_QUERY =
-  `(${BLUE_CROSS_CURRENT_SEARCH_TERMS.join(" OR ")}) when:30d`;
 const BLUE_CROSS_VT_BACKFILL_QUERY =
   BLUE_CROSS_VT_BACKFILL_TERMS.join(" OR ");
 
 const LOCAL_OUTLET_FALLBACK_TERMS = [
-  '"Blue Cross VT"',
-  '"blue cross" AND Vermont',
-  '"BCBS" AND Vermont',
-  'Vermont AND "healthcare"',
-  'Vermont AND "health care"',
-  'Vermont AND "hospitals"',
-  '"health insurers"',
-  '"health care" AND affordability',
-  '"UVM Health"',
-  '"MVP Health Care"',
-  '"Green Mountain Care Board"',
-  '"Vermont health care"',
-  '"health insurance" AND Vermont',
+  '"health care"',
+  '"health insurance"',
+  'hospital',
+  '"blue cross"',
 ];
 
 const TOWNNEWS_SEARCH_THROTTLE = {
@@ -580,14 +541,89 @@ export const DEFAULT_SOURCES = [
     feedUrl: "https://strattonmagazine.com/feed/",
     fallbackFeed: localOutletFallbackFeed("strattonmagazine.com"),
   },
+  // The Blue Cross brand searches. Google News degrades long OR queries
+  // badly — the original single 23-term query returned 3 items while its
+  // own terms unioned to 49, and mixing site: operators with phrases is
+  // especially destructive (1 item vs ~17). These are split into small,
+  // homogeneous chunks; each chunk was measured live against Google News
+  // before being added (see WORKLOG 2026-08-25).
   {
-    name: "Google News Search",
+    name: "Google News Blue Cross Site Search",
     homepage: "https://news.google.com/",
-    feedUrl: googleNewsSearchUrl(BLUE_CROSS_CURRENT_SEARCH_QUERY),
+    feedUrl: googleNewsSearchUrl(
+      "(site:bcbsvt.org OR bluecrossvt.org OR site:bcbs.com OR site:bluewebportal.bcbs.com) when:30d",
+    ),
     isSearchFeed: true,
     searchFallbackTerms: ["Blue Cross"],
     maxItemAgeDays: 30,
-    maxItems: 50,
+    maxItems: 30,
+  },
+  {
+    name: "Google News Blue Cross Phrase Search",
+    homepage: "https://news.google.com/",
+    feedUrl: googleNewsSearchUrl(
+      '("Blue Cross VT" OR "BCBSVT" OR "BCBS VT" OR "BlueCrossVT") when:30d',
+    ),
+    isSearchFeed: true,
+    searchFallbackTerms: ["Blue Cross"],
+    maxItemAgeDays: 30,
+    maxItems: 10,
+  },
+  {
+    name: "Google News Blue Cross Spelling Variant Search",
+    homepage: "https://news.google.com/",
+    feedUrl: googleNewsSearchUrl(
+      '("Blue CrossVT" OR "BlueCross VT" OR "Blue Cross Vermont" OR "Blue Cross of Vermont") when:30d',
+    ),
+    isSearchFeed: true,
+    searchFallbackTerms: ["Blue Cross"],
+    scanArticle: false,
+    maxItemAgeDays: 30,
+    maxItems: 10,
+  },
+  {
+    name: "Google News Blue Cross Boolean Search A",
+    homepage: "https://news.google.com/",
+    feedUrl: googleNewsSearchUrl(
+      '("blue cross" AND VT) OR ("blue cross" AND Vermont) OR ("bluecross" AND VT) when:30d',
+    ),
+    isSearchFeed: true,
+    searchFallbackTerms: ["Blue Cross"],
+    maxItemAgeDays: 30,
+    maxItems: 20,
+  },
+  {
+    name: "Google News Blue Cross Boolean Search B",
+    homepage: "https://news.google.com/",
+    feedUrl: googleNewsSearchUrl(
+      '("bluecross" AND Vermont) OR ("BCBS" AND VT) OR ("bcbs" AND Vermont) when:30d',
+    ),
+    isSearchFeed: true,
+    searchFallbackTerms: ["Blue Cross"],
+    maxItemAgeDays: 30,
+    maxItems: 20,
+  },
+  {
+    name: "Google News Blue Cross Full-Name Search A",
+    homepage: "https://news.google.com/",
+    feedUrl: googleNewsSearchUrl(
+      '("Blue Cross and Blue Shield" AND Vermont) OR ("Blue Cross and Blue Shield" AND VT) OR ("Blue Cross and Blue Shield of Vermont") when:30d',
+    ),
+    isSearchFeed: true,
+    searchFallbackTerms: ["Blue Cross"],
+    maxItemAgeDays: 30,
+    maxItems: 15,
+  },
+  {
+    name: "Google News Blue Cross Full-Name Search B",
+    homepage: "https://news.google.com/",
+    feedUrl: googleNewsSearchUrl(
+      '("Bluecross Blueshield" AND Vermont) OR ("BlueCross and BlueShield of Vermont") OR ("BlueCross & BlueShield of Vermont") when:30d',
+    ),
+    isSearchFeed: true,
+    searchFallbackTerms: ["Blue Cross"],
+    maxItemAgeDays: 30,
+    maxItems: 15,
   },
   blueCrossVtBackfillSource(
     "Google News Blue Cross VT Backfill Since Jan 1 2026",
