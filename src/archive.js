@@ -334,7 +334,7 @@ export function dedupeResolvedItems(items) {
     const isAggregatorItem =
       domain === "news.google.com" || /^Google News\b/i.test(item.sourceName || "");
 
-    if (titleKey && seenTitleDomain.has(titleKey)) {
+    if (titleKey && seenTitleDomain.has(titleKey) && !item.fromMediaTracker) {
       continue;
     }
 
@@ -351,6 +351,17 @@ export function dedupeResolvedItems(items) {
       const existingIsAggregator =
         existingDomain === "news.google.com" ||
         /^Google News\b/i.test(existingItem.sourceName || "");
+
+      // A hand-logged clip carries the outlet and URL the team recorded, so
+      // it wins a title collision against a copy the crawler happened to find.
+      if (item.fromMediaTracker && !existingItem.fromMediaTracker) {
+        result[existingIndex] = item;
+        seenLinks.add(link);
+        if (titleKey) {
+          seenTitleDomain.add(titleKey);
+        }
+        continue;
+      }
 
       if (existingIsAggregator || isAggregatorItem) {
         if (existingIsAggregator && !isAggregatorItem) {
