@@ -1,0 +1,1577 @@
+{
+ "_comment": "Curated backfill of the communications team media tracker (Media Tracker.xlsx). Each entry is coverage the team logged by hand. Seeded into the crawl so the archive holds the full known set, not only what the crawler independently found. trackerSentiment is the team score where recorded, kept as ground truth for the agreement measurement and never published as our own score.",
+ "_source": "Media Tracker.xlsx",
+ "_exportedAt": "2026-08-27",
+ "articles": [
+  {
+   "url": "https://www.modernhealthcare.com/insurance/mh-blue-cross-vermont-beth-ann-roberts/",
+   "title": "How a new Blue Cross CEO plans to revive financial performance",
+   "outlet": "Modern Healthcare",
+   "pubDate": null,
+   "topic": "New CEO",
+   "reporter": "Nona Tepper"
+  },
+  {
+   "url": "https://www.mychamplainvalley.com/news/local-news/vermont/green-mtn-care-board-sets-2027-health-insurance-rates/",
+   "title": "Green Mtn. Care Board sets 2027 health insurance rates",
+   "outlet": "ABC 22/FOX 44",
+   "pubDate": null,
+   "topic": "Rate Decision",
+   "trackerSentiment": "neutral to positive",
+   "reporter": "Matt Holderman"
+  },
+  {
+   "url": "https://www.washingtonpost.com/health/2026/03/28/insurance-health-care-medicare-seniors/",
+   "title": "Why millions of seniors have suddenly lost health care coverage",
+   "outlet": "The Washington Post",
+   "pubDate": null,
+   "topic": "Medicare Advantage exits",
+   "reporter": "Christopher Rowland"
+  },
+  {
+   "url": "https://www.wsj.com/opinion/free-market-health-reform-in-bernie-sanderss-vermont-32a2ba68",
+   "title": "Commentary - Free-Market Health Reform in Bernie Sanders’s Vermont",
+   "outlet": "The Wall Street Journal",
+   "pubDate": null,
+   "topic": "BCBSVT's share of the ACA market as \"monopoly driving up prices\"",
+   "trackerSentiment": "neutral to negative",
+   "reporter": "Hayden Dublois"
+  },
+  {
+   "url": "https://vermontdailychronicle.com/roper-healthcare-in-vermont-is-a-government-facilitated-grift/amp/",
+   "title": "OPINION: Roper: Healthcare in Vermont is a government facilitated grift",
+   "outlet": "Vermont Daily Chronicle",
+   "pubDate": "2025-12-05T12:00:00.000Z",
+   "topic": "High costs/insurer & provider monopoly",
+   "reporter": "Rob Roper"
+  },
+  {
+   "url": "https://vtdigger.org/2025/12/05/vermont-health-officials-reaffirm-importance-of-hepatitis-b-vaccine-after-federal-advisory-panel-recommends-delays/",
+   "title": "Vermont health officials reaffirm importance of hepatitis B vaccine after federal advisory panel recommends delays",
+   "outlet": "VT Digger",
+   "pubDate": "2025-12-05T12:00:00.000Z",
+   "topic": "Vaccine status",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://www.vermontpublic.org/local-news/2025-12-08/farmers-crisis-rising-health-care-costs",
+   "title": "Vermont farmers face another crisis: rising health care costs",
+   "outlet": "VPR",
+   "pubDate": "2025-12-08T12:00:00.000Z",
+   "topic": "premium cost/exp of fed subsidies",
+   "reporter": "Sabine Poux"
+  },
+  {
+   "url": "https://www.wcax.com/2025/12/08/thousands-vermonters-brace-big-health-insurance-rate-hikes/",
+   "title": "Thousands of Vermonters brace for big health insurance rate hikes",
+   "outlet": "WCAX",
+   "pubDate": "2025-12-08T12:00:00.000Z",
+   "topic": "Expiration of Federal Subsidies",
+   "reporter": "Calvin Cutler"
+  },
+  {
+   "url": "https://www.beckerspayer.com/executive-moves/26-payer-ceo-moves-from-2025/",
+   "title": "19 payer CEO moves in 2025",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2025-12-12T12:00:00.000Z",
+   "topic": "New CEO",
+   "reporter": "Elizabeth Casolo"
+  },
+  {
+   "url": "https://www.beckerspayer.com/payer/medicare-advantage/the-3-biggest-medicare-advantage-trends-from-2025/",
+   "title": "The 3 biggest Medicare Advantage trends of 2025",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2025-12-18T12:00:00.000Z",
+   "topic": "Dropping Medicare Advantage",
+   "reporter": "Elizabeth Casolo"
+  },
+  {
+   "url": "https://vtdigger.org/2025/12/22/vermonts-largest-health-insurer-tells-you-to-avoid-the-states-largest-hospital-in-new-marketing-campaign/",
+   "title": "Vermont’s largest health insurer tells you to avoid the state’s largest hospital in new marketing campaign",
+   "outlet": "VT Digger",
+   "pubDate": "2025-12-22T12:00:00.000Z",
+   "topic": "Affordability Matters",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://www.beckerspayer.com/payer/bcbs-of-vermont-campaign-questions-academic-medical-center-pricing/",
+   "title": "BCBS of Vermont campaign questions academic medical center pricing",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2025-12-22T12:00:00.000Z",
+   "topic": "Affordability Matters",
+   "reporter": "Liz Casolo"
+  },
+  {
+   "url": "https://blubrry.com/vermontviewpoint/150963094/december-23-2025-rob-roper-with-republican-party-chair-paul-dame-and-amy-hornblas-founder-of-the-new-online-forum-vermont-back-porch/",
+   "title": "December 23, 2025 Rob Roper with Republican Party Chair Paul Dame, and Amy Hornblas founder of the new online forum, Vermont Back Porch",
+   "outlet": "WDEV Radio - Vermont Viewpoint",
+   "pubDate": "2025-12-23T12:00:00.000Z",
+   "topic": "Affordability price sheet presented at Legislative session",
+   "reporter": "Rob Roper"
+  },
+  {
+   "url": "https://www.compassvermont.com/p/battle-of-the-giants-understanding?utm_source=post-email-title&publication_id=5007826&post_id=182454604&utm_campaign=email-post-title&isFreemail=true&r=5s3gkc&triedRedirect=true&utm_medium=email&hide_intro_popup=true",
+   "title": "Battle of the Giants: Understanding the Public Split Between Blue Cross and UVM Health Network",
+   "outlet": "Compass Vermont",
+   "pubDate": "2025-12-24T12:00:00.000Z",
+   "topic": "Affordability Matters"
+  },
+  {
+   "url": "https://www.healthpayerspecialist.com/c/5055554/706344?referrer_module=dashLatestNews&module_order=1",
+   "title": "BCBS Vermont Launches Campaign Aimed At Exposing High Provider Charges",
+   "outlet": "Health Payer Specialist",
+   "pubDate": "2025-12-24T12:00:00.000Z",
+   "topic": "Affordability Matters",
+   "reporter": "Ron Shinkman"
+  },
+  {
+   "url": "https://www.vermontpublic.org/show/vermont-this-week/2025-12-26/in-review-top-10-stories-2025",
+   "title": "Top Ten News Stories of 2025: In review: Health care, immigration and education reform among this year's biggest stories",
+   "outlet": "Vermont Public Broadcasting - Vermont This Week",
+   "pubDate": "2025-12-26T12:00:00.000Z",
+   "topic": "BCBS Financials ($62M loss)",
+   "reporter": "Lola Duffort"
+  },
+  {
+   "url": "https://www.vermontpublic.org/local-news/2025-12-29/burlington-mental-health-provider-to-pay-200k-to-settle-medicaid-fraud-claims",
+   "title": "Burlington mental health provider to pay $200K to settle Medicaid fraud claims",
+   "outlet": "Vermont Public Radio",
+   "pubDate": "2025-12-29T12:00:00.000Z",
+   "topic": "MH Reimbursement and provider Medicaid fraud settlement",
+   "reporter": "Lola Duffort"
+  },
+  {
+   "url": "https://www.vermontpublic.org/show/vermont-this-week/2026-01-02/legislative-preview-2026-education-health-care-housing",
+   "title": "Legislative preview: What's ahead for education reform, housing and health care?",
+   "outlet": "Vermont Public Broadcasting - Vermont This Week",
+   "pubDate": "2026-01-02T12:00:00.000Z",
+   "topic": "Premium costs, 2025 financials, affordable care/competition",
+   "reporter": "Mitch Wertlieb"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/january/04/employee-health-care-beth-schillers-primary-concern",
+   "title": "Employee health care is Beth Schiller’s primary concern",
+   "outlet": "Vermont Business Magazine",
+   "pubDate": "2026-01-04T12:00:00.000Z",
+   "topic": "BCBS VT pulling out of Medicare Advantage plans",
+   "reporter": "Timothy McQuiston"
+  },
+  {
+   "url": "https://nhjournal.com/business-groups-warn-white-bagging-ban-will-send-healthcare-costs-higher/",
+   "title": "Business Groups Warn ‘White-Bagging’ Ban Will Send Healthcare Costs Higher",
+   "outlet": "NH Journal",
+   "pubDate": "2026-01-06T12:00:00.000Z",
+   "topic": "Premium rates",
+   "reporter": "Leonard Robinson"
+  },
+  {
+   "url": "https://www.youtube.com/watch?v=LboCYNfe858",
+   "title": "The Cost of Care: Owen Foster from the Green Mountain Care Board on Healthcare Challenges in Vermont",
+   "outlet": "No \"A\" in Creemee",
+   "pubDate": "2026-01-06T12:00:00.000Z",
+   "topic": "Healthcare reform. BCBS financial solvency and cotnractign and pricing",
+   "reporter": "Joanna Grossman and Andy Julow"
+  },
+  {
+   "url": "https://www.vermontpublic.org/show/vermont-edition/2026-01-07/the-state-of-affordability-in-vermont",
+   "title": "The State of Affordability in Vermont",
+   "outlet": "Vermont Public Radio",
+   "pubDate": "2026-01-07T12:00:00.000Z",
+   "topic": "Update with Owen Wilson on healthcare costs, BCBS VT financials",
+   "reporter": "Mikaela Lefrank"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/january/12/beth-roberts-assumes-role-ceo-blue-cross-and-blue-shield-vermont",
+   "title": "Beth Roberts assumes role as CEO of Blue Cross and Blue Shield of Vermont",
+   "outlet": "Vermont Business Magazine",
+   "pubDate": "2026-01-12T12:00:00.000Z",
+   "topic": "Beth Roberts press release",
+   "reporter": "Timothy McQuiston"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/january/12/vahhs-hospitals-also-back-state-house",
+   "title": "VAHHS: Hospitals also back to the State House",
+   "outlet": "Vermont Business Magazine",
+   "pubDate": "2026-01-12T12:00:00.000Z",
+   "topic": "BCBSVT (Ruth) testimony to House Health Care Committee",
+   "reporter": "Devon Green (Submitted piece)"
+  },
+  {
+   "url": "https://www.compassvermont.com/p/uvms-north-country-hospitals-bargain",
+   "title": "UVM's North Country Hospitals Bargain Amid NYC 15,000+ Nurse Walkout",
+   "outlet": "Compass Vermont",
+   "pubDate": "2026-01-12T12:00:00.000Z",
+   "topic": "Labor issues/NYC Nurses strike and BCBS settlement with UVMHN"
+  },
+  {
+   "url": "https://gnat-tv.org/pressrelease-blue-cross-and-blue-shield-of-vermont-enters-next-chapter-as-beth-roberts-assumes-role-of-president-and-ceo/",
+   "title": "Blue Cross and Blue Shield of Vermont Enters Next Chapter as Beth Roberts Assumes Role of President and CEO",
+   "outlet": "GNAT-TV",
+   "pubDate": "2026-01-13T12:00:00.000Z",
+   "topic": "New CEO"
+  },
+  {
+   "url": "https://www.samessenger.com/opinion/editorials/cant-fix-healthcare-if-information-is-wrong/article_8a5c4048-ab84-4bb4-a513-9aa9abca16e9.html",
+   "title": "Can't fix healthcare if information is wrong",
+   "outlet": "St. Albans Messenger",
+   "pubDate": "2026-01-13T12:00:00.000Z",
+   "topic": "healthcare reform VHC911 Report, Beth Roberts",
+   "reporter": "Emerson Lynn"
+  },
+  {
+   "url": "https://www.beckerspayer.com/leadership/meet-the-ceo-of-the-bcbs-affiliate-in-every-state/",
+   "title": "Meet the CEO of the BCBS affiliate in every state",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2026-01-14T12:00:00.000Z",
+   "topic": "New CEO",
+   "reporter": "Jakob Emerson",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://www.sevendaysvt.com/news/healthcare/in-ad-campaign-blue-cross-asks-patients-to-shop-around/",
+   "title": "In Ad Campaign, Blue Cross Asks Patients to Shop Around",
+   "outlet": "Seven Days",
+   "pubDate": "2026-01-14T12:00:00.000Z",
+   "topic": "Affordability Matters",
+   "reporter": "Colin Flanders"
+  },
+  {
+   "url": "https://www.wcax.com/2026/01/14/ad-campaign-blue-cross-asks-patients-shop-around/",
+   "title": "In ad campaign, Blue Cross asks patients to shop around",
+   "outlet": "WCAX",
+   "pubDate": "2026-01-14T12:00:00.000Z",
+   "topic": "Affordability Matters",
+   "reporter": "Darren Perron"
+  },
+  {
+   "url": "https://citizenportal.ai/articles/7282517/Vermont/DFR-tells-Appropriations-committee-Vermont-insurers-need-adequate-rates-to-avert-Blue-Cross-insolvency",
+   "title": "DFR tells Appropriations committee Vermont insurers need adequate rates to avert Blue Cross insolvency",
+   "outlet": "Citzenportal.AI - is this a media outlet?",
+   "pubDate": "2026-01-15T12:00:00.000Z",
+   "topic": "Blue Cross financials and rates",
+   "reporter": "N/A AI tool"
+  },
+  {
+   "url": "https://www.ourherald.com/articles/roberts-is-named-vermont-blue-cross-blue-shield-ceo/",
+   "title": "Roberts Is Named Vermont Blue Cross Blue Shield CEO",
+   "outlet": "White River Valley Herald",
+   "pubDate": "2026-01-15T12:00:00.000Z",
+   "topic": "New CEO"
+  },
+  {
+   "url": "https://vtdigger.org/2026/01/16/bluecross-blueshields-new-ceo-takes-over-as-insurer-faces-federal-and-statewide-challenges/?utm_medium=email&utm_campaign=Daily%20Digger%201%2F17%2F26&utm_source=dc3c5486db&utm_source=VTDigger+Subscribers+and+Donors&utm_campaign=31f366a632-EMAIL_CAMPAIGN_2026_01_17_01_30&utm_medium=email&utm_term=0_-31f366a632-381308666",
+   "title": "BlueCross BlueShield’s new CEO takes over as insurer faces federal and statewide challenges",
+   "outlet": "VT Digger",
+   "pubDate": "2026-01-16T12:00:00.000Z",
+   "topic": "New CEO",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://www.vermontpublic.org/show/vermont-this-week/2026-01-16/in-review-cheaper-health-care-motel-program-supreme-court",
+   "title": "In review: Shopping for cheaper health care, plan to ramp down motel program, Supreme Court nominees",
+   "outlet": "Vermont Public Broadcasting - Vermont This Week",
+   "pubDate": "2026-01-16T12:00:00.000Z",
+   "topic": "Affordability Matters",
+   "reporter": "Mitch Wertlieb"
+  },
+  {
+   "url": "https://www.timesargus.com/news/local/business-briefs-for-saturday-jan-17-2026/article_a3fc22af-5a79-5723-b90a-141baa8b8d2a.html",
+   "title": "Business Briefs for Saturday, Jan. 17, 2026- Blue Cross Blue Shield VT",
+   "outlet": "Times Argus",
+   "pubDate": "2026-01-17T12:00:00.000Z",
+   "topic": "New CEO",
+   "reporter": "staff"
+  },
+  {
+   "url": "https://www.samessenger.com/opinion/editorials/how-nmc-can-be-used-to-lower-health-care-costs/article_078e0015-600f-416b-ac79-028ad43feda5.html",
+   "title": "How NMC can be used to lower health care costs (opinion)",
+   "outlet": "St. Alban's Messenger",
+   "pubDate": "2026-01-20T12:00:00.000Z",
+   "topic": "Affordability Matters",
+   "reporter": "Emerson Lynn"
+  },
+  {
+   "url": "https://www.healthpayerspecialist.com/lead/enroll/5071744/712404?from=https%3A%2F%2Fwww.healthpayerspecialist.com%2Fc%2F5071744%2F712404%3Freferrer_module%3DdashLatestNews%26module_order%3D3&referrer_module=dashLatestNews",
+   "title": "BCBS of Vermont CEO Vows to Collaborate Better to Drive Down Healthcare Costs",
+   "outlet": "Health Payer Specialist",
+   "pubDate": "2026-01-21T12:00:00.000Z",
+   "topic": "Pickup/Additional commentary on VT Digger interview w/Beh",
+   "reporter": "Alex Padalka"
+  },
+  {
+   "url": "https://www.modernhealthcare.com/insurance/mh-blue-cross-university-vermont-medical-center/#",
+   "title": "Blue Cross plans test patient willingness to shop for healthcare",
+   "outlet": "Modern Healthcare",
+   "pubDate": "2026-01-21T12:00:00.000Z",
+   "topic": "Affordability Matters",
+   "reporter": "Nona Tepper"
+  },
+  {
+   "url": "https://www.mynbc5.com/article/rising-health-care-costs-strain-vt-families-as-lawmakers-search-for-solutions/70083234",
+   "title": "Rising health care costs strain Vermont families as lawmakers search for solutions",
+   "outlet": "NBC5",
+   "pubDate": "2026-01-21T12:00:00.000Z",
+   "topic": "Affrodability matters pricing/premiums/VT House Dems press conference",
+   "reporter": "James Maloney"
+  },
+  {
+   "url": "https://www.benningtonbanner.com/opinion/letters/letter-to-the-editor-lee-russ-we-need-to-fix-health-care-in-vermont-and/article_e715ee7c-3993-4621-9433-1856e9deac78.html",
+   "title": "Letter to the Editor | Lee Russ: We need to fix health care in Vermont and beyond",
+   "outlet": "Bennington Banner",
+   "pubDate": "2026-01-22T12:00:00.000Z",
+   "topic": "affordability campaign",
+   "reporter": "Lee Russ"
+  },
+  {
+   "url": "https://www.timesargus.com/theworld/health-briefs---jan-22-2026/article_0ea71913-311f-4cc1-b0b4-1b4ccd56d28d.html",
+   "title": "Health Briefs - Jan 22, 2026",
+   "outlet": "Times Argus",
+   "pubDate": "2026-01-22T12:00:00.000Z",
+   "topic": "New CEO",
+   "reporter": "Staff"
+  },
+  {
+   "url": "https://vtdigger.org/2026/01/22/early-numbers-show-many-vermonters-dropping-their-insurance-for-2026/?utm_medium=email&utm_campaign=Daily%20Digger%201%2F23%2F26&utm_source=dc3c5486db&utm_source=VTDigger+Subscribers+and+Donors&utm_campaign=58f9d37c5f-EMAIL_CAMPAIGN_2026_01_23_12_15&utm_medium=email&utm_term=0_-58f9d37c5f-381308666",
+   "title": "Early numbers show many Vermonters dropping their insurance for 2026",
+   "outlet": "VT Digger",
+   "pubDate": "2026-01-23T12:00:00.000Z",
+   "topic": "ACA open enrollment/fed subs expiring/premium costs",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://www.sevendaysvt.com/arts-culture/stuck-in-vermont-vermonters-struggle-with-rising-health-insurance-costs-and-some-are-going-without/",
+   "title": "Stuck in Vermont: Vermonters Struggle With Rising Health Insurance Costs, and Some Are Going Without",
+   "outlet": "Seven Days",
+   "pubDate": "2026-01-23T12:00:00.000Z",
+   "topic": "ACA open enrollment/fed subs expiring/premium costs",
+   "reporter": "Colin Flanders"
+  },
+  {
+   "url": "https://www.vtcng.com/thecitizenvt/news/local_news_charlotte/charlotte-agrees-to-raises-for-non-union-workers/article_718b3c1c-9f2c-4d04-ae17-f44e1881c550.html",
+   "title": "Charlotte agrees to raises for non-union workers",
+   "outlet": "The Citizen",
+   "pubDate": "2026-01-23T12:00:00.000Z",
+   "topic": "premium costs (BlueCross plan for town employees)",
+   "reporter": "Liberty Darr"
+  },
+  {
+   "url": "https://www.wcax.com/2026/01/24/bernie-sanders-joins-health-care-town-hall-discussion-downtown-burlington/",
+   "title": "Bernie Sanders joins health care town hall discussion in downtown Burlington",
+   "outlet": "WCAX",
+   "pubDate": "2026-01-23T12:00:00.000Z",
+   "topic": "Townhall event - mentioned UVMHN-BCBSBVT contract negotiations (16% lower for outpatient and imaging costs 25%)",
+   "reporter": "Laura Ullman"
+  },
+  {
+   "url": "https://www.modernhealthcare.com/insurance/mh-cms-medicare-advantage-unitedhealth-humana/",
+   "title": "CMS authors plot twist in Medicare Advantage comeback story",
+   "outlet": "Modern Healthcare",
+   "pubDate": "2026-01-28T12:00:00.000Z",
+   "topic": "BCBSVT pull out of MA market",
+   "reporter": "Nona Tepper"
+  },
+  {
+   "url": "https://www.timesargus.com/news/local/sanders-leffler-talk-health-care-concerns/article_6e71f310-acf8-4873-b184-265e24a778fc.html",
+   "title": "Sanders, Leffler talk health care concerns",
+   "outlet": "Times Argus",
+   "pubDate": "2026-01-28T12:00:00.000Z",
+   "topic": "Townhall event - mentioned UVMHN-BCBSBVT contract negotiations (16% lower for outpatient and imaging costs 25%)",
+   "reporter": "Katie Lyford"
+  },
+  {
+   "url": "https://www.beckerspayer.com/leadership/bcbs-vermonts-new-ceo-points-to-a-major-affordability-concern-and-how-she-is-tackling-it/",
+   "title": "BCBS Vermont’s new CEO points to a major affordability concern — and how she is tackling it",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2026-01-29T12:00:00.000Z",
+   "topic": "New CEO",
+   "reporter": "Liz Casolo"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/february/03/vahhs-legislature-moving-full-steam-ahead",
+   "title": "`VAHHS: Legislature is moving full steam ahead",
+   "outlet": "Vermont Business Magazine",
+   "pubDate": "2026-02-03T12:00:00.000Z",
+   "topic": "Mentions BCBS VT in relation to H585 and the gov-appointed board seats",
+   "reporter": "Devon Green (Submitted piece)"
+  },
+  {
+   "url": "https://www.sevendaysvt.com/news/letters/letters-to-the-editor-2-3-26/",
+   "title": "‘Total Market Failure’",
+   "outlet": "Seven Days",
+   "pubDate": "2026-02-03T12:00:00.000Z",
+   "topic": "LTE in response to another LTE re: why shoppable services",
+   "reporter": "Liz Curry - LTE"
+  },
+  {
+   "url": "https://www.usnews.com/news/u-s-news-decision-points/articles/2026-02-03/snowcrete-and-super-bazookas-news-from-the-states",
+   "title": "Snowcrete and ‘Super Bazookas’: News From the States",
+   "outlet": "US News & World Report",
+   "pubDate": "2026-02-03T12:00:00.000Z",
+   "topic": "pick up of Seven Days article on cost of QHP plans (with subsidies expiring). Cost of Blue Cross VT plan mentioned",
+   "reporter": "Olivier Knox"
+  },
+  {
+   "url": "https://www.vermontpublic.org/show/vermont-edition/2026-02-04/new-bluecross-blueshield-ceo-says-we-have-an-affordability-crisis-in-vermont",
+   "title": "New BlueCross BlueShield CEO says 'we have an affordability crisis' in Vermont",
+   "outlet": "Vermont Public - Vermont Edition",
+   "pubDate": "2026-02-04T12:00:00.000Z",
+   "topic": "Live Interview w/Beth, lots of topics covered",
+   "reporter": "Mikaela Lefrak"
+  },
+  {
+   "url": "https://www.beckerspayer.com/policy-updates/vermont-lawmakers-pitch-health-insurance-reform-from-executive-pay-to-junk-plans/",
+   "title": "Vermont lawmakers pitch health insurance reform, from executive pay to ‘junk’ plans",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2026-02-06T12:00:00.000Z",
+   "topic": "Repurposed Beth's comments on care in VT being driven by hospitals",
+   "reporter": "Liz Casolo"
+  },
+  {
+   "url": "https://www.reformer.com/local-news/representative-bos-lun-fighting-rare-lung-cancer/article_215eaddb-8581-4990-9434-0df02c0d0344.html",
+   "title": "Representative Bos-Lun fighting rare lung cancer",
+   "outlet": "Brattleboro Reformer",
+   "pubDate": "2026-02-08T12:00:00.000Z",
+   "topic": "BCBS VT coverage denial",
+   "reporter": "Susan Smallheer"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/february/09/devon-green-regulating-bad-actions-private-equity-health-care",
+   "title": "Devon Green: Regulating the bad actions of private equity in health care",
+   "outlet": "Vermon Business Magazine",
+   "pubDate": "2026-02-09T12:00:00.000Z",
+   "topic": "BCBC VT testimony on the H.585 Bill (bd seats and site neutrality)",
+   "reporter": "Devon Green (Submitted piece)"
+  },
+  {
+   "url": "https://vtdigger.org/2026/02/13/a-rare-condition-can-send-kids-into-fits-of-rage-treatment-could-help-if-insurance-covers-it/",
+   "title": "A rare condition can send kids into fits of rage. Treatment could help — if insurance covers it.",
+   "outlet": "VT Digger",
+   "pubDate": "2026-02-13T12:00:00.000Z",
+   "topic": "Senate Bill 251 re: coverage of PANS/PANDAS",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://www.crainsdetroit.com/health-care/blue-cross-blue-shield-michigan-sell-af-group",
+   "title": "Blue Cross to sell off its third-largest subsidiary",
+   "outlet": "Crain's Detroit",
+   "pubDate": "2026-02-13T12:00:00.000Z",
+   "topic": "Mentioned as a subsidiary of BCBSM",
+   "reporter": "Anna Fifelski"
+  },
+  {
+   "url": "https://www.healthpayerspecialist.com/lead/enroll/5093634/717984?from=https%3A%2F%2Fwww.healthpayerspecialist.com%2Fc%2F5093634%2F717984%2Fbcbs_michigan_sells_billion_division",
+   "title": "BCBS Michigan Sells $3B P&C Division",
+   "outlet": "Health Payer Specialist",
+   "pubDate": "2026-02-13T12:00:00.000Z",
+   "topic": "Mentioned as a subsidiary of BCBSM (acquired); VT noted as struggling financially",
+   "reporter": "Peter Johnson"
+  },
+  {
+   "url": "https://www.sevendaysvt.com/news/healthcare/as-insurers-drop-weight-loss-drug-coverage-vermonters-lose-access/",
+   "title": "As Insurers Drop Weight-Loss Drug Coverage, Vermonters Lose Access",
+   "outlet": "Seven Days",
+   "pubDate": "2026-02-18T12:00:00.000Z",
+   "topic": "Stopped coverage of GLP-1s",
+   "reporter": "Colin Flanders"
+  },
+  {
+   "url": "https://www.sevendaysvt.com/news/letters/letters-to-the-editor-2-18-26/",
+   "title": "Don't Buy It",
+   "outlet": "Seven Days",
+   "pubDate": "2026-02-18T12:00:00.000Z",
+   "topic": "Affordability campaign against \"shopping\" for healthcare",
+   "reporter": "Walter Carpenter - LTE"
+  },
+  {
+   "url": "https://www.beckerspayer.com/payer/payer-provider-transparency-campaigns-could-signal-deeper-tensions/",
+   "title": "Payer, provider transparency campaigns could signal deeper tensions",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2026-02-19T12:00:00.000Z",
+   "topic": "Affordability campaign again provider contracting",
+   "reporter": "Liz Casolo"
+  },
+  {
+   "url": "https://vtdigger.org/2026/02/20/vermont-seeks-to-join-5-states-in-drug-purchasing-consortium/",
+   "title": "Vermont seeks to join 5 states in drug-purchasing consortium",
+   "outlet": "VT Digger",
+   "pubDate": "2026-02-20T12:00:00.000Z",
+   "topic": "H.577 bill and Array RX - BCBSVT supports it",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/february/24/vahhs-legislative-session-picks",
+   "title": "VAHHS: Legislative session picks up",
+   "outlet": "Vermont Business Magazine",
+   "pubDate": "2026-02-23T12:00:00.000Z",
+   "topic": "Stages of various bills in discussion",
+   "reporter": "Devon Green (Submitted piece)"
+  },
+  {
+   "url": "https://www.sevendaysvt.com/news/letters/letters-to-the-editor-2-25-26/",
+   "title": "Why I left Cigna",
+   "outlet": "Seven Days",
+   "pubDate": "2026-02-25T12:00:00.000Z",
+   "topic": "Affordability campaign, UVMMC leaving BCBSVT for Cigna",
+   "reporter": "Marc Richter - LTE"
+  },
+  {
+   "url": "https://podcast.show/vermontviewpoint/episode/152562235/",
+   "title": "February 26th, 2026 - On the Ground: West Bank Stories & the Cost drivers of Healthcare in Vermont",
+   "outlet": "Vermont Viewpoint",
+   "pubDate": "2026-02-26T12:00:00.000Z",
+   "topic": "VHC 911 Report - new studies and impact on payers",
+   "reporter": "David Zuckerman"
+  },
+  {
+   "url": "https://thepenngazette.com/prescribing-affordability/",
+   "title": "Prescribing Affordability",
+   "outlet": "The Penn Gazette",
+   "pubDate": "2026-02-27T12:00:00.000Z",
+   "topic": "Affordability campaign",
+   "reporter": "Alex Garlick"
+  },
+  {
+   "url": "https://www.timesargus.com/news/local/vt-healthcare-911-says-its-good-to-be-taken-seriously-on-rising-health-care-costs/article_362fc808-bf77-53aa-9416-c81e38650c74.html",
+   "title": "VT Healthcare 911 says it's good to be taken seriously on rising health care costs",
+   "outlet": "Times Argus",
+   "pubDate": "2026-02-27T12:00:00.000Z",
+   "topic": "VHC 911 Report",
+   "reporter": "Keith Whitcomb JR"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/march/02/blue-cross-vermont-reports-notable-financial-improvement-2025",
+   "title": "Blue Cross Vermont reports notable financial improvement in 2025",
+   "outlet": "Vermont Business Magazine",
+   "pubDate": "2026-03-02T12:00:00.000Z",
+   "topic": "2025 Financials",
+   "reporter": "Tim McQuiston"
+  },
+  {
+   "url": "https://vtdigger.org/2026/03/02/2025-was-a-much-better-year-for-bluecross-blueshield-of-vermont/",
+   "title": "2025 was a much better year for BlueCross BlueShield of Vermont",
+   "outlet": "VT Digger",
+   "pubDate": "2026-03-02T12:00:00.000Z",
+   "topic": "2025 Financials",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://www.benningtonbanner.com/local-news/discussion-focuses-on-the-challenge-of-reducing-healthcare-costs/article_a933bbb1-cec1-463c-8e9c-0eccee2c256d.html",
+   "title": "Discussion focuses on the challenge of reducing Vermont healthcare costs",
+   "outlet": "Bennington Banner",
+   "pubDate": "2026-03-02T12:00:00.000Z",
+   "topic": "Forum on healthcare costs arranged by Bennington County's two state senators, Seth Bongartz and Rob Plunket premiums",
+   "reporter": "Marc Rondeau"
+  },
+  {
+   "url": "https://www.sevendaysvt.com/news/healthcare/blue-cross-of-vermont-rebounds-after-near-collapse/",
+   "title": "Blue Cross of Vermont Rebounds After Near Collapse",
+   "outlet": "Seven Days",
+   "pubDate": "2026-03-02T12:00:00.000Z",
+   "topic": "2025 Financials",
+   "reporter": "Hannah Bassett"
+  },
+  {
+   "url": "https://www.vermontpublic.org/local-news/2026-03-02/bluecross-blueshield-of-vermont-reports-surplus-says-its-on-a-path-to-financial-recovery",
+   "title": "Vermont reports surplus, says it’s on a 'path to financial recovery",
+   "outlet": "Vermont Public",
+   "pubDate": "2026-03-02T12:00:00.000Z",
+   "topic": "2025 Financials",
+   "reporter": "Lola Duffort"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/march/03/vahhs-health-care-and-town-meeting-week",
+   "title": "VAHHS: Health Care and Town Meeting Week",
+   "outlet": "VermontBiz",
+   "pubDate": "2026-03-03T12:00:00.000Z",
+   "topic": "Referenced BCBSVT thoughts on S.197 - primary care bill",
+   "reporter": "Devon Green (Submitted piece)"
+  },
+  {
+   "url": "https://www.beckerspayer.com/financial/bcbs-vermont-reports-63-3m-in-profit-for-2025/",
+   "title": "BCBS Vermont reports $63.3M in profit for 2025",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2026-03-03T12:00:00.000Z",
+   "topic": "2025 Financials",
+   "reporter": "Liz Casolo"
+  },
+  {
+   "url": "https://www.healthpayerspecialist.com/c/5105514/720654?referrer_module=dashSpotlightPrimary&module_order=0",
+   "title": "BlueCross BlueShield of Vermont Posts First Profit Since 2020",
+   "outlet": "Health Payer Specialist",
+   "pubDate": "2026-03-04T12:00:00.000Z",
+   "topic": "2025 Financials"
+  },
+  {
+   "url": "https://www.vermontpublic.org/local-news/2026-03-09/regulators-arent-done-asking-hospitals-cut-costs",
+   "title": "Regulators signal they aren’t done asking hospitals to cut costs",
+   "outlet": "Vermont Public",
+   "pubDate": "2026-03-10T12:00:00.000Z",
+   "topic": "Blue Cross VT past financial challenges/lowering hospital costs",
+   "reporter": "Lola Duffort"
+  },
+  {
+   "url": "https://www.wcax.com/2026/03/11/liaison-appointed-by-state-consolidate-health-care-spending/?outputType=amp",
+   "title": "State liaison working to lower health care costs at UVM Medical Center",
+   "outlet": "WCAX",
+   "pubDate": "2026-03-11T12:00:00.000Z",
+   "topic": "12.3% rate reduction with UVMHN",
+   "reporter": "Laura Ullman"
+  },
+  {
+   "url": "https://vtdigger.org/2026/03/13/vermonts-8-year-all-payer-health-care-experiment-sunset-at-the-end-of-2025-what-did-it-teach-us/",
+   "title": "Vermont’s 8-year ‘all-payer’ health care experiment sunset at the end of 2025. What did it teach us?",
+   "outlet": "VT Digger",
+   "pubDate": "2026-03-13T12:00:00.000Z",
+   "topic": "BCBSVT dropping out of OneCare",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://www.healthcare-brew.com/stories/2026/03/10/nearly-entire-state-vermont-disenrolled-medicare-advantage",
+   "title": "What happens when nearly an entire state is kicked off Medicare Advantage?",
+   "outlet": "Healthcare Brew",
+   "pubDate": "2026-03-13T12:00:00.000Z",
+   "topic": "Medicare Advantage exit",
+   "reporter": "Caroline Catherman"
+  },
+  {
+   "url": "https://vtdigger.org/2026/03/16/vermonters-adjust-to-a-health-care-landscape-without-medicare-advantage/",
+   "title": "Vermonters adjust to a health care landscape without Medicare Advantage",
+   "outlet": "VT Digger",
+   "pubDate": "2026-03-16T12:00:00.000Z",
+   "topic": "BCBSVT dropping out of Medicare Advantage",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://www.vermontpublic.org/show/vermont-edition/2026-03-16/reporter-roundtable-vt-legislatures-crossover-day",
+   "title": "Reporter roundtable: Vt. legislature's 'crossover day'",
+   "outlet": "Vermont Public - Vermont Edition",
+   "pubDate": "2026-03-16T12:00:00.000Z",
+   "topic": "Bill about Gov. -appointed bd seats",
+   "reporter": "Mikaela Lefrak, Lola Duffort"
+  },
+  {
+   "url": "https://vtdigger.org/2026/03/19/federal-government-investigates-vermonts-abortion-coverage-mandate/",
+   "title": "Federal government investigates Vermont’s abortion coverage mandate",
+   "outlet": "VT Digger",
+   "pubDate": "2026-03-19T12:00:00.000Z",
+   "topic": "HHS Investigation into forced abortion care/coverage in 13 states including Vermont",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://kevinmd.com/2026/03/health-insurance-incentives-and-alternatives-to-opioids-for-chronic-pain.html",
+   "title": "Health insurance incentives and alternatives to opioids for chronic pain",
+   "outlet": "KevinMD.com",
+   "pubDate": "2026-03-24T12:00:00.000Z",
+   "topic": "Paying for pain managementthrough bundled payments, BCBSVT and UVM program",
+   "reporter": "Molly Candon, PhD and Daniel Clauw, MD"
+  },
+  {
+   "url": "https://podcast.show/3864599/episode/153758041/",
+   "title": "Host Joe Woodin welcomes in former Vermont Governor Jim Douglas",
+   "outlet": "WDEV Radio - Vital Signs",
+   "pubDate": "2026-03-24T12:00:00.000Z",
+   "topic": "VHC 911 report and BCBSVT new Ceo, finanicals, premiums",
+   "reporter": "Joe Woodin"
+  },
+  {
+   "url": "https://www.vermontpublic.org/show/vermont-edition/2026-03-24/as-health-plans-drop-glp-1s-whats-next-for-patients",
+   "title": "As health plans drop GLP-1s, what's next for patients?",
+   "outlet": "Vermont Public - Vermont Edition",
+   "pubDate": "2026-03-24T12:00:00.000Z",
+   "topic": "BCBSVT dropping covergae of GLP-1s, support for ArrayRX",
+   "reporter": "Mikaela Lefrak"
+  },
+  {
+   "url": "https://vtdigger.org/2026/03/26/vermonts-rural-medical-residency-is-ready-to-go-if-organizers-can-find-the-funding/?utm_medium=email&utm_campaign=Daily%20Digger%3A%20March%2026%2C%202026&utm_source=dc3c5486db&utm_source=VTDigger+Subscribers+and+Donors&utm_campaign=a8ce0b4d8d-EMAIL_CAMPAIGN_2026_03_26_10_17&utm_medium=email&utm_term=0_-a8ce0b4d8d-426249919",
+   "title": "Vermont’s rural medical residency is ready to go — if organizers can find the funding",
+   "outlet": "VT Digger",
+   "pubDate": "2026-03-26T12:00:00.000Z",
+   "topic": "Support for Treasurer Pieciak's H/577 bill and Array RX",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://www.mynbc5.com/article/vermont-drug-cost-relief-bill/70859348",
+   "title": "Vermont prescription drug discount bill heads to the Senate",
+   "outlet": "NBC 5",
+   "pubDate": "2026-03-26T12:00:00.000Z",
+   "topic": "Support for Treasurer Pieciak's H/577 bill and Array RX",
+   "reporter": "Yunier Martinez"
+  },
+  {
+   "url": "https://www.vermonttreasurer.gov/press-releases/house-advances-prescription-drug-discount-card-proposal-h577-overwhelming-bipartisan",
+   "title": "House Advances Prescription Drug Discount Card Proposal, H.577, with Overwhelming Bipartisan Approval",
+   "outlet": "Press release - Pieciak's office",
+   "pubDate": "2026-03-26T12:00:00.000Z",
+   "topic": "Press release from Pieciak's office",
+   "reporter": "Mike Pieciak"
+  },
+  {
+   "url": "https://www.beckerspayer.com/payer/how-health-plan-leaders-are-preparing-for-federal-and-state-policy-shifts-within-the-year/",
+   "title": "How health plan leaders are preparing for federal and state policy shifts within the year",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2026-03-28T12:00:00.000Z",
+   "topic": "Affordability and legislation",
+   "reporter": "Scott King"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/march/30/boots-ground-full-court-stress",
+   "title": "Boots on the Ground: Full Court Stress",
+   "outlet": "Vermont Business Magazine",
+   "pubDate": "2026-03-30T12:00:00.000Z",
+   "topic": "Ben Novogroski's former role in State House mentoned, and noted he now works for BCBSVT",
+   "reporter": "Tim McQuiston"
+  },
+  {
+   "url": "https://www.newportvermontdailyexpress.com/news/health-care-costs-act-181-hot-topics/article_59c11761-c73f-43a8-bb71-84fe12e25726.html",
+   "title": "Health Care Costs, Act 181 Hot Topics",
+   "outlet": "Newport Daily Express",
+   "pubDate": "2026-04-06T12:00:00.000Z",
+   "topic": "Legislative breakfast discussions w/local reps - discussed GMCB cutting rural hospital budgets too much and risk of closure. Medicare Advantage exist and need to lower costs cited",
+   "reporter": "Ed Barber",
+   "trackerSentiment": "negative"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/april/08/2026-best-business-vermont-recipients-announced",
+   "title": "2026 Best of Business in Vermont recipients announced",
+   "outlet": "VermontBiz",
+   "pubDate": "2026-04-08T12:00:00.000Z",
+   "topic": "BCBS VT wins best Health Insurance provider",
+   "trackerSentiment": "positive",
+   "reporter": "Tim McQuiston"
+  },
+  {
+   "url": "https://www.modernhealthcare.com/insurance/mh-cms-medicare-advantage-payment-risk-adjustment/",
+   "title": "Why insurers aren’t cheering CMS’ Medicare Advantage increase",
+   "outlet": "Modern Healthcare",
+   "pubDate": "2026-04-08T12:00:00.000Z",
+   "topic": "Medicare Advantage exit",
+   "reporter": "Nona Tepper",
+   "trackerSentiment": "neutral"
+  },
+  {
+   "url": "https://www.beckerspayer.com/payer/7-blue-cross-blue-shield-updates/",
+   "title": "7 Blue Cross Blue Shield updates",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2026-04-09T12:00:00.000Z",
+   "topic": "2025 Financials",
+   "reporter": "Jakob Emerson",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://www.vermontpublic.org/show/vermont-this-week/2026-04-10/in-review-education-reform-stalled-unpaid-taxes-strain-towns-doctors-bypass-insurance",
+   "title": "Vermont This Week - In review: Education reform still stalled, unpaid taxes strain towns, Vt. doctors bypass insurance",
+   "outlet": "Vermont Public",
+   "pubDate": "2026-04-10T12:00:00.000Z",
+   "topic": "Direct Primary Care and the impact to insurers like BCBSVT and us sounding the alarm on costs",
+   "trackerSentiment": "negative",
+   "reporter": "Mitch Wertlieb"
+  },
+  {
+   "url": "https://www.sevendaysvt.com/news/healthcare/uvm-medical-center-is-losing-460000-every-day/",
+   "title": "UVM Medical Center Is Losing $460,000 Every Day",
+   "outlet": "Seven Days",
+   "pubDate": "2026-04-20T12:00:00.000Z",
+   "topic": "UVMH and BCBSVT 2026 contract reductions and UVM loving $",
+   "reporter": "Hannah Bassett",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://www.youtube.com/watch?v=BZ2WB6gsX5k",
+   "title": "UVM Health's New Pres Steve Leffler on Affordability, Rural Access & Vermont's Healthcare Future",
+   "outlet": "No \"A\" in Creemee Podcast",
+   "pubDate": "2026-04-21T12:00:00.000Z",
+   "topic": "BCBSVT contract reductions",
+   "reporter": "Joanna Grossman and Andy Julow",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://www.timesargus.com/news/local/business-briefs-for-saturday-may-2-2026/article_16dfe917-32a6-587a-bfcd-c16538a6dfff.html?utm_source=newsletter&utm_campaign=the-daily&utm_medium=email&utm_content=headline",
+   "title": "Business Briefs - Saturday, May 2",
+   "outlet": "Times Argus",
+   "pubDate": "2026-05-02T12:00:00.000Z",
+   "topic": "BCBSVT participation in National Walk@Lunch Day",
+   "trackerSentiment": "positive",
+   "reporter": "Editors"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/may/05/vahhs-legislative-session-barrels-towards-completion",
+   "title": "VAHHS Legislative session barrels towards completion",
+   "outlet": "VermontBiz",
+   "pubDate": "2026-05-04T12:00:00.000Z",
+   "topic": "BCBSVT testimony on RBP",
+   "trackerSentiment": "neutral to positive",
+   "reporter": "Devon Green (Submitted piece)"
+  },
+  {
+   "url": "https://www.modernhealthcare.com/insurance/mh-humana-medicare-advantage-members-markets/",
+   "title": "What happens when Humana is the last Medicare Advantage insurer",
+   "outlet": "Modern Healthcare",
+   "pubDate": "2026-05-04T12:00:00.000Z",
+   "topic": "BCBSVT leaving Medicare Advantage market",
+   "trackerSentiment": "neutral to negative",
+   "reporter": "Nona Tepper"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/may/06/blue-cross-vt-mountain-days-may-9",
+   "title": "Blue Cross VT Mountain Days May 9",
+   "outlet": "VermontBiz",
+   "pubDate": "2026-05-06T12:00:00.000Z",
+   "topic": "BCBSVT mountain Days event",
+   "trackerSentiment": "positive",
+   "reporter": "Tim McQuiston"
+  },
+  {
+   "url": "https://www.reformer.com/local-events/?_evDiscoveryPath=/event%2F3620620-blue-cross-vt-s-mountain-days-event",
+   "title": "Blue Cross VT's Mountain Days Event",
+   "outlet": "Brattleboro Reformer",
+   "pubDate": "2026-05-07T12:00:00.000Z",
+   "topic": "BCBSVT mountain Days event",
+   "trackerSentiment": "positive",
+   "reporter": "Kristina Massari"
+  },
+  {
+   "url": "https://www.timesargus.com/eedition_theworld/page-a3/page_5acd23b6-a4fa-59e4-b6b7-a0519a900c2a.html",
+   "title": "National Walk@Lunch and Green Up Day",
+   "outlet": "The WORLD",
+   "pubDate": "2026-05-07T12:00:00.000Z",
+   "topic": "BCBSVT Nat'l Walk@Lunch Day",
+   "trackerSentiment": "positive",
+   "reporter": "Editors"
+  },
+  {
+   "url": "https://vtdigger.org/2026/05/08/uvm-health-must-cut-expenses-by-300-million-in-three-years-independent-liaison-finds/",
+   "title": "UVM Health must cut expenses by $300 million in three years, independent liaison finds",
+   "outlet": "VT Digger",
+   "pubDate": "2026-05-08T12:00:00.000Z",
+   "topic": "Liasion Report on UVMH finances; BCBSVT contract negotiations with UVMH",
+   "trackerSentiment": "neutral to positive",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/may/12/blue-cross-vt-requests-lowest-premium-increase-five-years",
+   "title": "Blue Cross VT requests lowest premium increase in five years",
+   "outlet": "VermontBiz",
+   "pubDate": "2026-05-12T12:00:00.000Z",
+   "topic": "BCBSVT 2027 rates",
+   "trackerSentiment": "positive",
+   "reporter": "Tim McQuiston"
+  },
+  {
+   "url": "https://www.mychamplainvalley.com/news/local-news/vermont/blue-cross-blue-shield-requests-rate-increase-for-2027/",
+   "title": "Blue Cross Blue Shield requests rate increase for 2027",
+   "outlet": "WVNY/WFFF",
+   "pubDate": "2026-05-12T12:00:00.000Z",
+   "topic": "BCBSVT 2027 rates",
+   "trackerSentiment": "neutral to positive",
+   "reporter": "Ben Breen"
+  },
+  {
+   "url": "https://www.mynbc5.com/article/blue-cross-and-blue-shield-of-vermont-seeks-premium-increases/71287520",
+   "title": "Blue Cross and Blue Shield of Vermont seeks smaller premium increase this year",
+   "outlet": "WPTZ",
+   "pubDate": "2026-05-12T12:00:00.000Z",
+   "topic": "BCBSVT 2027 rates",
+   "trackerSentiment": "positive",
+   "reporter": "Sophia Venturo"
+  },
+  {
+   "url": "https://www.wcax.com/2026/05/12/blue-cross-blue-shield-files-rate-increases-with-state/",
+   "title": "Blue Cross Blue Shield of Vermont files for rate increases with state",
+   "outlet": "WCAX",
+   "pubDate": "2026-05-12T12:00:00.000Z",
+   "topic": "BCBSVT 2027 rates",
+   "trackerSentiment": "neutral",
+   "reporter": "Laura Ullman"
+  },
+  {
+   "url": "https://www.vermontpublic.org/local-news/2026-05-13/bluecross-blueshield-requests-its-lowest-premium-hike-in-vermont-in-five-years",
+   "title": "BlueCross BlueShield requests its lowest premium hike in Vermont in five years",
+   "outlet": "Vermont Public",
+   "pubDate": "2026-05-13T12:00:00.000Z",
+   "topic": "BCBSVT 2027 rates",
+   "trackerSentiment": "positive",
+   "reporter": "Lola Duffort"
+  },
+  {
+   "url": "https://www.timesargus.com/news/community/times-argus-community-news-for-may-15-2026/article_586f8fc7-89ea-5650-85e5-e7a95dd3530e.html",
+   "title": "Times Argus Community News for May 15, 2026",
+   "outlet": "Times Argus",
+   "pubDate": "2026-05-15T12:00:00.000Z",
+   "topic": "Recognition for BCBST volunteers for Habitat for Humanity who helped build a new home for residents",
+   "reporter": "Editors",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/may/18/2026-best-business-vermont-recipients-announced",
+   "title": "2026 Best of Business in Vermont recipients announced",
+   "outlet": "VermontBiz",
+   "pubDate": "2026-05-18T12:00:00.000Z",
+   "topic": "Best Health Insurer Award awards ceremony",
+   "trackerSentiment": "positive",
+   "reporter": "Tim McQuiston"
+  },
+  {
+   "url": "https://vtdigger.org/2026/05/18/vermont-rejected-the-federal-governments-vaccine-rollbacks-but-doctors-are-still-seeing-their-impact/",
+   "title": "Vermont rejected the federal government’s vaccine rollbacks. But doctors are still seeing their impact.",
+   "outlet": "VT Digger",
+   "pubDate": "2026-05-18T12:00:00.000Z",
+   "topic": "coverage of vaccine counseling appts",
+   "trackerSentiment": "positive",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://www.reformer.com/community-news/mountain-days/article_787a89f8-c985-4e05-a55d-a744a93bdeb9.html",
+   "title": "Community News - Mountain Days",
+   "outlet": "Brattleboro Reformer",
+   "pubDate": "2026-05-18T12:00:00.000Z",
+   "topic": "pickup of Mountain Days photo",
+   "trackerSentiment": "positive",
+   "reporter": "Editors"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/may/19/blue-cross-vt-recognized-customer-service-excellence",
+   "title": "Blue Cross VT recognized for customer service excellence",
+   "outlet": "VermontBiz",
+   "pubDate": "2026-05-19T12:00:00.000Z",
+   "topic": "SQM Award",
+   "trackerSentiment": "positive",
+   "reporter": "Tim McQuiston"
+  },
+  {
+   "url": "https://vermontbiz.com/people/may/lindsay-segale-named-blue-cross-vt-supervisor-year",
+   "title": "Lindsay Segale named Blue Cross VT 'Supervisor of the Year'",
+   "outlet": "VermontBiz",
+   "pubDate": "2026-05-19T12:00:00.000Z",
+   "topic": "SQM Award",
+   "reporter": "Tim McQuiston",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://www.beckerspayer.com/payer/aca/bcbs-mvp-health-care-request-lower-premium-increases-in-vermont-for-2027/",
+   "title": "BCBS, MVP Health Care request lower premium increases in Vermont for 2027",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2026-05-20T12:00:00.000Z",
+   "topic": "BCBVT rate filing",
+   "trackerSentiment": "positive",
+   "reporter": "Liz Casolo"
+  },
+  {
+   "url": "https://www.burlingtonfreepress.com/story/news/local/vermont/2026/05/20/girls-on-the-run-vermont-5k-event-on-may-30/90032807007/",
+   "title": "Girls on the Run Vermont to empower 1,300 girls in 5K this month",
+   "outlet": "Burlington Free Press",
+   "pubDate": "2026-05-20T12:00:00.000Z",
+   "topic": "Mention of BCBSVT as statewide sponsor",
+   "reporter": "Beth McDermott",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://www.modernhealthcare.com/insurance/mh-unitedhealth-highmark-health-reinsurance-medicare-advantage/",
+   "title": "Health insurers hedge bets with surge in reinsurance",
+   "outlet": "Modern Healthcare",
+   "pubDate": "2026-05-20T12:00:00.000Z",
+   "topic": "Mentions BCBS Michigan upping reinsurance and that they own us",
+   "trackerSentiment": "neutral to negative",
+   "reporter": "Nona Tepper"
+  },
+  {
+   "url": "https://www.modernhealthcare.com/insurance/mh-pbm-biosimilar-drug-costs/",
+   "title": "How big and small PBMs drive biosimilars adoption",
+   "outlet": "Modern Healthcare",
+   "pubDate": "2026-05-21T12:00:00.000Z",
+   "topic": "BCBS Michigan biosimialr strategy - it was noted that we are owned by them",
+   "trackerSentiment": "neutral to positive",
+   "reporter": "Noah Tong"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/may/23/girls-run-announces-annual-essex-5k-celebrate-2026-spring-season",
+   "title": "Girls on the Run announces Annual Essex 5K to celebrate 2026 spring season",
+   "outlet": "VermontBiz",
+   "pubDate": "2026-05-23T12:00:00.000Z",
+   "topic": "GOTR sponsorship, just mentioned us as a sponsor, no quote",
+   "trackerSentiment": "positive",
+   "reporter": "Tim McQuiston"
+  },
+  {
+   "url": "https://www.manchesterjournal.com/local-news/girls-on-the-run-5k-set-to-return-to-manchester/article_7daca516-3996-441f-9244-46550f95b249.html",
+   "title": "Girls on the Run 5K set to return to Manchester",
+   "outlet": "Mancherster Journal",
+   "pubDate": "2026-05-28T12:00:00.000Z",
+   "topic": "GOTR sponsorship, just mentioned us as a sponsor, no quote",
+   "trackerSentiment": "neutral to positive",
+   "reporter": "Editors"
+  },
+  {
+   "url": "https://www.timesargus.com/eedition_theworld/page-a14/page_0770b010-d2f2-5079-8545-b2883ae50fd4.html",
+   "title": "Customer Service Team honored for Quickly and Accurately Addressing Members Needs",
+   "outlet": "The WORLD",
+   "pubDate": "2026-05-28T12:00:00.000Z",
+   "topic": "SQM Award",
+   "trackerSentiment": "positive",
+   "reporter": "Editors"
+  },
+  {
+   "url": "https://www.timesargus.com/theworld/health-briefs---may-28-2026/article_a22440bb-a441-5732-81e9-bf45d17e2e8e.html",
+   "title": "Health Briefs - May 28, 2026",
+   "outlet": "Times Argus",
+   "pubDate": "2026-05-28T12:00:00.000Z",
+   "topic": "SQM Award",
+   "trackerSentiment": "positive",
+   "reporter": "Editors"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/may/30/girls-run-announces-annual-manchester-5k-celebrate-2026-spring-season",
+   "title": "Girls on the Run announces annual Manchester 5K to celebrate 2026 spring season",
+   "outlet": "VermontBiz",
+   "pubDate": "2026-05-30T12:00:00.000Z",
+   "topic": "GOTR sponsorship, just mentioned us as a sponsor, no quote",
+   "trackerSentiment": "positive",
+   "reporter": "Tim McQuiston"
+  },
+  {
+   "url": "https://vermontbiz.com/people-in-the-news",
+   "title": "People in the News - Lindsay Segale named Blue Cross VT 'Supervisor of the Year'",
+   "outlet": "VermontBiz",
+   "pubDate": "2026-05-30T12:00:00.000Z",
+   "topic": "SQM Award",
+   "trackerSentiment": "positive",
+   "reporter": "Tim McQuiston"
+  },
+  {
+   "url": "https://www.beckerspayer.com/payer/the-health-plan-trends-that-will-definite-the-next-few-years/",
+   "title": "The health plan trends that will define the next few years",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2026-05-30T12:00:00.000Z",
+   "topic": "Monthly Speaker Series",
+   "trackerSentiment": "positive",
+   "reporter": "Scott King"
+  },
+  {
+   "url": "https://www.timesargus.com/news/local/business-briefs-for-saturday-may-30-2026/article_720379b7-bc5d-547b-99e4-e0b84c5736e1.html",
+   "title": "Times Argus: Business Briefs for Saturday, May 30, 2026",
+   "outlet": "Times Argus",
+   "pubDate": "2026-05-30T12:00:00.000Z",
+   "topic": "SQM Award Print edition here: https://www.timesargus.com/eedition/page-a5/page_6641b32a-b6a2-5b96-86f3-b2ee896fa63c.html",
+   "trackerSentiment": "positive",
+   "reporter": "Editors"
+  },
+  {
+   "url": "https://www.wcax.com/2026/05/30/girls-run-hosts-annual-5k-essex-junction/",
+   "title": "Girls on the Run hosts annual 5K in Essex Junction",
+   "outlet": "WCAX",
+   "pubDate": "2026-05-30T12:00:00.000Z",
+   "topic": "GOTR sponsorship - no direct mention but short of our name on the backs of shirts as part of the sponsorship",
+   "trackerSentiment": "positive",
+   "reporter": "Jack Watson and Abigail Saxe"
+  },
+  {
+   "url": "https://www.beckerspayer.com/payer/aca/payers-begin-pitching-2027-aca-rates-3-updates/",
+   "title": "Payers pitch 2027 ACA rates: 7 updates",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2026-06-02T12:00:00.000Z",
+   "topic": "2027 rates",
+   "trackerSentiment": "positive",
+   "reporter": "Jakob Emerson"
+  },
+  {
+   "url": "https://www.reformer.com/community-news/guilford-cares-senior-walk-on-june-9-at-guilford-central-school/article_7f65e8df-69b4-4906-b214-61f36d97137a.html",
+   "title": "Guilford Cares Senior Walk on June 9 at Guilford Central School",
+   "outlet": "Brattleboro Reformer (press release pickup re: Gilford Cares)",
+   "pubDate": "2026-06-02T12:00:00.000Z",
+   "topic": "BCBSVT grant that helped build a nature trail/outdoor classroom",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://www.sevendaysvt.com/news/letters/letters-to-the-editor-6-3-26/",
+   "title": "LTE: Missing infor",
+   "outlet": "Seven Days",
+   "pubDate": "2026-06-02T12:00:00.000Z",
+   "topic": "References article on UVM losing $460K/day, VHC 911 report and that BCBSVT did nothign to challenge high hospital rates",
+   "trackerSentiment": "negative",
+   "reporter": "Liz Curry"
+  },
+  {
+   "url": "https://www.vermontpublic.org/local-news/2026-06-09/widespread-layoffs-underway-uvm-health",
+   "title": "Widespread layoffs underway at UVM Health",
+   "outlet": "Vermont Public",
+   "pubDate": "2026-06-09T12:00:00.000Z",
+   "topic": "UVM Layoffs and noted latest UVM-BCBSVT contract significantly lowered rates",
+   "trackerSentiment": "positive",
+   "reporter": "Lola Duffort"
+  },
+  {
+   "url": "https://www.wcax.com/2026/06/10/more-cuts-could-be-coming-uvm-health-amid-statewide-cost-cutting-push/",
+   "title": "More cuts could be coming at UVM Health amid statewide cost-cutting push",
+   "outlet": "WCAX",
+   "pubDate": "2026-06-10T12:00:00.000Z",
+   "topic": "UVM Layoffs and that over the last five years, Blue Cross Blue Shield premiums for individuals have spiked by over 50%.",
+   "trackerSentiment": "negative",
+   "reporter": "Calvin Cutler"
+  },
+  {
+   "url": "https://vtdigger.org/2026/06/11/vermonts-largest-health-insurer-wants-to-offer-a-cheaper-plan-can-it-actually-help-vermonters/",
+   "title": "Vermont’s largest health insurer wants to offer a cheaper plan. Can it actually help Vermonters?",
+   "outlet": "VT Digger",
+   "pubDate": "2026-06-11T12:00:00.000Z",
+   "topic": "Vermont Basic",
+   "trackerSentiment": "neutral to negative",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://www.mynbc5.com/article/vermont-senior-games-return/71582091",
+   "title": "Vermont Senior Games return to Burlington",
+   "outlet": "WPTZ-NBC 5",
+   "pubDate": "2026-06-14T12:00:00.000Z",
+   "topic": "VT. Sr Games sponsorship, just noted as a sponsor and image of our sponsorhsip sign included",
+   "trackerSentiment": "positive",
+   "reporter": "Yunier Martinez"
+  },
+  {
+   "url": "https://www.healthpayerspecialist.com/lead/enroll/5184344/738024?from=https%3A%2F%2Fwww.healthpayerspecialist.com%2Fc%2F5184344%2F738024%3Freferrer_module%3DdashLatestNews%26module_order%3D4&referrer_module=dashLatestNews",
+   "title": "BCBS Vermont to Offer High Deductible Plans Amid CMS Push",
+   "outlet": "Health Payer Specialist",
+   "pubDate": "2026-06-15T12:00:00.000Z",
+   "topic": "Vermont Basic",
+   "trackerSentiment": "neutral",
+   "reporter": "Ross Davies"
+  },
+  {
+   "url": "https://www.modernhealthcare.com/insurance/mh-blue-cross-blue-shield-operating-margins-2025/",
+   "title": "Blue Cross financial performance trails national, regional rivals",
+   "outlet": "Modern Healthcare",
+   "pubDate": "2026-06-15T12:00:00.000Z",
+   "topic": "Blues plans financials (Michigan included, and BCBSVT noted as being part of MI)",
+   "trackerSentiment": "neutral to negative",
+   "reporter": "Nona Tepper"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/june/16/pharmacy-discount-card-bill-signed-law",
+   "title": "Pharmacy discount card bill signed into law",
+   "outlet": "VermontBiz",
+   "pubDate": "2026-06-17T12:00:00.000Z",
+   "topic": "Includes quote from Beth in support of H. 577 (ArrrayRx) being signed by the Governor",
+   "trackerSentiment": "positive",
+   "reporter": "Tim McQuiston"
+  },
+  {
+   "url": "https://www.beckerspayer.com/financial/blue-cross-blue-shield-plans-ranked-by-2025-profits/",
+   "title": "Blue Cross Blue Shield plans ranked by 2025 profits",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2026-06-17T12:00:00.000Z",
+   "topic": "Vermont included in list of BCBS plans ranked by profits",
+   "trackerSentiment": "neutral to negative",
+   "reporter": "Jakob Emerson"
+  },
+  {
+   "url": "https://www.mychamplainvalley.com/news/local-news/vermont/pharmacy-discount-card-becomes-law-in-vermont/",
+   "title": "Pharmacy discount card becomes law in Vermon",
+   "outlet": "ABC 22/Fox 44",
+   "pubDate": "2026-06-17T12:00:00.000Z",
+   "topic": "Included quote from Beth and noted us as supporter of the H577 (ArrayRX bill)",
+   "trackerSentiment": "positive",
+   "reporter": "Ben Breen"
+  },
+  {
+   "url": "https://www.timesargus.com/opinion/editorials/editorial-mutual-benefit/article_3648372b-d0d1-5f65-80ba-4e2808530fba.html",
+   "title": "Editorial: Mutual benefit",
+   "outlet": "Times Argus",
+   "pubDate": "2026-06-17T12:00:00.000Z",
+   "topic": "BCBSVT noted as ofering praise for the bill (H. 577- ArrayRX)",
+   "trackerSentiment": "positive",
+   "reporter": "Editorial Board"
+  },
+  {
+   "url": "https://www.vermontpublic.org/local-news/2026-06-16/vermont-join-multi-state-prescription-drug-pricing-program",
+   "title": "Vermont will join multi-state prescription drug pricing program",
+   "outlet": "Vermont Public",
+   "pubDate": "2026-06-17T12:00:00.000Z",
+   "topic": "BCBSVT noted as a supporter of the H. 577 ArrayRx bill",
+   "trackerSentiment": "positive",
+   "reporter": "Lola Duffort"
+  },
+  {
+   "url": "https://www.vermonttreasurer.gov/press-releases/treasurer-pieciaks-pharmacy-discount-card-proposal-signed-law",
+   "title": "Treasurer Pieciak’s Pharmacy Discount Card Proposal Signed into Law",
+   "outlet": "Press release - Treasuser Pieciak's office",
+   "pubDate": "2026-06-17T12:00:00.000Z",
+   "topic": "Includes quote from Beth in support of H. 577 (ArrrayRx) being signed by the Governor",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://chir.georgetown.edu/early-signals-suggest-a-second-year-of-double-digit-marketplace-premium-increases/",
+   "title": "Early Signals Suggest a Second Year of Double-Digit Marketplace Premium Increases",
+   "outlet": "Georgetown Blog - Center on Health Insurance Reforms",
+   "pubDate": "2026-06-19T12:00:00.000Z",
+   "topic": "2027 rates",
+   "trackerSentiment": "neutral to negative",
+   "reporter": "Stacey Pogue and Abigail Knapp (CHIR faculty)"
+  },
+  {
+   "url": "https://vermontdailychronicle.com/morrison-vermonts-healthcare-crisis-is-real-s-190-wasnt-the-solution/",
+   "title": "Commentary - Morrison: Vermont’s healthcare crisis is real – S.190 wasn’t the solution",
+   "outlet": "Vermont Daily Chronicle",
+   "pubDate": "2026-06-20T12:00:00.000Z",
+   "topic": "S. 190 and RBP, lack of commeptition on QGHP market with just BCBSVT and MVP",
+   "trackerSentiment": "neutral",
+   "reporter": "Clara Morrison and Alison Despathy of Right for Vermont Foundation"
+  },
+  {
+   "url": "https://podcast.show/3864599/june-23-2026-joe-talks-with-beth-roberts-the-president-and-ceo-of-blue-cross-blue-shield-of-verm/",
+   "title": "Joe talks with Beth Roberts, the President and CEO of Blue Cross Blue Shield of Vermont",
+   "outlet": "WDEV Radio- Vital Signs",
+   "pubDate": "2026-06-23T12:00:00.000Z",
+   "topic": "All topics, affordability, price transparency, insurance reform",
+   "trackerSentiment": "positive",
+   "reporter": "Joe Woodin"
+  },
+  {
+   "url": "https://vermontmedicalsociety51665.wildapricot.org/resources/EmailTemplates/20260623%20VMS%20Rounds/index_preview.html",
+   "title": "Vermont Health Care Leaders Share Challenges, Opportunities with VMS",
+   "outlet": "VMS Rounds (VMS weekly newsletter)",
+   "pubDate": "2026-06-23T12:00:00.000Z",
+   "topic": "highlights comments Beth made at the VMS BD Retreat Panel - New Faces in healthcare leadership - including affordability, RBP, prior auth",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://www.manchesterjournal.com/sports/grace-cottage-hospital-hosts-17th-annual-tee-it-up-for-health-golf-tourney/article_75a2a3b0-9d0f-45fa-96e5-543b277584cb.html",
+   "title": "Grace Cottage Hospital hosts 17th Annual Tee It Up For Health golf tourney",
+   "outlet": "Brattleboro Reformer",
+   "pubDate": "2026-06-24T12:00:00.000Z",
+   "topic": "BCBSVT sponsorship of the Grace Cottage Family Health & Hospital’s 17th Annual Tee It Up For Health golf tournament",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://www.healthpayerspecialist.com/lead/enroll/5187174/740464?from=https%3A%2F%2Fwww.healthpayerspecialist.com%2Fc%2F5187174%2F740464%3Freferrer_module%3DdashLatestNews%26module_order%3D3&referrer_module=dashLatestNews",
+   "title": "BCBS Vermont Has Regained Financial Footing, But Still Faces Pressures",
+   "outlet": "Health Payer Specialist",
+   "pubDate": "2026-06-26T12:00:00.000Z",
+   "topic": "2025 finacials/financial turnaround",
+   "trackerSentiment": "positive",
+   "reporter": "Jiselle Lee"
+  },
+  {
+   "url": "https://vtdigger.org/2026/06/29/bluecross-blueshield-of-vt-pulls-its-proposed-lower-cost-higher-deductible-health-plans/",
+   "title": "BlueCross BlueShield of VT pulls its proposed lower-cost, higher-deductible health plans",
+   "outlet": "VT Digger",
+   "pubDate": "2026-06-29T12:00:00.000Z",
+   "topic": "VT Basic - pulling from QHP",
+   "trackerSentiment": "positive",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://www.vermontpublic.org/show/vermont-edition/2026-06-29/i-hate-this-but-that-is-our-reality-more-layoffs-coming-for-uvm-health",
+   "title": "I hate this, but that is our reality:' More layoffs coming for UVM Health",
+   "outlet": "Vermont Public - Vermont Edition",
+   "pubDate": "2026-06-29T12:00:00.000Z",
+   "topic": "BCBSVT mentioned in relation to contract for 2026",
+   "trackerSentiment": "positive",
+   "reporter": "Mikaela Lefrak, Andrea Laurion"
+  },
+  {
+   "url": "https://www.vermontpublic.org/show/vermont-this-week/2026-06-26/in-review-scott-vetoes-healthcare-reform-bill-systemic-challenges-rural-pharmacies",
+   "title": "In review: Scott vetoes healthcare reform bill, Vermont's rural pharmacies face systemic challenges",
+   "outlet": "Vermont Public - Vermont This Week",
+   "pubDate": "2026-06-29T12:00:00.000Z",
+   "topic": "Mention H. 585 and gov-appted bd seats for BCBSVT",
+   "trackerSentiment": "neutral",
+   "reporter": "Mitch Wertlieb, Olivia Gieger, Calvin Cutler"
+  },
+  {
+   "url": "https://www.waterburyroundabout.org/opinion-archive/letter-if-healthcare-doesnt-need-regulation-nothing-does",
+   "title": "LETTER: If healthcare doesn’t need regulation, nothing does",
+   "outlet": "Waterbury Roundabout",
+   "pubDate": "2026-07-01T12:00:00.000Z",
+   "topic": "S. 190 veto and BCBSVT Influence on politicians",
+   "trackerSentiment": "negative",
+   "reporter": "Liz Curry"
+  },
+  {
+   "url": "https://www.beckerspayer.com/payer/aca/bcbs-vermont-takes-step-back-with-proposed-product-line/",
+   "title": "BCBS Vermont takes step back with proposed product line",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2026-07-02T12:00:00.000Z",
+   "topic": "VT Basic - pulling from QHP",
+   "trackerSentiment": "neutral to positive",
+   "reporter": "Liz Casolo"
+  },
+  {
+   "url": "https://www.beckerspayer.com/payer/5-blue-cross-blue-shield-updates/",
+   "title": "5 Blue Cross Blue Shield updates",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2026-07-06T12:00:00.000Z",
+   "topic": "VT Basic - pulling from QHP",
+   "trackerSentiment": "neutral",
+   "reporter": "Jakob Emerson"
+  },
+  {
+   "url": "https://www.samessenger.com/opinion/letters_to_editor/letter-to-the-editor-cant-lower-healthcare-costs-until-vermont-fixes-bad-policy/article_0d2c3cb9-05de-4167-a74a-2bab75204f3b.html",
+   "title": "Letter to the Editor: Can't lower healthcare costs until Vermont fixes bad policy",
+   "outlet": "St. Alban's Messenger",
+   "pubDate": "2026-07-08T12:00:00.000Z",
+   "topic": "S. 190 veto, how the bill was flawed, and how the incosistent price gaps would drive up costs for other groups and BCBS is mentioned in reference to past potential insolvency.",
+   "trackerSentiment": "neutral to negative",
+   "reporter": "Rep. James Gregoire"
+  },
+  {
+   "url": "https://www.wsj.com/health/healthcare/obamacare-insurers-seek-big-rate-hikes-again-8a4bf9e4",
+   "title": "Obamacare Insurers Seek Big Rate Hikes, Again",
+   "outlet": "Wall Street Journal",
+   "pubDate": "2026-07-08T12:00:00.000Z",
+   "topic": "2027 ACA/QHP rates - BCBSVT mentioned in list of the mutliple plan rate increases for 2027/",
+   "trackerSentiment": "neutral to positive",
+   "reporter": "Anna Wilde Mathews"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/july/15/vermont-secretary-state-launches-civic-connect-program-business-leaders",
+   "title": "Vermont Secretary of State launches Civic Connect program with business leaders",
+   "outlet": "VermontBiz",
+   "pubDate": "2026-07-13T12:00:00.000Z",
+   "topic": "CivicConnect - BCBSVT noted as a champion partner",
+   "trackerSentiment": "positive",
+   "reporter": "Tim McQuiston"
+  },
+  {
+   "url": "https://vtdigger.org/2026/07/14/opinon-no-one-struggling-to-pay-rent-can-meet-a-12000-deductible/",
+   "title": "No one struggling to pay rent can meet a $12,000 deductible",
+   "outlet": "VT Digger",
+   "pubDate": "2026-07-14T12:00:00.000Z",
+   "topic": "VT Basic and how GMCB was right toquestion product",
+   "trackerSentiment": "negative",
+   "reporter": "Walter Carpenter"
+  },
+  {
+   "url": "https://tradersunion.com/news/business-wealth/show/2774226-am-best-upgrades-blue-cross-vermont/",
+   "title": "AM Best lifts Blue Cross and Blue Shield of Vermont outlook to positive",
+   "outlet": "Traders Union",
+   "pubDate": "2026-07-23T12:00:00.000Z",
+   "topic": "BCBSVT credit rating improvement form AM Best",
+   "trackerSentiment": "positive",
+   "reporter": "Dan Blystone"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/july/24/am-best-boosts-credit-rating-blue-cross-and-blue-shield-vermont",
+   "title": "AM Best boosts credit rating of Blue Cross and Blue Shield of Vermont",
+   "outlet": "VermontBiz",
+   "pubDate": "2026-07-23T12:00:00.000Z",
+   "topic": "BCBSVT credit rating improvement form AM Best",
+   "trackerSentiment": "positive",
+   "reporter": "Tim McQuiston"
+  },
+  {
+   "url": "https://www.timesargus.com/theworld/business-briefs---jul-23-2026/article_c01e5285-c787-56c6-81ae-c208e0aabb5a.html",
+   "title": "Business Briefs - Jul 23, 2026",
+   "outlet": "Times Argus",
+   "pubDate": "2026-07-23T12:00:00.000Z",
+   "topic": "Noted BCBSVT involvment in Civic Connect",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://www.willistonobserver.com/business_hub/secretary-of-state-launches-civic-connect-with-business-leaders/article_0a2243c3-189e-4cb8-936c-fbdbb0caa4c4.html",
+   "title": "Secretary of State launches ‘Civic Connect’ with business leaders",
+   "outlet": "Williston Observer",
+   "pubDate": "2026-07-23T12:00:00.000Z",
+   "topic": "Noted BCBSVT involvment in Civic Connect",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/august/11/blue-cross-vermonts-kayak-days-aug-15",
+   "title": "Blue Cross Vermont's Kayak Days Aug. 15",
+   "outlet": "VermontBiz",
+   "pubDate": "2026-07-24T12:00:00.000Z",
+   "topic": "Kayak Days",
+   "trackerSentiment": "positive",
+   "reporter": "Tim McQuiston"
+  },
+  {
+   "url": "https://vtdigger.org/2026/07/24/owen-foster-stepping-down-as-chair-of-states-most-powerful-healthcare-regulator/",
+   "title": "Owen Foster stepping down as chair of state’s most powerful healthcare regulator",
+   "outlet": "VT Digger",
+   "pubDate": "2026-07-24T12:00:00.000Z",
+   "topic": "Owen Foster stepping down, BCBSVT mentioned b/c it was noted that he recused himself from our rate hearing only w/no explanation",
+   "trackerSentiment": "neutral",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://www.vermontpublic.org/local-news/2026-07-24/owen-foster-stepping-down-top-healthcare-regulator",
+   "title": "Owen Foster is stepping down as Vermont’s top healthcare regulator",
+   "outlet": "Vermont Public",
+   "pubDate": "2026-07-24T12:00:00.000Z",
+   "topic": "Owen Foster stepping down, BCBSVT mentioned b/c it was noted that he recused himself from our rate hearing only w/no explanation",
+   "trackerSentiment": "neutral",
+   "reporter": "Lola Duffort"
+  },
+  {
+   "url": "https://www.vtcng.com/stowetoday/family_fun/blue-cross-blue-shield-of-vermont-hosts-kayak-days/article_edbeaf81-d800-4760-a956-70e430c4caf2.html",
+   "title": "Blue Cross Blue Shield of Vermont hosts Kayak Days",
+   "outlet": "Stowe Today",
+   "pubDate": "2026-07-30T12:00:00.000Z",
+   "topic": "Kayak Days",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://www.beckerspayer.com/payer/what-successful-payer-provider-collaboration-actually-looks-like-according-to-12-health-plan-leaders/",
+   "title": "What successful payer-provider collaboration actually looks like, according to 12 health plan leaders",
+   "outlet": "Becker's Payer Issues",
+   "pubDate": "2026-07-31T12:00:00.000Z",
+   "topic": "Submitted for monthly speaker series question - focused on partnership, accountability and value-based care as key to successful collaboration",
+   "trackerSentiment": "positive",
+   "reporter": "Scott King"
+  },
+  {
+   "url": "https://www.timesargus.com/news/local/business-briefs-for-saturday-aug-1-2026/article_54ebe9d9-64d4-50dd-887f-a37d293e5de3.html",
+   "title": "Business Briefs for Saturday, Aug. 1, 2026",
+   "outlet": "Times Argus",
+   "pubDate": "2026-08-01T12:00:00.000Z",
+   "topic": "BCBSVT listed as a sponsor for upcoming Common Good Nonprofit Summit",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://www.benningtonbanner.com/opinion/columnists/commentary-jim-douglas-and-lisa-ventriss-stay-the-course/article_ef5cba3a-e1f8-4b05-895c-54f2a3411f28.html",
+   "title": "Commentary | Jim Douglas and Lisa Ventriss: Stay the course",
+   "outlet": "Bennington Banner",
+   "pubDate": "2026-08-03T12:00:00.000Z",
+   "topic": "VHC 911 commentary about GMCB continuing work to lower healthcare costs even as Chair Foster steps down. BCBSVT mentioned as being asked to cut costs too",
+   "trackerSentiment": "neutral to positive",
+   "reporter": "Jim Douglas and Lisa Ventriss"
+  },
+  {
+   "url": "https://www.caledonianrecord.com/news/local/blue-cross-kayak-days-coming-to-newport-for-free-paddling-event-at-prouty-beach/article_7d246fea-17d2-53ca-b41a-4e1de6b8de00.html",
+   "title": "Blue Cross 'Kayak Days' Coming to Newport for Free Paddling Event at Prouty Beach",
+   "outlet": "Caledonian Record",
+   "pubDate": "2026-08-05T12:00:00.000Z",
+   "topic": "Kayak Days coverage",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://www.vermontpublic.org/local-news/2026-08-05/uvm-health-first-budget-season-after-leadership-reset",
+   "title": "A chastened UVM Health embarks on its first budget season after leadership reset",
+   "outlet": "Vermont Public",
+   "pubDate": "2026-08-05T12:00:00.000Z",
+   "topic": "Commentary on UVM hospital budget review, first under Leffler leadership. BCBSVT mentioned in relation to 2026 contract and 12% reduction",
+   "trackerSentiment": "positive",
+   "reporter": "Lola Duffort"
+  },
+  {
+   "url": "https://www.timesargus.com/theworld/world-calendar-08062026-copy/article_654f6a7a-4151-5713-ad8f-efdc79461a0e.html",
+   "title": "Calendar – 8/6/2026 - Kayak Days",
+   "outlet": "The World",
+   "pubDate": "2026-08-06T12:00:00.000Z",
+   "topic": "Kayak Days",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://www.timesargus.com/times-argus-events-for-20260806/article_28d3859e-743c-519c-ad1c-9e8be0bc667e.html",
+   "title": "Calendar – 8/6/2026 - Kayak Days",
+   "outlet": "Times Argus",
+   "pubDate": "2026-08-06T12:00:00.000Z",
+   "topic": "Kayak Days",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://vtdigger.org/2026/08/07/uvm-health-says-big-change-is-afoot-but-is-it-enough-to-balance-the-budget/",
+   "title": "UVM Health says big change is afoot — but is it enough to balance the budget?",
+   "outlet": "VT Digger",
+   "pubDate": "2026-08-07T12:00:00.000Z",
+   "topic": "UVM hopsital budget review. BCBSVT mentioned in relation to 2026 contract and reimbursment cut, as well as a lower premiums as a result",
+   "trackerSentiment": "positive",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://www.wcax.com/2026/08/07/bikers-hold-40th-annual-toy-run-benefit-shriners-hospitals/",
+   "title": "Bikers to hold 40th annual Toy Run to benefit Shriners Hospitals",
+   "outlet": "WCAX",
+   "pubDate": "2026-08-07T12:00:00.000Z",
+   "topic": "BCBSVT mentioned in segment on a charity bike ride that began at BCBSVT HQ in Berlin",
+   "trackerSentiment": "positive",
+   "reporter": "News Team"
+  },
+  {
+   "url": "https://vermontjournal.com/event/blue-cross-vt-kayak-days/",
+   "title": "Blue Cross VT Kayak Days",
+   "outlet": "The Vermont Journal",
+   "pubDate": "2026-08-08T12:00:00.000Z",
+   "topic": "Kayak Days",
+   "trackerSentiment": "positive"
+  },
+  {
+   "url": "https://www.wcax.com/2026/08/15/what-do-saturday-august-15/",
+   "title": "What to Do: Saturday, August 15",
+   "outlet": "WCAX",
+   "pubDate": "2026-08-15T12:00:00.000Z",
+   "topic": "Kayak Days",
+   "trackerSentiment": "positive",
+   "reporter": "News Team"
+  },
+  {
+   "url": "https://vtdigger.org/2026/08/18/green-mountain-care-board-set-modest-rate-increases-for-2027-vermont-health-insurance-marketplace-plans/?utm_medium=email&utm_campaign=Daily+Digger+08%2F19%2F26&utm_source=dc3c5486db&npnl=NjUzNDk5fDBjZTM1OGQ4YWVlYzQzZjc4Y2RmMjE2Njg3MDNiMjJjNzE5NGM3NTIzNTliMDliYWYwOTI5OWFmY2RlNDE2YjY&np_seg_donor=&utm_source=VTDigger+Subscribers+and+Donors&utm_campaign=a768c7924a-EMAIL_CAMPAIGN_2026_08_18_10_26&utm_medium=email&utm_term=0_-a768c7924a-426249919",
+   "title": "Green Mountain Care Board set modest rate increases for 2027 Vermont health insurance marketplace plans",
+   "outlet": "VT Digger",
+   "pubDate": "2026-08-18T12:00:00.000Z",
+   "topic": "Rate Decision",
+   "trackerSentiment": "neutral to positive",
+   "reporter": "Olivia Gieger"
+  },
+  {
+   "url": "https://www.mynbc5.com/article/vermont-health-insurance-premiums-rise-2027/73472892",
+   "title": "Vermont health insurance premiums to rise in 2027, but increases are much lower than insurers requested",
+   "outlet": "WPTZ",
+   "pubDate": "2026-08-18T12:00:00.000Z",
+   "topic": "Rate Decision",
+   "trackerSentiment": "neutral to positive",
+   "reporter": "Molly Ormsbee"
+  },
+  {
+   "url": "https://www.rutlandherald.com/news/local/green-mountain-care-board-sets-insurance-premium-rates/article_fe4476bf-eca6-557c-944a-cd2842aef051.html",
+   "title": "Green Mountain Care Board sets insurance premium rates",
+   "outlet": "Rutland Herald",
+   "pubDate": "2026-08-18T12:00:00.000Z",
+   "topic": "Rate Decision",
+   "trackerSentiment": "neutral to positive",
+   "reporter": "Keith Whitcomb Jr"
+  },
+  {
+   "url": "https://www.wcax.com/2026/08/18/vt-regulator-approves-2027-health-insurance-rate-increases/",
+   "title": "Vt. regulator approves 2027 health insurance rate increases",
+   "outlet": "WCAX",
+   "pubDate": "2026-08-18T12:00:00.000Z",
+   "topic": "Rate Decision",
+   "trackerSentiment": "neutral to positive",
+   "reporter": "Lizzie Jensen"
+  },
+  {
+   "url": "https://vermontbiz.com/news/2026/august/19/gmcb-cuts-2027-insurance-rate-increases-bcbs-12-mvp-62-small-group",
+   "title": "GMCB cuts 2027 insurance rate increases: BCBS 1.2%, MVP 6.2% small group",
+   "outlet": "VermontBiz",
+   "pubDate": "2026-08-19T12:00:00.000Z",
+   "topic": "Rate Decision",
+   "trackerSentiment": "neutral to positive",
+   "reporter": "Tim McQuiston"
+  },
+  {
+   "url": "https://www.vermontpublic.org/local-news/2026-08-20/marketplace-insurance-premiums-rise-between-1-and-6-percent-vermont-2027",
+   "title": "Marketplace insurance premiums will rise between 1% and 6% in Vermont next year",
+   "outlet": "Vermont Public",
+   "pubDate": "2026-08-20T12:00:00.000Z",
+   "topic": "Rate Decision",
+   "trackerSentiment": "neutral to positive",
+   "reporter": "Lola Duffort"
+  },
+  {
+   "url": "https://www.samessenger.com/opinion/editorials/the-44-percent-thats-costing-vt-big-bucks/article_333c89e5-837d-4fc2-ae81-b0f89f6d7753.html",
+   "title": "Opinion - The 44 percent that's costing Vt big bucks",
+   "outlet": "St. Alban's Messenger",
+   "pubDate": "2026-08-21T12:00:00.000Z",
+   "topic": "Rate decision orders on $ flowing out of VT and order for insurers to put pressure on out fo state hopsital costs",
+   "trackerSentiment": "neutral to negative",
+   "reporter": "Emerson Lynn"
+  },
+  {
+   "url": "https://vtdigger.org/2026/08/23/vermont-wants-to-train-the-next-generation-of-physicians-how-much-should-insured-vermonters-be-paying-for-it/",
+   "title": "Vermont wants to train the next generation of physicians. How much should insured Vermonters be paying for it?",
+   "outlet": "VT Digger",
+   "pubDate": "2026-08-23T12:00:00.000Z",
+   "topic": "Liaision report (7-30) on UVMMC and mecial college and how commercial insurers subsidize medical education in the state",
+   "trackerSentiment": "neutral",
+   "reporter": "Olivia Geiger"
+  }
+ ]
+}

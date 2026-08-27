@@ -1,5 +1,7 @@
 // HTTP fetching with retries, size caps, per-domain politeness, and the
 // per-source collection pipeline.
+import path from "node:path";
+import { readFile } from "node:fs/promises";
 import {
   mapWithConcurrency,
   parseDate,
@@ -17,6 +19,7 @@ import {
   parseFacebookPageHtml,
   parseFacebookPostHtml,
   parseFeedItems,
+  parseMediaTrackerSeedItems,
   parseUvmHealthNewsroomItems,
 } from "./parsers.js";
 
@@ -736,6 +739,14 @@ async function fetchItemsForSource(source, now, crawlState, metrics) {
         ...item,
         requireBrandMatch: !!source.requireBrandMatch,
       }));
+    } else if (source.seedItemsPath) {
+      // Local, committed input rather than a fetch: no network, no throttle,
+      // and no failure mode that should ever mark the source unhealthy.
+      feedUrl = source.seedItemsPath;
+      const seedPath = path.resolve(process.cwd(), source.seedItemsPath);
+      const raw = await readFile(seedPath, "utf8");
+      sourceItems = parseMediaTrackerSeedItems(raw, source);
+      sourceItems = applySourceItemBounds(sourceItems, source, now);
     } else if (source.listingUrl) {
       feedUrl = source.listingUrl;
       const { text: html, notModified: pageNotModified } = await fetchSourceText(

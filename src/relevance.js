@@ -4,6 +4,7 @@ import {
   canonicalizeMatchedTerms,
   categorizeTerms,
   CATEGORY_BRAND,
+  CATEGORY_TOPIC,
   MENTION_TERMS,
 } from "./matching.js";
 import {
@@ -168,6 +169,11 @@ const OUTLET_NAMES = new Map([
 ]);
 
 export function itemOutletName(item) {
+  // The tracker records the outlet by hand, which beats any host lookup.
+  if (item.trackerOutlet) {
+    return item.trackerOutlet;
+  }
+
   const host = itemHost(item);
   if (host && OUTLET_NAMES.has(host)) {
     return OUTLET_NAMES.get(host);
@@ -262,6 +268,12 @@ const VERMONT_OUTLET_HOSTS = new Set([
 ]);
 
 export function namesBlueCrossVermont(item) {
+  // The media tracker is a hand-kept list of coverage of us; its provenance is
+  // a stronger signal than any text test could be.
+  if (item.fromMediaTracker) {
+    return true;
+  }
+
   const matchedTerms = canonicalizeMatchedTerms(item.matchedTerms || []);
   if (matchedTerms.some((label) => VERMONT_SPECIFIC_BRAND_LABELS.has(label))) {
     return true;
@@ -277,6 +289,27 @@ export function namesBlueCrossVermont(item) {
       .join(" "),
   );
   return VERMONT_TEXT_PATTERN.test(evidence);
+}
+
+// The reader's sections mean exactly this:
+//   Blue Cross VT   - the story mentions us
+//   VT Health Care  - Vermont health news that does not mention us
+//   BlueCrossVT.org - our own site (decided by itemSourceType, not here)
+//
+// A brand term alone is not enough for the first. A bare "Blue Cross" also
+// matches bcbs.com association pages ("Transplant Static List") and other
+// Blues plans, which inflated the section with stories that never mention us.
+// Applied at both enrichment and publishing so an item classified under an
+// older rule is corrected rather than left misfiled in the archive.
+export function itemCategory(item) {
+  const matchedTerms = canonicalizeMatchedTerms(item.matchedTerms || []);
+  if (item.fromMediaTracker) {
+    return CATEGORY_BRAND;
+  }
+  if (categorizeTerms(matchedTerms) !== CATEGORY_BRAND) {
+    return CATEGORY_TOPIC;
+  }
+  return namesBlueCrossVermont(item) ? CATEGORY_BRAND : CATEGORY_TOPIC;
 }
 
 export function itemAccessLabel(item) {
@@ -340,7 +373,8 @@ export function applyDeterministicRelevance(item) {
   const matchedTerms = canonicalizeMatchedTerms(item.matchedTerms || []);
   const category = item.category || categorizeTerms(matchedTerms);
 
-  if (isBlueCrossVtOwnedItem(item)) {
+  if (isBlueCrossVtOwnedItem(item) || item.fromMediaTracker) {
+    // Vetted by hand; the deterministic gate has nothing to add.
     return item.relevant === false ? { ...item, relevant: true } : item;
   }
 

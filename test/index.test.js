@@ -36,6 +36,7 @@ import {
   parseFacebookPageHtml,
   parseFacebookPostHtml,
   parseSummaryResponse,
+  parseMediaTrackerSeedItems,
   normalizeSentiment,
   shouldScoreSentiment,
   itemOutletName,
@@ -195,7 +196,7 @@ test("default sources cover recurring Kristina export outlets", () => {
         .join(" "),
     ).join(" "),
   ).replaceAll("+", " ");
-  assert.equal(DEFAULT_SOURCES.length, 94);
+  assert.equal(DEFAULT_SOURCES.length, 95);
 
   const expectedHosts = [
     "bcbs.com",
@@ -3566,6 +3567,9 @@ test("every curated source is either a registered Vermont outlet or an explicit 
     "Google News Health Insurance Search",
     "Google News Health Trade Search",
     "Google News National Health Policy Search",
+    // A curated backfill spans every outlet the team logged, so it has no
+    // single home region of its own.
+    "Media Tracker Backfill",
     // Brand-owned listings classify as brand regardless of region.
     "BCBSA Association News",
     "BlueCrossVT Newsroom",
@@ -4316,4 +4320,105 @@ test("a stale score is dropped at the publishing boundary", () => {
   assert.equal(item.sentiment, undefined);
   assert.equal(item.sentimentReason, undefined);
   assert.equal(item.sentimentEligible, undefined);
+});
+
+test("dedupe keeps successive roundup editions apart", () => {
+  // Stripping any trailing "- ..." to remove an outlet suffix also removed the
+  // date from "Health Briefs - Jan 22, 2026", so every briefs edition
+  // collapsed into one and each roundup after the first was discarded. That is
+  // exactly where a sponsorship or event mention tends to live.
+  const editions = [
+    {
+      title: "Health Briefs - Jan 22, 2026",
+      link: "https://www.timesargus.com/health-briefs-jan-22",
+      matchedTerms: ["Blue Cross VT"],
+      pubDate: new Date("2026-01-22T12:00:00Z"),
+    },
+    {
+      title: "Health Briefs - May 28, 2026",
+      link: "https://www.timesargus.com/health-briefs-may-28",
+      matchedTerms: ["Blue Cross VT"],
+      pubDate: new Date("2026-05-28T12:00:00Z"),
+    },
+    {
+      title: "Business Briefs - Saturday, May 2",
+      link: "https://www.timesargus.com/business-briefs-may-2",
+      matchedTerms: ["Blue Cross VT"],
+      pubDate: new Date("2026-05-02T12:00:00Z"),
+    },
+  ];
+  assert.equal(dedupeResolvedItems(editions).length, 3);
+
+  // The outlet suffix is still stripped when it carries no date, so the same
+  // story from one outlet does not appear twice.
+  const sameStory = [
+    {
+      title: "Blue Cross VT files 2027 rates - Times Argus",
+      link: "https://www.timesargus.com/rates-a",
+      matchedTerms: ["Blue Cross VT"],
+      pubDate: new Date("2026-08-01T12:00:00Z"),
+    },
+    {
+      title: "Blue Cross VT files 2027 rates",
+      link: "https://www.timesargus.com/rates-b",
+      matchedTerms: ["Blue Cross VT"],
+      pubDate: new Date("2026-08-01T12:00:00Z"),
+    },
+  ];
+  assert.equal(dedupeResolvedItems(sameStory).length, 1);
+});
+
+test("the media tracker seed parses into feed items", () => {
+  const source = DEFAULT_SOURCES.find(
+    (entry) => entry.name === "Media Tracker Backfill",
+  );
+  assert.ok(source, "the backfill source must be registered");
+  assert.equal(source.scanArticle, false);
+  assert.equal(source.seedItemsPath, "data/media-tracker-seed.json");
+
+  const items = parseMediaTrackerSeedItems(
+    JSON.stringify({
+      articles: [
+        {
+          url: "https://vtdigger.org/2026/03/01/story",
+          title: "Vermont hospitals face budget pressure",
+          outlet: "VT Digger",
+          pubDate: "2026-03-01T12:00:00.000Z",
+          topic: "BCBSVT contract negotiations",
+        },
+        { url: "not-a-url", title: "dropped" },
+      ],
+    }),
+    source,
+  );
+
+  assert.equal(items.length, 1);
+  const [item] = items;
+  assert.equal(item.fromMediaTracker, true);
+  assert.equal(item.trackerOutlet, "VT Digger");
+  // The topic column carries the brand evidence a headline often lacks.
+  assert.match(item.feedContent, /BCBSVT contract negotiations/);
+  assert.equal(item.pubDate.toISOString(), "2026-03-01T12:00:00.000Z");
+});
+
+test("a curated entry survives without a term match and outranks retention", () => {
+  // Roughly 40% of the tracker names us only in the article body, which the
+  // seed cannot see, so a term match cannot be the gate. And most of the list
+  // predates the three-month retention window.
+  const curated = {
+    title: "Rising health care costs strain Vermont families",
+    link: "https://vtdigger.org/2025/12/10/costs",
+    guid: "https://vtdigger.org/2025/12/10/costs",
+    matchedTerms: ["Blue Cross VT"],
+    category: CATEGORY_BRAND,
+    matchSource: "mediaTracker",
+    fromMediaTracker: true,
+    pubDate: new Date("2025-12-10T12:00:00Z"),
+  };
+
+  const merged = mergeWithArchive([curated], [], new Date("2026-08-27T12:00:00Z"));
+  assert.equal(merged.length, 1, "a curated item must outlive the retention window");
+  assert.equal(itemOutletName({ ...curated, trackerOutlet: "VT Digger" }), "VT Digger");
+  // Provenance stands in for the Vermont corroboration a bare match needs.
+  assert.equal(namesBlueCrossVermont({ fromMediaTracker: true }), true);
 });

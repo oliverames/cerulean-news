@@ -64,12 +64,35 @@ The default source list combines Vermont outlets, official Blue Cross and health
 | --- | --- | --- |
 | Vermont news outlets | WCAX, VTDigger, Vermont Public, Seven Days, MyNBC5, MyChamplainValley, Burlington Free Press, The Rake Vermont, Poultney Journal, Magic 96.7, The Vermont Cynic, Addison Independent, Valley News, Caledonian-Record, The Chronicle/Barton Chronicle, The Commons, The Bridge, Community News Service, Waterbury Roundabout, and more | RSS, Atom, first-party sitemaps, outlet search feeds, or site-scoped Google News depending on what each outlet exposes; blocked primary feeds can fall back to site-scoped Google News |
 | Official pages | BlueCrossVT Newsroom, BlueCrossVT Be Well VT Blog, UVM Health Newsroom, BCBSA Association News | Public listing pages are parsed because normal RSS feeds are not available |
+| Curated backfill | The communications team's media tracker, seeded from `data/media-tracker-seed.json` | 186 hand-logged clips. Local file, no network, re-emitted every run so the archive self-heals. Most of the list predates this crawler or sits behind outlets that block us, so no crawl can recover it |
 | Search feeds | Blue Cross VT brand searches (site-, phrase-, Boolean-, and full-name-scoped), Vermont health search, Kristina source search, health insurance search, trade search, national policy search, outlet fallbacks | Google News degrades long OR queries, so each brand search is split into small homogeneous chunks; search feeds are capped and bounded to avoid turning the reader into generic health news |
 | National health feeds | ABC Health, CBS Health, CNN Health, STAT, Fierce Healthcare, Healthcare Dive, KFF Health News, The Hill, NPR Health | Broad national items are filtered unless they have a payer, policy, coverage, or regional angle |
 | Payer trade press | Becker's Payer Issues, Modern Healthcare, Health Payer Specialist | All three block direct crawling (403, or a redirect to a login), so each is a Google News search naming Blue Cross VT explicitly. Scoping to "Vermont" alone was measurably too loose. Health Payer Specialist is barely indexed and normally returns nothing |
 | Social surfaces | Public Facebook pages for selected Vermont outlets | Parked by default; set `ENABLE_SOCIAL_SOURCES=true` for a deliberate one-off Facebook collection run |
 
 Direct Blue Cross VT mentions are kept indefinitely. Other stories are kept for three months. (The 2026 backfill search that covered Jan. 1 through June 13, 2026 has been retired; its items remain in the archive.)
+
+### Sections
+
+The reader's three sections mean exactly this:
+
+| Section | Meaning |
+| --- | --- |
+| Blue Cross VT | The story mentions us |
+| VT Health Care | Vermont health news that does not mention us |
+| BlueCrossVT.org | Our own site |
+
+A brand term alone does not earn the first section. A bare "Blue Cross" also
+matches `bcbs.com` association pages ("Transplant Static List") and other Blues
+plans, so it must be corroborated by Vermont: a Vermont-specific brand term, a
+Vermont outlet, or Vermont in the text. `itemCategory` is applied at both
+enrichment and publishing, so an item classified under an older rule is
+corrected in place rather than left misfiled in the archive. Applying it moved
+88 `bcbs.com` pages out of Blue Cross VT.
+
+Every article in the media tracker is Blue Cross VT by definition, whatever
+terms the seed can see: roughly 40% of the list names us only in the article
+body.
 
 ## How Matching Works
 

@@ -4,8 +4,8 @@ import {
   isAssociationItem,
   isJobListingItem,
   isSocialVideoItem,
+  itemCategory,
   itemSourceType,
-  namesBlueCrossVermont,
 } from "./relevance.js";
 
 // ---------------------------------------------------------------------------
@@ -81,15 +81,12 @@ export function normalizeSentiment(value) {
 // Brand press coverage only: our own posts and social items are not media
 // coverage, and topic-only stories never name us so there is nothing to score.
 export function shouldScoreSentiment(item) {
-  const matchedTerms = canonicalizeMatchedTerms(item.matchedTerms || []);
-  const category = item.category || categorizeTerms(matchedTerms);
   return (
-    category === CATEGORY_BRAND &&
+    itemCategory(item) === CATEGORY_BRAND &&
     itemSourceType(item) === "News" &&
     !isAssociationItem(item) &&
     !isJobListingItem(item) &&
-    !isSocialVideoItem(item) &&
-    namesBlueCrossVermont(item)
+    !isSocialVideoItem(item)
   );
 }
 

@@ -102,6 +102,18 @@ export const DEFAULT_SOURCES = [
     feedUrl: "https://vermontbiz.com/rss.xml",
     fallbackFeed: localOutletFallbackFeed("vermontbiz.com"),
   },
+  // Curated backfill of the communications team's media tracker. Local file,
+  // no network. Re-emitted every run so the archive self-heals: an entry that
+  // is somehow lost comes back on the next crawl. Article scanning is off
+  // because 186 extra fetches would risk the workflow's 30-minute timeout, and
+  // the tracker's headline, outlet and topic already carry what the matcher
+  // and summarizer need. See docs/2026-08-27-media-tracker-coverage.md.
+  {
+    name: "Media Tracker Backfill",
+    homepage: "https://www.bluecrossvt.org/",
+    seedItemsPath: "data/media-tracker-seed.json",
+    scanArticle: false,
+  },
   {
     name: "UVM Health Newsroom",
     homepage: "https://www.uvmhealth.org/newsroom",
