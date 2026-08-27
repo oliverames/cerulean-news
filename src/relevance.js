@@ -5,6 +5,7 @@ import {
   categorizeTerms,
   CATEGORY_BRAND,
   CATEGORY_TOPIC,
+  findMentionTerms,
   MENTION_TERMS,
   namesOtherBluesPlan,
   namesVermontBluesRelationship,
@@ -114,6 +115,14 @@ function itemHost(item) {
   }
 }
 
+function itemPathname(item) {
+  try {
+    return new URL(itemLink(item)).pathname;
+  } catch {
+    return "";
+  }
+}
+
 export function itemSourceType(item) {
   const link = itemLink(item);
   if (BLUECROSSVT_HOST_PATTERN.test(link)) {
@@ -195,15 +204,47 @@ export function itemOutletName(item) {
   return host.replace(/^(?:www|amp|m)\./, "");
 }
 
-// Recruitment listings name us but are not somebody reporting on us, and
-// they read as bland-positive, so they would drag the average toward neutral
-// for no editorial reason. Excluded from sentiment only; they still appear in
-// the feeds.
-const JOB_BOARD_PATTERN =
-  /(?:^|\.)(?:linkedin|snagajob|jobleads|indeed|ziprecruiter|glassdoor|simplyhired|talent|monster|careerbuilder)\.[a-z.]+$/i;
+// Recruitment listings name us but are not somebody reporting on us. LinkedIn
+// and Breakroom also host non-listing pages, so those two need a path check.
+const JOB_BOARD_HOST_PATTERN =
+  /(?:^|\.)(?:snagajob|jobleads|indeed|ziprecruiter|glassdoor|simplyhired|talent|monster|careerbuilder)\.[a-z.]+$/i;
+const LINKEDIN_HOST_PATTERN = /(?:^|\.)linkedin\.com$/i;
+const BREAKROOM_HOST_PATTERN = /(?:^|\.)breakroom\.cc$/i;
 
 export function isJobListingItem(item) {
-  return JOB_BOARD_PATTERN.test(itemHost(item));
+  const host = itemHost(item);
+  const pathname = itemPathname(item);
+  return (
+    JOB_BOARD_HOST_PATTERN.test(host) ||
+    (LINKEDIN_HOST_PATTERN.test(host) && /^\/jobs(?:\/|$)/i.test(pathname)) ||
+    (BREAKROOM_HOST_PATTERN.test(host) &&
+      /(?:^|\/)employers(?:\/|$)/i.test(pathname))
+  );
+}
+
+const TIMES_ARGUS_PAGE_TITLE_PATTERN =
+  /^Page\s+[A-Z]?\d+\s+-\s+Times Argus$/i;
+const TIMES_ARGUS_EEDITION_PATH_PATTERN =
+  /^\/eedition[^/]*\/page-[a-z]?\d+\/page_[^/]+\.html$/i;
+const SHOPPER_EDITION_TITLE_PATTERN =
+  /^Full online edition:\s+The Shopper Edition \d{2}-\d{2}-\d{2}$/i;
+const SHOPPER_EDITION_PATH_PATTERN =
+  /^\/online-edition\/full-online-edition-the-shopper-edition-\d{2}-\d{2}-\d{2}\/?$/i;
+
+function isPublisherPagePlaceholderItem(item) {
+  return (
+    itemHost(item) === "timesargus.com" &&
+    TIMES_ARGUS_PAGE_TITLE_PATTERN.test(cleanText(item.title || "")) &&
+    TIMES_ARGUS_EEDITION_PATH_PATTERN.test(itemPathname(item))
+  );
+}
+
+function isPublisherEditionWrapperItem(item) {
+  return (
+    itemHost(item) === "vermontjournal.com" &&
+    SHOPPER_EDITION_TITLE_PATTERN.test(cleanText(item.title || "")) &&
+    SHOPPER_EDITION_PATH_PATTERN.test(itemPathname(item))
+  );
 }
 
 // itemSourceType only recognises Facebook as social, so short-video hosts
@@ -382,16 +423,11 @@ function hasOnlyLowPriorityTopicTerms(matchedTerms = []) {
 export function applyDeterministicRelevance(item) {
   const matchedTerms = canonicalizeMatchedTerms(item.matchedTerms || []);
   const category = item.category || categorizeTerms(matchedTerms);
-
-  if (isBlueCrossVtOwnedItem(item) || item.fromMediaTracker) {
-    // Vetted by hand; the deterministic gate has nothing to add.
-    return item.relevant === false ? { ...item, relevant: true } : item;
-  }
-
-  if (category === CATEGORY_BRAND) {
-    return item;
-  }
-
+  const observedEvidence = cleanText(
+    [item.title, item.description, item.snippet, item.feedContent]
+      .filter(Boolean)
+      .join(" "),
+  );
   const contentEvidence = cleanText(
     [
       item.title,
@@ -402,6 +438,54 @@ export function applyDeterministicRelevance(item) {
       .filter(Boolean)
       .join(" "),
   );
+
+  if (item.fromMediaTracker) {
+    // Vetted by hand; the deterministic gate has nothing to add.
+    return item.relevant === false ? { ...item, relevant: true } : item;
+  }
+
+  if (isJobListingItem(item)) {
+    return {
+      ...item,
+      relevant: false,
+      reason: "Employment platform page, not news coverage.",
+    };
+  }
+
+  if (isPublisherPagePlaceholderItem(item)) {
+    return {
+      ...item,
+      relevant: false,
+      reason: "Publisher e-edition page placeholder, not an article.",
+    };
+  }
+
+  if (isPublisherEditionWrapperItem(item)) {
+    return {
+      ...item,
+      relevant: false,
+      reason: "Publisher edition wrapper, not an article.",
+    };
+  }
+
+  if (isBlueCrossVtOwnedItem(item)) {
+    return item.relevant === false ? { ...item, relevant: true } : item;
+  }
+
+  if (category === CATEGORY_BRAND) {
+    if (
+      item.matchSource === "searchFallback" &&
+      findMentionTerms(observedEvidence, MENTION_TERMS).length === 0
+    ) {
+      return {
+        ...item,
+        relevant: false,
+        reason: "Search result has no verifiable Blue Cross mention.",
+      };
+    }
+    return item;
+  }
+
   const evidence = cleanText(
     [contentEvidence, item.sourceName].filter(Boolean).join(" "),
   );

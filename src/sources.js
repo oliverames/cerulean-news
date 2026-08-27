@@ -525,7 +525,7 @@ export const DEFAULT_SOURCES = [
     name: "Google News Blue Cross Site Search",
     homepage: "https://news.google.com/",
     feedUrl: googleNewsSearchUrl(
-      "(site:bcbsvt.org OR bluecrossvt.org OR site:bcbs.com OR site:bluewebportal.bcbs.com) when:30d",
+      "(site:bcbsvt.org OR site:bluecrossvt.org OR site:bcbs.com OR site:bluewebportal.bcbs.com) when:30d",
     ),
     isSearchFeed: true,
     searchFallbackTerms: ["Blue Cross"],

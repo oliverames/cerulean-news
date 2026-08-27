@@ -3,6 +3,7 @@ import path from "node:path";
 import { cleanText, parsePositiveInteger, sleep } from "./utils.js";
 import { CATEGORY_BRAND, canonicalizeMatchedTerms, categorizeTerms } from "./matching.js";
 import {
+  applyDeterministicRelevance,
   isAssociationItem,
   isJobListingItem,
   isSocialVideoItem,
@@ -84,6 +85,7 @@ export function normalizeSentiment(value) {
 // coverage, and topic-only stories never name us so there is nothing to score.
 export function shouldScoreSentiment(item) {
   return (
+    item.relevant !== false &&
     itemCategory(item) === CATEGORY_BRAND &&
     itemSourceType(item) === "News" &&
     !isAssociationItem(item) &&
@@ -348,6 +350,10 @@ export function parseSummaryResponse(text, batch) {
     // coverage, and the model sees only the headline and a topic note, so its
     // veto is worse-informed than the judgement it would be overriding.
     item.relevant = item.fromMediaTracker ? true : entry.relevant !== false;
+    // Deterministic exclusions are authoritative. Reapply them after the
+    // model verdict so SUMMARY_REJUDGE_ALL cannot restore a job board,
+    // publisher placeholder, or another rule-based rejection.
+    Object.assign(item, applyDeterministicRelevance(item));
     // Sentiment is brand press coverage only. Scoring is gated locally rather
     // than trusting the model to honour the per-article "MENTIONS BCBSVT"
     // flag, so a stray score on a topic-only story is dropped here.

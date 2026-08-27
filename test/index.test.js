@@ -379,14 +379,20 @@ test("default sources cover recurring Kristina export outlets", () => {
 });
 
 test("current Google News searches apply their freshness window to the full query", () => {
+  const siteSearch = DEFAULT_SOURCES.find(
+    (source) => source.name === "Google News Blue Cross Site Search",
+  );
   const currentBlueCross = DEFAULT_SOURCES.find(
     (source) => source.name === "Google News Blue Cross Boolean Search A",
   );
   const vermontHealth = DEFAULT_SOURCES.filter(
     (source) => /^Google News Vermont Health Search [A-E]$/.test(source.name),
   );
+  const siteSearchQuery = new URL(siteSearch.feedUrl).searchParams.get("q");
   const blueCrossQuery = new URL(currentBlueCross.feedUrl).searchParams.get("q");
 
+  assert.match(siteSearchQuery, /site:bluecrossvt\.org/);
+  assert.equal(siteSearchQuery.split(/\s+/).includes("bluecrossvt.org"), false);
   assert.match(blueCrossQuery, /\) when:30d$/);
   assert.equal(currentBlueCross.maxItemAgeDays, 30);
   assert.equal(vermontHealth.length, 5);
@@ -2984,6 +2990,58 @@ test("RSS, JSON, and the reader label publisher previews separately", async () =
   assert.match(reader, /\.textContent\s*=/);
 });
 
+test("roundup previews publish only when they match the selected brief", () => {
+  const kayak = {
+    sourceName: "Google News Blue Cross Site Search",
+    title: "Sports / Outdoors - Aug 27, 2026 - Times Argus",
+    link: "https://www.timesargus.com/theworld/sports-outdoors---aug-27-2026/article_6d914917-d8c2-5922-bc4b-7731992d6dd6.html",
+    pubDate: new Date("2026-08-27T12:00:00Z"),
+    matchedTerms: ["Blue Cross VT", "bluecrossvt.org"],
+    category: CATEGORY_BRAND,
+    summary: "Blue Cross VT hosted its annual Kayak Days event.",
+    previewText:
+      "Hunters traveling outside Vermont must follow chronic wasting disease rules for deer, elk, and moose.",
+  };
+  const rss = buildRss([kayak], { now: new Date("2026-08-27T13:00:00Z") });
+  const json = buildJsonSummary([kayak], [], new Date("2026-08-27T13:00:00Z"));
+
+  assert.match(rss, /Blue Cross VT hosted its annual Kayak Days event/);
+  assert.doesNotMatch(rss, /Publisher preview/);
+  assert.doesNotMatch(rss, /chronic wasting disease/);
+  assert.equal(json.items[0].previewText, "");
+  assert.doesNotMatch(json.items[0].content_text, /chronic wasting disease/);
+
+  const alignedBrand = buildJsonSummary(
+    [
+      {
+        ...kayak,
+        title: "Times Argus Business Briefs May 30, 2026",
+        link: "https://www.timesargus.com/news/local/business-briefs-may-30",
+        previewText: "Blue Cross VT announced new support for Vermont members.",
+      },
+    ],
+    [],
+    new Date("2026-08-27T13:00:00Z"),
+  );
+  assert.match(alignedBrand.items[0].previewText, /Blue Cross VT announced/);
+
+  const alignedTopic = buildJsonSummary(
+    [
+      {
+        ...kayak,
+        title: "Health Briefs - Jul 23, 2026",
+        link: "https://www.timesargus.com/theworld/health-briefs-jul-23",
+        matchedTerms: ["Senior & long-term care"],
+        category: CATEGORY_TOPIC,
+        previewText: "A Vermont hospice expanded support for patients and families.",
+      },
+    ],
+    [],
+    new Date("2026-08-27T13:00:00Z"),
+  );
+  assert.match(alignedTopic.items[0].previewText, /Vermont hospice/);
+});
+
 test("reader keeps gated content inert and exposes comment disclosure state", async () => {
   const reader = await readFile(
     path.resolve(process.cwd(), "site", "index.html"),
@@ -4502,22 +4560,45 @@ test("association pages are not scored for sentiment", () => {
   );
 });
 
-test("recruitment listings are not scored for sentiment", () => {
-  // Job postings name us without reporting on us, and read bland-positive.
+test("employment platform pages are rejected without catching press coverage", () => {
+  // Job postings name us without reporting on us.
   for (const link of [
-    "https://www.linkedin.com/jobs/view/clinical-support-rep",
-    "https://www.jobleads.com/us/job/clinical-case-manager",
-    "https://www.snagajob.com/jobs/12345",
+    "https://www.linkedin.com/jobs/view/clinical-support-representative-at-blue-cross-and-blue-shield-of-vermont-4459024501",
+    "https://www.snagajob.com/jobs/1290274288",
+    "https://www.jobleads.com/us/job/clinical-case-manager--berlin--e2883d0c6297feb1d0087b5344a4489e8",
+    "https://www.jobleads.com/us/job/customer-service-representative-federal-employment-program--berlin--e292b185acb2af2560d8b0e62528bb62a",
+    "https://www.breakroom.cc/en-us/employers/blue-cross-blue-shield-of-vermont",
+    "https://www.ziprecruiter.com/c/BlueCross-BlueShield-of-Vermont/Job/Customer-Service-Representative,-Federal-Employment-Program/-in-Montpelier,VT?jid=c52b6985a3bb5940",
   ]) {
     assert.equal(isJobListingItem({ link }), true, link);
-    assert.equal(
-      shouldScoreSentiment({ matchedTerms: ["BCBSVT"], link }),
-      false,
+    const rejected = applyDeterministicRelevance({
+      title: "Blue Cross and Blue Shield of Vermont job",
+      matchedTerms: ["BCBSVT"],
+      category: CATEGORY_BRAND,
       link,
-    );
+    });
+    assert.equal(rejected.relevant, false, link);
+    assert.equal(rejected.reason, "Employment platform page, not news coverage.");
+    assert.equal(shouldScoreSentiment(rejected), false, link);
   }
 
-  // A newsroom whose host merely contains a job word is still press.
+  assert.equal(
+    isJobListingItem({ link: "https://www.linkedin.com/company/bluecrossvt" }),
+    false,
+  );
+
+  // A hand-curated entry remains authoritative, even on a platform URL.
+  assert.equal(
+    applyDeterministicRelevance({
+      link: "https://www.linkedin.com/jobs/view/curated-example",
+      matchedTerms: ["BCBSVT"],
+      fromMediaTracker: true,
+      relevant: false,
+    }).relevant,
+    true,
+  );
+
+  // A newsroom whose path contains a job word is still press.
   assert.equal(
     isJobListingItem({ link: "https://vtdigger.org/jobs-report" }),
     false,
@@ -4528,6 +4609,124 @@ test("recruitment listings are not scored for sentiment", () => {
       link: "https://vtdigger.org/jobs-report",
     }),
     true,
+  );
+
+  const rejudgedJob = {
+    title: "Clinical Support Representative",
+    link: "https://www.linkedin.com/jobs/view/clinical-support-rep",
+    matchedTerms: ["BCBSVT"],
+    relevant: false,
+    sentiment: "neutral",
+  };
+  parseSummaryResponse(
+    JSON.stringify([
+      {
+        id: 1,
+        summary: "Blue Cross VT is hiring a support representative.",
+        reason: "Mentions Blue Cross VT.",
+        relevant: true,
+        sentiment: "positive",
+      },
+    ]),
+    [rejudgedJob],
+  );
+  assert.equal(rejudgedJob.relevant, false);
+  assert.equal(rejudgedJob.reason, "Employment platform page, not news coverage.");
+  assert.equal(rejudgedJob.sentiment, undefined);
+});
+
+test("deterministic relevance rejects publisher placeholders and unverified search fallbacks", () => {
+  const placeholder = applyDeterministicRelevance({
+    title: "Page A18 - Times Argus",
+    link: "https://www.timesargus.com/eedition_theworld/page-a18/page_d7e687e5-1125-5958-a7e0-5618e150e546.html",
+    matchedTerms: ["Blue Cross"],
+    category: CATEGORY_BRAND,
+    matchSource: "searchFallback",
+  });
+  assert.equal(placeholder.relevant, false);
+  assert.equal(
+    placeholder.reason,
+    "Publisher e-edition page placeholder, not an article.",
+  );
+
+  const curatedEditionPage = applyDeterministicRelevance({
+    title: "National Walk@Lunch and Green Up Day",
+    link: "https://www.timesargus.com/eedition_theworld/page-a3/page_123.html",
+    matchedTerms: ["Walk@Lunch"],
+    fromMediaTracker: true,
+    relevant: false,
+  });
+  assert.equal(curatedEditionPage.relevant, true);
+
+  const shopperWrapper = applyDeterministicRelevance({
+    title: "Full online edition: The Shopper Edition 07-15-26",
+    link: "https://vermontjournal.com/online-edition/full-online-edition-the-shopper-edition-07-15-26/",
+    matchedTerms: ["Prescription drugs & pharmacy"],
+    category: CATEGORY_TOPIC,
+  });
+  assert.equal(shopperWrapper.relevant, false);
+  assert.equal(shopperWrapper.reason, "Publisher edition wrapper, not an article.");
+
+  for (const item of [
+    {
+      title: "Join us for fun & relaxation at Vermont Distillers. Ragged Blue will perform.",
+      link: "https://www.facebook.com/RaggedBlue/posts/1670528698407217/",
+      sourceName: "Google News Blue Cross Site Search",
+    },
+    {
+      title: "Fall Into Winter - The Vermont Journal & The Shopper -",
+      link: "https://vermontjournal.com/event/fall-into-winter/",
+      sourceName: "Google News Blue Cross Boolean Search A",
+    },
+  ]) {
+    const rejected = applyDeterministicRelevance({
+      ...item,
+      matchedTerms: ["Blue Cross"],
+      category: CATEGORY_BRAND,
+      matchSource: "searchFallback",
+    });
+    assert.equal(rejected.relevant, false, item.link);
+    assert.equal(
+      rejected.reason,
+      "Search result has no verifiable Blue Cross mention.",
+    );
+  }
+
+  const rejudgedFallback = {
+    title: "Fall Into Winter - The Vermont Journal & The Shopper -",
+    link: "https://vermontjournal.com/event/fall-into-winter/",
+    sourceName: "Google News Blue Cross Boolean Search A",
+    matchedTerms: ["Blue Cross"],
+    category: CATEGORY_BRAND,
+    matchSource: "searchFallback",
+    relevant: false,
+  };
+  parseSummaryResponse(
+    JSON.stringify([
+      {
+        id: 1,
+        summary: "The event page mentions Blue Cross VT.",
+        reason: "Mentions Blue Cross VT.",
+        relevant: true,
+      },
+    ]),
+    [rejudgedFallback],
+  );
+  assert.equal(rejudgedFallback.relevant, false);
+  assert.equal(
+    rejudgedFallback.reason,
+    "Search result has no verifiable Blue Cross mention.",
+  );
+
+  assert.equal(
+    applyDeterministicRelevance({
+      title: "Blue Cross VT hosts Kayak Days",
+      link: "https://www.wcax.com/2026/08/15/kayak-days/",
+      matchedTerms: ["Blue Cross"],
+      category: CATEGORY_BRAND,
+      matchSource: "searchFallback",
+    }).relevant,
+    undefined,
   );
 });
 

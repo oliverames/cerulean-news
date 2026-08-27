@@ -9,7 +9,14 @@ import {
   sortItemsByDate,
   wrapCdata,
 } from "./utils.js";
-import { canonicalizeMatchedTerms, categorizeTerms } from "./matching.js";
+import {
+  canonicalizeMatchedTerms,
+  categorizeTerms,
+  CATEGORY_BRAND,
+  findMentionTerms,
+  MENTION_TERMS,
+  TOPIC_TERMS,
+} from "./matching.js";
 import {
   itemAccessLabel,
   itemCategory,
@@ -52,6 +59,32 @@ function formatPubDate(date) {
   return (date || new Date()).toUTCString();
 }
 
+const ROUNDUP_TITLE_PATTERN =
+  /\b(?:business briefs?|health briefs?|community news|sports\s*\/\s*outdoors)\b/i;
+
+function previewTextForOutput(item) {
+  const previewText = normalizePreviewText(item.previewText || "");
+  if (
+    !previewText ||
+    itemOutletName(item) !== "Times Argus" ||
+    !ROUNDUP_TITLE_PATTERN.test(item.title || "")
+  ) {
+    return previewText;
+  }
+
+  const itemTerms = canonicalizeMatchedTerms(item.matchedTerms || []);
+  const previewTerms = findMentionTerms(previewText, [
+    ...MENTION_TERMS,
+    ...TOPIC_TERMS,
+  ]);
+  if (itemCategory({ ...item, matchedTerms: itemTerms }) === CATEGORY_BRAND) {
+    return categorizeTerms(previewTerms) === CATEGORY_BRAND ? previewText : "";
+  }
+
+  const itemTermSet = new Set(itemTerms);
+  return previewTerms.some((term) => itemTermSet.has(term)) ? previewText : "";
+}
+
 function itemDescription(item) {
   const snippet = cleanStorySnippet(item.snippet, item.title);
   const date = item.pubDate?.toISOString()?.slice(0, 10) || "";
@@ -72,7 +105,7 @@ function itemDescription(item) {
     lines.push(`<p>${escapeXml(item.summary)}</p>`);
   }
 
-  const previewText = normalizePreviewText(item.previewText || "");
+  const previewText = previewTextForOutput(item);
   if (access === "Paywall likely" && previewText) {
     lines.push(
       `<p><strong>Publisher preview:</strong> ${escapeXml(previewText)}</p>`,
@@ -234,7 +267,7 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
       const matchedTerms = canonicalizeMatchedTerms(item.matchedTerms || []);
       const comments = Array.isArray(item.comments) ? item.comments : [];
       const snippet = cleanStorySnippet(item.snippet, item.title);
-      const previewText = normalizePreviewText(item.previewText || "");
+      const previewText = previewTextForOutput(item);
       const access = itemAccessLabel(item);
       const eligibleForSentiment = shouldScoreSentiment(item);
       const contentText = cleanText(
