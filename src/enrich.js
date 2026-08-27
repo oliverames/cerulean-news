@@ -13,6 +13,8 @@ import {
   buildSnippet,
   canonicalizeMatchedTerms,
   categorizeTerms,
+  CATEGORY_BRAND,
+  CATEGORY_TOPIC,
   findMentionTerms,
   MENTION_TERMS,
   TOPIC_TERMS,
@@ -24,7 +26,7 @@ import {
   htmlToArticleText,
 } from "./parsers.js";
 import { fetchText, throttleRequest } from "./fetching.js";
-import { isLikelyPaywalled } from "./relevance.js";
+import { isLikelyPaywalled, itemCategory } from "./relevance.js";
 
 const googleDecoder = new GoogleDecoder();
 
@@ -657,7 +659,14 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
           ? "text"
           : inheritedCache?.matchSource || "text";
     if (finalMatchedTerms.length === 0) {
-      const fallbackTerms = canonicalizeMatchedTerms(item.searchFallbackTerms || []);
+      // A media-tracker entry is coverage by editorial judgement, already
+      // vetted by the person who keeps the list. Roughly 40% of the list names
+      // us only in the article body, which the seed cannot see, so dropping on
+      // a failed term match would discard exactly the items the backfill
+      // exists to recover. Provenance stands in for the term match.
+      const fallbackTerms = item.fromMediaTracker
+        ? ["Blue Cross VT"]
+        : canonicalizeMatchedTerms(item.searchFallbackTerms || []);
       if (fallbackTerms.length === 0) {
         writeArticleCache(
           articleCache,
@@ -677,7 +686,7 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
         return null;
       }
       finalMatchedTerms = fallbackTerms;
-      matchSource = "searchFallback";
+      matchSource = item.fromMediaTracker ? "mediaTracker" : "searchFallback";
     }
 
     const snippetSource =
@@ -714,7 +723,20 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
       ...item,
       link: resolvedLink,
       matchedTerms: finalMatchedTerms,
-      category: categorizeTerms(finalMatchedTerms),
+      // Section semantics: "Blue Cross VT" means the story mentions us,
+      // "VT Health Care" means Vermont health news that does not.
+      //
+      // A media-tracker entry is ours by definition, since the list is the
+      // team's own record of coverage; several name us only in the body, which
+      // the seed cannot see. Otherwise a brand term earns the section only when
+      // it actually points at us: a bare "Blue Cross" also matches bcbs.com
+      // association pages ("Transplant Static List") and other Blues plans,
+      // which were inflating the section with stories that never mention us.
+      category: itemCategory({
+        ...item,
+        matchedTerms: finalMatchedTerms,
+        link: resolvedLink,
+      }),
       snippet,
       previewText,
       previewChecked,
@@ -723,6 +745,8 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
       sentiment: inheritedCache?.sentiment || item.sentiment,
       sentimentReason:
         inheritedCache?.sentimentReason || item.sentimentReason,
+      fromMediaTracker: item.fromMediaTracker || undefined,
+      trackerOutlet: item.trackerOutlet || undefined,
       relevant:
         typeof inheritedCache?.relevant === "boolean"
           ? inheritedCache.relevant

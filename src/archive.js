@@ -186,6 +186,8 @@ export async function loadPreviousState(...jsonOutputPaths) {
             relevant,
             sentiment,
             sentimentReason,
+            fromMediaTracker: item.fromMediaTracker || undefined,
+            trackerOutlet: item.trackerOutlet || undefined,
             comments: Array.isArray(item.comments) ? item.comments : [],
             articleError: item.articleError || "",
             matchSource: item.matchSource || "",
@@ -207,6 +209,8 @@ export async function loadPreviousState(...jsonOutputPaths) {
             relevant,
             sentiment,
             sentimentReason,
+            fromMediaTracker: item.fromMediaTracker || undefined,
+            trackerOutlet: item.trackerOutlet || undefined,
             comments: Array.isArray(item.comments) ? item.comments : [],
             articleError: item.articleError || "",
             matchSource: item.matchSource || "",
@@ -258,8 +262,20 @@ function isBrandCategoryItem(item) {
   return (item.category || categorizeTerms(item.matchedTerms || [])) === CATEGORY_BRAND;
 }
 
+// Curated backfill entries are retained on the same footing as brand items,
+// whatever terms they happen to match. The three-month window exists to stop
+// generic Vermont health news accumulating; a hand-logged clip is the opposite
+// of that, and most of the tracker predates the window anyway.
+function isCuratedItem(item) {
+  return item.fromMediaTracker === true;
+}
+
 function hasCurrentMatchingEvidence(item) {
-  if (item.matchSource === "searchFallback") {
+  if (item.matchSource === "searchFallback" || item.matchSource === "mediaTracker") {
+    return true;
+  }
+
+  if (isCuratedItem(item)) {
     return true;
   }
 
@@ -276,6 +292,25 @@ function hasCurrentMatchingEvidence(item) {
 // URL; title+domain dupes happen when two Google News search feeds surface
 // the same syndicated copy. The same headline from *different* outlets is
 // kept on purpose — the comms team tracks coverage spread.
+// Titles arrive as "Headline - Outlet", so the outlet suffix is stripped
+// before comparing. Stripping any trailing "- ..." was too greedy: a briefs
+// or calendar page is titled "Health Briefs - Jan 22, 2026", so the date was
+// removed and every edition collapsed into one. That silently discarded every
+// roundup after the first, which is where a sponsorship or event mention
+// usually lives. A suffix carrying a digit is a date, not an outlet.
+function normalizeTitleForDedupe(title) {
+  const cleaned = cleanText(title || "").toLowerCase().trim();
+  const match = cleaned.match(/^(.*\S)\s+-\s+([^-]+)$/);
+  if (!match) {
+    return cleaned;
+  }
+  const suffix = match[2].trim();
+  if (/\d/.test(suffix)) {
+    return cleaned;
+  }
+  return match[1].trim();
+}
+
 export function dedupeResolvedItems(items) {
   const seenLinks = new Set();
   const seenTitleDomain = new Set();
@@ -294,10 +329,7 @@ export function dedupeResolvedItems(items) {
     } catch {
       domain = "";
     }
-    const normalizedTitle = cleanText(item.title || "")
-      .toLowerCase()
-      .replace(/\s+-\s+[^-]+$/, "") // strip trailing "- Outlet" suffix
-      .trim();
+    const normalizedTitle = normalizeTitleForDedupe(item.title);
     const titleKey = domain && normalizedTitle ? `${domain}|${normalizedTitle}` : "";
     const isAggregatorItem =
       domain === "news.google.com" || /^Google News\b/i.test(item.sourceName || "");
@@ -373,6 +405,6 @@ export function mergeWithArchive(currentItems, archivedItems, now = new Date()) 
     if (time > maxFutureTime) {
       return false;
     }
-    return isBrandCategoryItem(item) || time >= cutoff;
+    return isBrandCategoryItem(item) || isCuratedItem(item) || time >= cutoff;
   });
 }

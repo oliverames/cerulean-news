@@ -1286,3 +1286,57 @@ export function articlePageMatchesTitle(
     return matches >= requiredMatches && matches / expectedTokens.size >= 0.3;
   });
 }
+
+// ---------------------------------------------------------------------------
+// Curated backfill. The communications team's media tracker is a hand-kept
+// list of coverage, and much of it predates this crawler (first commit
+// 2026-05-13) or sits behind outlets that block us, so no crawl can recover
+// it. Seeding the list turns "what the crawler found" into "what the team
+// knows about". Entries carry the tracker's own headline, outlet, date, and
+// topic, which is all the matcher and the summarizer need.
+// ---------------------------------------------------------------------------
+export function parseMediaTrackerSeedItems(json, source) {
+  let doc;
+  try {
+    doc = typeof json === "string" ? JSON.parse(json) : json;
+  } catch {
+    return [];
+  }
+
+  const articles = Array.isArray(doc?.articles) ? doc.articles : [];
+  return articles
+    .map((article) => {
+      const link = cleanText(article?.url || "");
+      if (!/^https?:\/\//i.test(link)) {
+        return null;
+      }
+      const title = cleanText(article?.title || "") || link;
+      // The topic column is the team's own note on why the story mattered, so
+      // it carries the brand evidence the headline often lacks.
+      const description = cleanText(
+        [article?.topic, article?.outlet].filter(Boolean).join(". "),
+      );
+      const pubDate = article?.pubDate ? new Date(article.pubDate) : null;
+
+      return {
+        sourceName: source.name,
+        sourceFeedUrl: source.homepage || "",
+        isSearchFeed: false,
+        searchFallbackTerms: [],
+        scanArticle: source.scanArticle !== false,
+        articleScanMode: "off",
+        title,
+        link,
+        guid: link,
+        pubDate: pubDate && !Number.isNaN(pubDate.valueOf()) ? pubDate : null,
+        description,
+        sourceCategories: [],
+        feedContent: cleanText([title, description].filter(Boolean).join(" ")),
+        // Provenance. Read by enrichment to keep the item even when no term
+        // matches, and by relevance to treat the entry as vetted coverage.
+        fromMediaTracker: true,
+        trackerOutlet: cleanText(article?.outlet || ""),
+      };
+    })
+    .filter(Boolean);
+}

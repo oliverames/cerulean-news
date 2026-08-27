@@ -10,7 +10,12 @@ import {
   wrapCdata,
 } from "./utils.js";
 import { canonicalizeMatchedTerms, categorizeTerms } from "./matching.js";
-import { itemAccessLabel, itemOutletName, itemSourceType } from "./relevance.js";
+import {
+  itemAccessLabel,
+  itemCategory,
+  itemOutletName,
+  itemSourceType,
+} from "./relevance.js";
 import { shouldScoreSentiment } from "./summaries.js";
 
 const SITE_URL = process.env.SITE_URL?.trim() || "";
@@ -265,7 +270,9 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
         guid: item.guid || item.link,
         pubDate: item.pubDate?.toISOString() || null,
         matchedTerms,
-        category: item.category || categorizeTerms(matchedTerms),
+        // Recomputed rather than echoed, so an item classified under an older
+        // rule is corrected in place instead of staying misfiled forever.
+        category: itemCategory({ ...item, matchedTerms }),
         snippet,
         summary: item.summary || "",
         previewText: access === "Paywall likely" ? previewText : "",
@@ -294,6 +301,9 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
         // Public output gets a boolean, not the raw fetch error message.
         articleFetchFailed: Boolean(item.articleError),
         matchSource: item.matchSource || "",
+        // Marks an entry seeded from the team's media tracker rather than
+        // found by the crawler, so the two can be told apart in the archive.
+        fromMediaTracker: item.fromMediaTracker || undefined,
       };
     }),
   };

@@ -261,6 +261,7 @@ export {
   parseFacebookPageHtml,
   parseFacebookPostHtml,
   parseFeedItems,
+  parseMediaTrackerSeedItems,
   parseUvmHealthNewsroomItems,
 } from "./parsers.js";
 export {
@@ -280,6 +281,7 @@ export {
   isJobListingItem,
   isLikelyPaywalled,
   isSocialVideoItem,
+  itemCategory,
   itemOutletName,
   namesBlueCrossVermont,
 } from "./relevance.js";
