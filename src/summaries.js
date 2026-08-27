@@ -3,7 +3,9 @@ import { CATEGORY_BRAND, canonicalizeMatchedTerms, categorizeTerms } from "./mat
 import {
   isAssociationItem,
   isJobListingItem,
+  isSocialVideoItem,
   itemSourceType,
+  namesBlueCrossVermont,
 } from "./relevance.js";
 
 // ---------------------------------------------------------------------------
@@ -85,7 +87,9 @@ export function shouldScoreSentiment(item) {
     category === CATEGORY_BRAND &&
     itemSourceType(item) === "News" &&
     !isAssociationItem(item) &&
-    !isJobListingItem(item)
+    !isJobListingItem(item) &&
+    !isSocialVideoItem(item) &&
+    namesBlueCrossVermont(item)
   );
 }
 

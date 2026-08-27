@@ -279,7 +279,9 @@ export {
   isAssociationItem,
   isJobListingItem,
   isLikelyPaywalled,
+  isSocialVideoItem,
   itemOutletName,
+  namesBlueCrossVermont,
 } from "./relevance.js";
 export { dedupeResolvedItems, mergeWithArchive, normalizeCrawlState } from "./archive.js";
 export {

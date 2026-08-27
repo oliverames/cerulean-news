@@ -144,24 +144,39 @@ records alongside its scores:
    the target.
 
 Scoring is deliberately narrow. An item is scored only when it is brand
-coverage (`category` is `Blue Cross VT`) **and** it is press. These are
-excluded:
+coverage (`category` is `Blue Cross VT`) **and** it is press about us. These
+are excluded:
 
 - Vermont health care stories that never name us, which have no tone toward us
 - BlueCrossVT.org posts, which are owned content
-- Facebook items, which are social rather than press
+- Facebook items and short-video hosts such as TikTok, which are not press
 - `bcbs.com` pages, which are national association web pages matching only the
   generic term "Blue Cross"
 - Recruitment listings on job boards, which name us without reporting on us
+- Stories about a *different* Blues plan. The matcher accepts a bare
+  "Blue Cross", which is right for surfacing a story but too loose to score, so
+  a bare match must be corroborated by Vermont: a Vermont-specific brand term,
+  a Vermont outlet, or Vermont in the text. Without this the generator scored a
+  BCBS Massachusetts story and a generic "new Blue Cross CEO" piece.
+
+Of 1,566 published items on 2026-08-27, 1,369 never name us and 197 do; of
+those 197, 86 are bcbs.com association pages and 39 are our own posts, leaving
+62 pieces of actual press coverage to score. A low scored count is a measure of
+how much coverage exists, not of a scoring backlog.
+
+Items in that coverage set carry `sentimentEligible: true` in the JSON feed,
+so the trends page can count a story the hour it arrives, before it is scored.
 
 Scores ride in the same batched Gemini request as the summary, so sentiment
 costs no extra API calls. They persist in `feed-audit.json` like summaries do,
 and an item is scored exactly once.
 
-`site/trends.html` charts the scores over time: net sentiment by month,
-sentiment mix by month, and net sentiment by outlet, with a range and outlet
-filter, hover detail, and a table view of the same numbers. It sits behind the
-same password gate as the reader.
+`site/trends.html` charts the coverage set over time: volume by month, net
+sentiment by month, sentiment mix by month, net sentiment by outlet, and the
+themes we get covered for. It has a range and outlet filter, hover detail on
+every mark, and a table view of the same numbers, and sits behind the same
+password gate as the reader. Sentiment uses a diverging colour ramp with a
+neutral midpoint; volume and themes are magnitude, so they use a single hue.
 
 Because Google News search feeds name the query rather than the publisher,
 every item also carries an `outlet` field, resolved from the article link. The
