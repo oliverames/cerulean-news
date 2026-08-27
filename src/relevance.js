@@ -122,6 +122,82 @@ export function itemSourceType(item) {
   return "News";
 }
 
+// The national association's own site is not Vermont press coverage: its
+// pages match only the generic term "Blue Cross" and are things like
+// "Transplant Static List". Excluded from sentiment for the same reason
+// bluecrossvt.org is - it is not somebody reporting on us.
+const BCBSA_HOST_PATTERN = /^https?:\/\/(?:www\.)?bcbs\.com\//i;
+
+export function isAssociationItem(item) {
+  return BCBSA_HOST_PATTERN.test(itemLink(item));
+}
+
+// Google News search feeds carry the search's name, not the publisher's, so
+// 84% of brand items would otherwise report an outlet of "Google News Search".
+// The publisher is recoverable from the resolved link host.
+const OUTLET_NAMES = new Map([
+  ["vtdigger.org", "VTDigger"],
+  ["vermontbiz.com", "Vermont Business Magazine"],
+  ["vermontpublic.org", "Vermont Public"],
+  ["sevendaysvt.com", "Seven Days"],
+  ["wcax.com", "WCAX"],
+  ["mynbc5.com", "NBC5"],
+  ["wptz.com", "WPTZ"],
+  ["timesargus.com", "Times Argus"],
+  ["rutlandherald.com", "Rutland Herald"],
+  ["benningtonbanner.com", "Bennington Banner"],
+  ["reformer.com", "Brattleboro Reformer"],
+  ["manchesterjournal.com", "Manchester Journal"],
+  ["vnews.com", "Valley News"],
+  ["samessenger.com", "St. Albans Messenger"],
+  ["caledonianrecord.com", "Caledonian Record"],
+  ["newportvermontdailyexpress.com", "Newport Daily Express"],
+  ["vermontdailychronicle.com", "Vermont Daily Chronicle"],
+  ["burlingtonfreepress.com", "Burlington Free Press"],
+  ["beckerspayer.com", "Becker's Payer Issues"],
+  ["modernhealthcare.com", "Modern Healthcare"],
+  ["healthpayerspecialist.com", "Health Payer Specialist"],
+  ["wsj.com", "The Wall Street Journal"],
+  ["washingtonpost.com", "The Washington Post"],
+  ["usnews.com", "US News & World Report"],
+  ["compassvermont.com", "Compass Vermont"],
+  ["willistonobserver.com", "Williston Observer"],
+  ["vermontjournal.com", "Vermont Journal"],
+  ["bluecrossvt.org", "BlueCrossVT.org"],
+  ["bcbs.com", "BCBS Association"],
+]);
+
+export function itemOutletName(item) {
+  const host = itemHost(item);
+  if (host && OUTLET_NAMES.has(host)) {
+    return OUTLET_NAMES.get(host);
+  }
+
+  const sourceName = item.sourceName || "";
+  // A named outlet feed is authoritative; a search feed is not.
+  if (sourceName && !/^Google News\b/i.test(sourceName)) {
+    return sourceName;
+  }
+
+  if (!host) {
+    return sourceName || "Unknown";
+  }
+
+  // Fall back to the bare domain, which reads better than the search name.
+  return host.replace(/^(?:www|amp|m)\./, "");
+}
+
+// Recruitment listings name us but are not somebody reporting on us, and
+// they read as bland-positive, so they would drag the average toward neutral
+// for no editorial reason. Excluded from sentiment only; they still appear in
+// the feeds.
+const JOB_BOARD_PATTERN =
+  /(?:^|\.)(?:linkedin|snagajob|jobleads|indeed|ziprecruiter|glassdoor|simplyhired|talent|monster|careerbuilder)\.[a-z.]+$/i;
+
+export function isJobListingItem(item) {
+  return JOB_BOARD_PATTERN.test(itemHost(item));
+}
+
 export function itemAccessLabel(item) {
   const link = itemLink(item);
   if (FACEBOOK_HOST_PATTERN.test(link)) {

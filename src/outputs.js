@@ -10,7 +10,7 @@ import {
   wrapCdata,
 } from "./utils.js";
 import { canonicalizeMatchedTerms, categorizeTerms } from "./matching.js";
-import { itemAccessLabel, itemSourceType } from "./relevance.js";
+import { itemAccessLabel, itemOutletName, itemSourceType } from "./relevance.js";
 
 const SITE_URL = process.env.SITE_URL?.trim() || "";
 const FEED_URL = resolveFeedUrl();
@@ -70,6 +70,15 @@ function itemDescription(item) {
   if (access === "Paywall likely" && previewText) {
     lines.push(
       `<p><strong>Publisher preview:</strong> ${escapeXml(previewText)}</p>`,
+    );
+  }
+
+  if (item.sentiment) {
+    const sentimentNote = item.sentimentReason
+      ? `${item.sentiment} — ${item.sentimentReason}`
+      : item.sentiment;
+    lines.push(
+      `<p><strong>Sentiment:</strong> ${escapeXml(sentimentNote)}</p>`,
     );
   }
 
@@ -244,6 +253,9 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
         date_published: item.pubDate?.toISOString() || undefined,
         tags: matchedTerms,
         sourceName: item.sourceName,
+        // The publishing outlet, recovered from the link when the feed that
+        // found the story was a Google News search.
+        outlet: itemOutletName(item),
         sourceFeedUrl: item.sourceFeedUrl || "",
         sourceType: itemSourceType(item),
         access,
@@ -259,6 +271,9 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
           ? item.previewChecked === true
           : undefined,
         reason: item.reason || "",
+        // Brand press coverage only; absent on topic stories and owned posts.
+        sentiment: item.sentiment || undefined,
+        sentimentReason: item.sentiment ? item.sentimentReason || "" : undefined,
         // undefined (not yet judged) is omitted by JSON.stringify, which
         // marks the item for a relevance pass on the next run.
         relevant: typeof item.relevant === "boolean" ? item.relevant : undefined,

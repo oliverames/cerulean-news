@@ -36,6 +36,12 @@ import {
   parseFacebookPageHtml,
   parseFacebookPostHtml,
   parseSummaryResponse,
+  normalizeSentiment,
+  shouldScoreSentiment,
+  itemOutletName,
+  isAssociationItem,
+  isJobListingItem,
+  SENTIMENT_VALUES,
   parseUvmHealthNewsroomItems,
   collectFeedItems,
   enrichAndFilterItems,
@@ -3815,4 +3821,352 @@ test("RSS_GLOBAL_CACHE_FRESHNESS_CAP_MS=0 disables non-policy freshness deferral
       process.env.RSS_GLOBAL_CACHE_FRESHNESS_CAP_MS = original;
     }
   }
+});
+
+// ---------------------------------------------------------------------------
+// Sentiment (media-tracker parity)
+// ---------------------------------------------------------------------------
+
+test("SENTIMENT_VALUES matches the tracker's five-point scale", () => {
+  assert.deepEqual(SENTIMENT_VALUES, [
+    "positive",
+    "neutral to positive",
+    "neutral",
+    "neutral to negative",
+    "negative",
+  ]);
+});
+
+test("normalizeSentiment repairs the tracker's real-world spellings", () => {
+  // Values observed verbatim in Media Tracker.xlsx.
+  assert.equal(normalizeSentiment("Postive "), "positive");
+  assert.equal(normalizeSentiment("neuttral to positive"), "neutral to positive");
+  assert.equal(normalizeSentiment("Neutral"), "neutral");
+  assert.equal(
+    normalizeSentiment("negative (and more neg to uvm)"),
+    "negative",
+  );
+  assert.equal(
+    normalizeSentiment(
+      "neutral to negative - while we are only mentioned in conjunction w/michgan",
+    ),
+    "neutral to negative",
+  );
+  assert.equal(
+    normalizeSentiment("postive - mention lowest inc. in 5 yrs"),
+    "positive",
+  );
+  assert.equal(normalizeSentiment(""), "");
+  assert.equal(normalizeSentiment(null), "");
+  assert.equal(normalizeSentiment("wildly enthusiastic"), "");
+});
+
+test("shouldScoreSentiment covers brand news only", () => {
+  const brandNews = {
+    matchedTerms: ["BCBSVT"],
+    link: "https://vtdigger.org/2026/08/01/story",
+  };
+  assert.equal(shouldScoreSentiment(brandNews), true);
+
+  // Vermont health care stories that never name us are out of scope.
+  assert.equal(
+    shouldScoreSentiment({
+      matchedTerms: ["hospital"],
+      link: "https://vtdigger.org/2026/08/01/other",
+    }),
+    false,
+  );
+
+  // Our own posts are owned content, not press coverage.
+  assert.equal(
+    shouldScoreSentiment({
+      matchedTerms: ["BCBSVT"],
+      link: "https://www.bluecrossvt.org/blog/post",
+    }),
+    false,
+  );
+
+  // Facebook items are social, not press coverage.
+  assert.equal(
+    shouldScoreSentiment({
+      matchedTerms: ["BCBSVT"],
+      link: "https://www.facebook.com/bcbsvt/posts/1",
+    }),
+    false,
+  );
+});
+
+test("buildSummaryPrompt flags which articles get a sentiment score", () => {
+  const prompt = buildSummaryPrompt([
+    {
+      title: "Blue Cross VT raises rates",
+      sourceName: "VTDigger",
+      matchedTerms: ["BCBSVT"],
+      link: "https://vtdigger.org/2026/08/01/story",
+      snippet: "Rates rise.",
+    },
+    {
+      title: "Hospital opens wing",
+      sourceName: "VTDigger",
+      matchedTerms: ["hospital"],
+      link: "https://vtdigger.org/2026/08/01/wing",
+      snippet: "A new wing.",
+    },
+  ]);
+
+  assert.match(prompt, /MENTIONS BCBSVT: yes/);
+  assert.match(prompt, /MENTIONS BCBSVT: no/);
+  assert.match(prompt, /neutral to negative/);
+  // The four judging rules taken from the tracker must reach the model.
+  assert.match(prompt, /tone TOWARD BCBSVT specifically/);
+  assert.match(prompt, /Weight the headline heavily/);
+  assert.match(prompt, /Weight mention prominence/);
+});
+
+test("parseSummaryResponse scores brand items and ignores stray scores", () => {
+  const batch = [
+    {
+      title: "Blue Cross VT wins award",
+      sourceName: "VermontBiz",
+      matchedTerms: ["BCBSVT"],
+      link: "https://vermontbiz.com/news/award",
+    },
+    {
+      title: "Hospital budget hearing",
+      sourceName: "VTDigger",
+      matchedTerms: ["hospital"],
+      link: "https://vtdigger.org/budget",
+    },
+  ];
+
+  const applied = parseSummaryResponse(
+    JSON.stringify([
+      {
+        id: 1,
+        summary: "BCBSVT named best health insurer.",
+        reason: "Names BCBSVT directly",
+        relevant: true,
+        sentiment: "Postive",
+        sentimentReason: "Award coverage naming us favorably",
+      },
+      {
+        id: 2,
+        summary: "Board reviews the hospital budget.",
+        reason: "Cost pressure affects premiums",
+        relevant: true,
+        // A stray score on a topic-only story must be dropped locally.
+        sentiment: "negative",
+        sentimentReason: "should not survive",
+      },
+    ]),
+    batch,
+  );
+
+  assert.equal(applied, 2);
+  assert.equal(batch[0].sentiment, "positive");
+  assert.equal(batch[0].sentimentReason, "Award coverage naming us favorably");
+  assert.equal(batch[1].sentiment, undefined);
+  assert.equal(batch[1].sentimentReason, undefined);
+});
+
+test("parseSummaryResponse drops an unusable sentiment value", () => {
+  const batch = [
+    {
+      title: "Blue Cross VT statement",
+      sourceName: "WCAX",
+      matchedTerms: ["BCBSVT"],
+      link: "https://www.wcax.com/2026/08/01/statement",
+    },
+  ];
+
+  parseSummaryResponse(
+    JSON.stringify([
+      {
+        id: 1,
+        summary: "BCBSVT issued a statement.",
+        reason: "Names BCBSVT directly",
+        relevant: true,
+        sentiment: "somewhat mixed",
+      },
+    ]),
+    batch,
+  );
+
+  assert.equal(batch[0].summary, "BCBSVT issued a statement.");
+  assert.equal(batch[0].sentiment, undefined);
+});
+
+test("buildJsonSummary publishes sentiment only for scored items", () => {
+  const summary = buildJsonSummary(
+    [
+      {
+        title: "Blue Cross VT wins award",
+        link: "https://vermontbiz.com/news/award",
+        sourceName: "VermontBiz",
+        matchedTerms: ["BCBSVT"],
+        pubDate: new Date("2026-08-01T12:00:00Z"),
+        summary: "BCBSVT named best health insurer.",
+        sentiment: "positive",
+        sentimentReason: "Award coverage naming us favorably",
+      },
+      {
+        title: "Hospital budget hearing",
+        link: "https://vtdigger.org/budget",
+        sourceName: "VTDigger",
+        matchedTerms: ["hospital"],
+        pubDate: new Date("2026-08-01T12:00:00Z"),
+        summary: "Board reviews the budget.",
+      },
+    ],
+    [],
+    new Date("2026-08-02T00:00:00Z"),
+  );
+
+  const [scored, unscored] = summary.items;
+  assert.equal(scored.sentiment, "positive");
+  assert.equal(scored.sentimentReason, "Award coverage naming us favorably");
+  assert.equal(unscored.sentiment, undefined);
+  assert.equal(unscored.sentimentReason, undefined);
+});
+
+test("buildRss renders the sentiment line for scored items", () => {
+  const rss = buildRss([
+    {
+      title: "Blue Cross VT wins award",
+      link: "https://vermontbiz.com/news/award",
+      guid: "https://vermontbiz.com/news/award",
+      sourceName: "VermontBiz",
+      matchedTerms: ["BCBSVT"],
+      pubDate: new Date("2026-08-01T12:00:00Z"),
+      summary: "BCBSVT named best health insurer.",
+      sentiment: "positive",
+      sentimentReason: "Award coverage naming us favorably",
+    },
+  ]);
+
+  assert.match(rss, /<strong>Sentiment:<\/strong> positive/);
+});
+
+test("generateFeed preserves sentiment across an archive round-trip", async () => {
+  // The audit JSON is the persistence layer, so a scored item must survive a
+  // run with no network. If it does not, every run re-scores and burns quota.
+  const workdir = await mkdtemp(path.join(tmpdir(), "vt-news-sentiment-"));
+  const rssOutputPath = path.join(workdir, "feed.rss");
+  const jsonOutputPath = path.join(workdir, "feed.json");
+  const auditJsonOutputPath = path.join(workdir, "feed-audit.json");
+
+  await writeFile(
+    auditJsonOutputPath,
+    JSON.stringify({
+      generatedAt: "2026-08-01T12:00:00.000Z",
+      items: [
+        {
+          title: "Blue Cross VT wins best health insurer",
+          link: "https://vermontbiz.com/news/award",
+          guid: "https://vermontbiz.com/news/award",
+          sourceName: "Vermont Business Magazine",
+          matchedTerms: ["BCBSVT"],
+          pubDate: "2026-08-01T12:00:00.000Z",
+          summary: "BCBSVT named best health insurance provider.",
+          reason: "Names BCBSVT directly",
+          relevant: true,
+          sentiment: "positive",
+          sentimentReason: "Award coverage naming us favorably",
+        },
+      ],
+    }),
+  );
+
+  await generateFeed({
+    sources: [],
+    now: new Date("2026-08-02T16:30:00Z"),
+    rssOutputPath,
+    jsonOutputPath,
+    auditJsonOutputPath,
+  });
+
+  const output = JSON.parse(await readFile(auditJsonOutputPath, "utf8"));
+  assert.equal(output.items.length, 1);
+  assert.equal(output.items[0].sentiment, "positive");
+  assert.equal(
+    output.items[0].sentimentReason,
+    "Award coverage naming us favorably",
+  );
+});
+
+test("itemOutletName recovers the publisher behind a Google News search", () => {
+  // 84% of brand items arrive via a search feed whose name is the query, not
+  // the outlet, so the link host is the only reliable source of the publisher.
+  assert.equal(
+    itemOutletName({
+      sourceName: "Google News Search",
+      link: "https://vtdigger.org/2026/08/01/story",
+    }),
+    "VTDigger",
+  );
+
+  // A named outlet feed is authoritative.
+  assert.equal(
+    itemOutletName({
+      sourceName: "Some Local Paper",
+      link: "https://example.com/story",
+    }),
+    "Some Local Paper",
+  );
+
+  // Unknown host behind a search feed falls back to the bare domain, which
+  // still reads better than "Google News Search".
+  assert.equal(
+    itemOutletName({
+      sourceName: "Google News Blue Cross Site Search",
+      link: "https://www.example.org/story",
+    }),
+    "example.org",
+  );
+});
+
+test("association pages are not scored for sentiment", () => {
+  // bcbs.com carries national association pages that match only the generic
+  // term "Blue Cross" — "Transplant Static List" and the like.
+  assert.equal(
+    shouldScoreSentiment({
+      matchedTerms: ["Blue Cross"],
+      link: "https://www.bcbs.com/transplant-static-list",
+    }),
+    false,
+  );
+  assert.equal(isAssociationItem({ link: "https://www.bcbs.com/news" }), true);
+  assert.equal(
+    isAssociationItem({ link: "https://vtdigger.org/story" }),
+    false,
+  );
+});
+
+test("recruitment listings are not scored for sentiment", () => {
+  // Job postings name us without reporting on us, and read bland-positive.
+  for (const link of [
+    "https://www.linkedin.com/jobs/view/clinical-support-rep",
+    "https://www.jobleads.com/us/job/clinical-case-manager",
+    "https://www.snagajob.com/jobs/12345",
+  ]) {
+    assert.equal(isJobListingItem({ link }), true, link);
+    assert.equal(
+      shouldScoreSentiment({ matchedTerms: ["BCBSVT"], link }),
+      false,
+      link,
+    );
+  }
+
+  // A newsroom whose host merely contains a job word is still press.
+  assert.equal(
+    isJobListingItem({ link: "https://vtdigger.org/jobs-report" }),
+    false,
+  );
+  assert.equal(
+    shouldScoreSentiment({
+      matchedTerms: ["BCBSVT"],
+      link: "https://vtdigger.org/jobs-report",
+    }),
+    true,
+  );
 });

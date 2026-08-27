@@ -41,6 +41,14 @@
         --bar-1-hover: #002677;
         --bar-2: #111;
         --bar-3: #418fde;
+
+        /* Diverging sentiment ramp, shared with trends.html. Validated for
+           colour-vision deficiency and normal-vision separation. */
+        --s-pos: #0d4c9e;
+        --s-npos: #4a90d9;
+        --s-neu: #dcdcd9;
+        --s-nneg: #e8883a;
+        --s-neg: #b02a1f;
       }
 
       body {
@@ -276,6 +284,27 @@
         font-size: 0.8rem;
         font-weight: 700;
         line-height: 1.35;
+      }
+
+      ul.stories .sentiment {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin: 8px 0 0;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      ul.stories .sentiment-swatch {
+        width: 10px;
+        height: 10px;
+        flex: 0 0 auto;
+        border: 1px solid rgba(0, 0, 0, 0.18);
+      }
+
+      ul.stories .sentiment-label {
+        color: var(--fg);
+        font-weight: 600;
       }
 
       ul.stories .reason {
@@ -592,6 +621,7 @@
 
     <div class="page" id="reader-page" hidden inert aria-hidden="true">
       <div class="topbar">
+        <a class="button" href="trends.html">Sentiment</a>
         <a class="button" href="feed.rss">RSS Feed</a>
         <a class="button" href="feed.json">JSON Feed</a>
         <label class="search" for="search-input">
@@ -643,6 +673,8 @@
           <dd>Direct Blue Cross VT mentions are backfilled to Jan. 1, 2026 and kept indefinitely. Other stories are kept for three months.</dd>
           <dt>Sections</dt>
           <dd>BlueCrossVT.org posts are available as a section but hidden from All by default.</dd>
+          <dt>Sentiment</dt>
+          <dd>Scored only for coverage naming Blue Cross VT. <a href="trends.html">See it over time</a>.</dd>
           <dt>Feeds</dt>
           <dd><a href="feed.rss">RSS</a> or <a href="feed.json">JSON</a>. Summaries are AI-generated.</dd>
         </dl>
@@ -1053,6 +1085,15 @@
         }, 150);
       }
 
+      // Mirrors the diverging ramp in trends.html; keep the two in step.
+      const SENTIMENT_COLORS = new Map([
+        ["positive", "var(--s-pos)"],
+        ["neutral to positive", "var(--s-npos)"],
+        ["neutral", "var(--s-neu)"],
+        ["neutral to negative", "var(--s-nneg)"],
+        ["negative", "var(--s-neg)"],
+      ]);
+
       function renderStories() {
         const items = orderedItems(searchItems(sectionItems()));
         const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
@@ -1125,6 +1166,25 @@
             preview.appendChild(previewLabel);
             preview.appendChild(document.createTextNode(previewText));
             li.appendChild(preview);
+          }
+
+          if (item.sentiment && SENTIMENT_COLORS.has(item.sentiment)) {
+            const sentiment = document.createElement("p");
+            sentiment.className = "sentiment";
+            const swatch = document.createElement("span");
+            swatch.className = "sentiment-swatch";
+            swatch.style.background = SENTIMENT_COLORS.get(item.sentiment);
+            const label = document.createElement("span");
+            label.className = "sentiment-label";
+            // Identity is never colour-alone; the swatch sits beside the word.
+            label.textContent = `Sentiment: ${item.sentiment}`;
+            sentiment.append(swatch, label);
+            if (item.sentimentReason) {
+              sentiment.appendChild(
+                document.createTextNode(` — ${item.sentimentReason}`),
+              );
+            }
+            li.appendChild(sentiment);
           }
 
           if (item.reason) {

@@ -443,6 +443,8 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
         summary: cached.summary || "",
         reason: cached.reason || "",
         relevant: cached.relevant,
+        sentiment: cached.sentiment,
+        sentimentReason: cached.sentimentReason,
         comments: mergeComments(item.comments, cached.comments),
         articleError: cached.articleError,
         matchSource: cached.matchSource || "",
@@ -718,6 +720,9 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
       previewChecked,
       summary: inheritedCache?.summary || item.summary || "",
       reason: inheritedCache?.reason || item.reason || "",
+      sentiment: inheritedCache?.sentiment || item.sentiment,
+      sentimentReason:
+        inheritedCache?.sentimentReason || item.sentimentReason,
       relevant:
         typeof inheritedCache?.relevant === "boolean"
           ? inheritedCache.relevant

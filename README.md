@@ -118,10 +118,53 @@ Each story can include:
 | Access label | `Free to read`, `Paywall likely`, `May require login`, or `Access varies` |
 | Summary | AI-generated one or two sentence summary when Gemini is configured |
 | Publisher preview | Up to two lead paragraphs and 600 characters from a paywalled publisher's ordinary unauthenticated page, when available |
+| Sentiment | Five-point score, shown only on press coverage that names Blue Cross VT |
 | Why it is here | Short relevance reason for a reader who wants to skim quickly |
 | Comments | Publicly parseable article or post comments, hidden by default |
 
 The browser does not recrawl sources. GitHub Actions does the collection and deploys the latest feed hourly; reloading the page loads the latest published feed.
+
+## Sentiment
+
+Press coverage that names Blue Cross VT carries a sentiment score on a
+five-point scale: `positive`, `neutral to positive`, `neutral`,
+`neutral to negative`, `negative`. The scale and the judging rules come from
+the communications team's own media tracker, where 155 clips are hand-scored.
+See `docs/2026-08-27-media-tracker-coverage.md` for the audit that derived them.
+
+Four rules travel in the Gemini prompt, taken from the rationale the tracker
+records alongside its scores:
+
+1. Judge the tone toward Blue Cross VT specifically, not the tone of the story
+   overall.
+2. Weight the headline heavily and separately from the body.
+3. Weight mention prominence; a footnote mention pulls toward neutral.
+4. A negative story topic drags the score down even when Blue Cross VT is not
+   the target.
+
+Scoring is deliberately narrow. An item is scored only when it is brand
+coverage (`category` is `Blue Cross VT`) **and** it is press. These are
+excluded:
+
+- Vermont health care stories that never name us, which have no tone toward us
+- BlueCrossVT.org posts, which are owned content
+- Facebook items, which are social rather than press
+- `bcbs.com` pages, which are national association web pages matching only the
+  generic term "Blue Cross"
+- Recruitment listings on job boards, which name us without reporting on us
+
+Scores ride in the same batched Gemini request as the summary, so sentiment
+costs no extra API calls. They persist in `feed-audit.json` like summaries do,
+and an item is scored exactly once.
+
+`site/trends.html` charts the scores over time: net sentiment by month,
+sentiment mix by month, and net sentiment by outlet, with a range and outlet
+filter, hover detail, and a table view of the same numbers. It sits behind the
+same password gate as the reader.
+
+Because Google News search feeds name the query rather than the publisher,
+every item also carries an `outlet` field, resolved from the article link. The
+trends page groups by that rather than by `sourceName`.
 
 ## Configuration
 
@@ -153,6 +196,7 @@ The browser does not recrawl sources. GitHub Actions does the collection and dep
 | `SUMMARY_BATCH_DELAY_MS` | No | `5000` | Delay between Gemini summary requests |
 | `SUMMARY_MAX_REQUESTS_PER_RUN` | No | `10` | Maximum Gemini summary requests per run |
 | `SUMMARY_REJUDGE_ALL` | No | empty | Set to `true` for one run after changing the relevance rubric |
+| `SUMMARY_RESCORE_SENTIMENT` | No | empty | Set to `true` for one run after changing the sentiment rubric |
 | `SLACK_WEBHOOK_URL` | No | empty | Optional Slack webhook for source failure alerts |
 | `DISCORD_WEBHOOK_URL` | No | empty | Optional Discord webhook for source failure alerts |
 | `WEBHOOK_FAILURE_THRESHOLD` | No | `24` | Consecutive failed runs before a source triggers an alert |
@@ -196,6 +240,7 @@ src/alerts.js      Failure streaks and optional webhook alerts
 src/outputs.js     RSS, JSON Feed, audit JSON, file writes
 src/utils.js       Shared text, date, URL, and concurrency helpers
 site/index.html    Static text reader
+site/trends.html   Sentiment-over-time charts
 test/index.test.js Node test suite
 ```
 
