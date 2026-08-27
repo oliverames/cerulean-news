@@ -5,6 +5,15 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      rescore_sentiment:
+        description: "Re-score sentiment on every brand item (after a rubric change)"
+        type: boolean
+        default: false
+      rejudge_all:
+        description: "Re-judge relevance and summaries on every item"
+        type: boolean
+        default: false
   schedule:
     - cron: "17 * * * *"
 
@@ -120,6 +129,11 @@ jobs:
         env:
           SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # One-shot re-passes, opt-in from the Actions "Run workflow" dialog.
+          # Both cost Gemini calls proportional to the archive, so they are
+          # never set on the scheduled run.
+          SUMMARY_RESCORE_SENTIMENT: ${{ inputs.rescore_sentiment }}
+          SUMMARY_REJUDGE_ALL: ${{ inputs.rejudge_all }}
           # www.bcbs.com serves an incomplete TLS chain (leaf only, no
           # DigiCert intermediate). Browsers recover via AIA fetching but
           # Node deliberately does not, so every fetch failed with
