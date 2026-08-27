@@ -194,6 +194,15 @@ Scores ride in the same batched Gemini request as the summary, so sentiment
 costs no extra API calls. They persist in `feed-audit.json` like summaries do,
 and an item is scored exactly once.
 
+### Standing context
+
+Some scores turn on knowledge of an ongoing storyline that a headline does not
+carry. `data/coverage-context.json` records those, and the notes reach the
+scorer only for articles that match. It is the communications team's file: the
+generator cannot derive its contents, and a malformed entry degrades to no
+storylines rather than stopping the run. Add a storyline whenever scores keep
+coming out wrong for the same subject.
+
 `site/trends.html` charts the coverage set over time: volume by month, net
 sentiment by month, sentiment mix by month, net sentiment by outlet, and the
 themes we get covered for. It has a range and outlet filter, hover detail on

@@ -471,10 +471,16 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
         topicMatches,
       );
       if (!cachedItem) {
-        bumpMetric(metrics, "negativeCacheHits");
-        return null;
-      }
-      if (
+        // A negative article cache means an earlier crawl fetched this URL and
+        // found nothing worth keeping. That verdict must not override a
+        // hand-logged clip: three tracker entries were being dropped here,
+        // before the always-include path further down could run, because the
+        // same URLs had already been crawled and cached as non-matching.
+        if (!item.fromMediaTracker) {
+          bumpMetric(metrics, "negativeCacheHits");
+          return null;
+        }
+      } else if (
         !previewRequested ||
         freshArticleCache.previewChecked === true ||
         Boolean(freshArticleCache.articleError)

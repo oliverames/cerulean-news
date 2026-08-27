@@ -37,6 +37,8 @@ import {
   parseFacebookPostHtml,
   parseSummaryResponse,
   parseMediaTrackerSeedItems,
+  matchStorylines,
+  enrichAndFilterItems,
   normalizeSentiment,
   shouldScoreSentiment,
   itemOutletName,
@@ -47,7 +49,6 @@ import {
   SENTIMENT_VALUES,
   parseUvmHealthNewsroomItems,
   collectFeedItems,
-  enrichAndFilterItems,
   extractArticleComments,
   extractArticlePreview,
   fetchText,
@@ -4461,4 +4462,93 @@ test("a curated clip is never vetoed or deduped away", () => {
   const deduped = dedupeResolvedItems([crawled, curated]);
   assert.equal(deduped.length, 1);
   assert.equal(deduped[0].link, curated.link, "the curated URL must survive");
+});
+
+test("a negative article cache never drops a curated clip", () => {
+  // An earlier crawl can fetch a URL, find nothing worth keeping, and cache
+  // that verdict. Three tracker entries were dropped there, before the
+  // always-include path could run, because the crawler had already seen the
+  // same URLs. A hand-logged clip outranks that cached verdict.
+  const articleCache = {
+    "https://www.beckerspayer.com/payer/7-blue-cross-blue-shield-updates/": {
+      url: "https://www.beckerspayer.com/payer/7-blue-cross-blue-shield-updates/",
+      resolvedUrl: "https://www.beckerspayer.com/payer/7-blue-cross-blue-shield-updates/",
+      matchedTerms: [],
+      snippet: "",
+      comments: [],
+      articleError: "",
+      matchSource: "",
+      checkedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 86400000).toISOString(),
+      articleHeaders: {},
+    },
+  };
+
+  const curated = {
+    sourceName: "Media Tracker Backfill",
+    link: "https://www.beckerspayer.com/payer/7-blue-cross-blue-shield-updates/",
+    title: "7 Blue Cross Blue Shield updates",
+    description: "2025 financials",
+    feedContent: "7 Blue Cross Blue Shield updates 2025 financials",
+    scanArticle: false,
+    articleScanMode: "off",
+    fromMediaTracker: true,
+    pubDate: new Date("2026-07-01T12:00:00Z"),
+  };
+
+  return enrichAndFilterItems([curated], new Map(), {
+    articleCache,
+    now: new Date(),
+  }).then((kept) => {
+    assert.equal(kept.length, 1, "the curated clip must survive a negative cache");
+    assert.equal(kept[0].category, CATEGORY_BRAND);
+  });
+});
+
+test("standing context reaches the prompt only for the stories it applies to", () => {
+  // The residual gap after calibration was context, not rubric: the tracker
+  // reads coverage of proposing VT Basic as adverse and coverage of
+  // withdrawing it as favourable, which inverts the headlines.
+  const onStoryline = {
+    title: "BlueCross BlueShield of VT pulls its proposed lower-cost plan",
+    sourceName: "VTDigger",
+    matchedTerms: ["BCBSVT"],
+    link: "https://vtdigger.org/2026/07/01/pulls-plan",
+  };
+  const unrelated = {
+    title: "Hospital budget hearing opens",
+    sourceName: "VTDigger",
+    matchedTerms: ["Hospitals"],
+    link: "https://vtdigger.org/2026/07/01/budget",
+  };
+
+  assert.deepEqual(
+    matchStorylines(onStoryline).map((entry) => entry.name),
+    ["VT Basic lower-cost plan"],
+  );
+  assert.deepEqual(matchStorylines(unrelated), []);
+
+  const prompt = buildSummaryPrompt([onStoryline, unrelated]);
+  assert.match(prompt, /STORYLINE: VT Basic lower-cost plan/);
+  assert.match(prompt, /Standing context from the communications team/);
+
+  // A batch that touches no storyline must not carry the section at all.
+  const quiet = buildSummaryPrompt([unrelated]);
+  assert.ok(
+    !/Standing context from the communications team/.test(quiet),
+    "unrelated batches must not carry storyline notes",
+  );
+});
+
+test("a malformed context file never stops a run", () => {
+  // The file belongs to the team, so a typo in it must degrade to "no
+  // storylines" rather than break the hourly generation.
+  assert.deepEqual(matchStorylines({ title: "anything" }, []), []);
+  assert.deepEqual(
+    matchStorylines(
+      { title: "vt basic story" },
+      [{ name: "", note: "", match: [] }],
+    ),
+    [],
+  );
 });

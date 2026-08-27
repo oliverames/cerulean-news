@@ -1,0 +1,26 @@
+{
+  "_comment": "Standing context for sentiment scoring. Each storyline records how the communications team reads coverage of an ongoing issue, where that reading is not recoverable from a headline. This is the one input the generator cannot derive for itself, and it is meant to be edited by the team rather than by the crawler. Add a storyline when scores keep coming out wrong for the same subject.",
+  "_howToAdd": "name: short label. match: lowercase substrings; a story matches if any appears in its title, summary, or topic. note: one or two sentences telling the scorer how to read coverage of this storyline. Keep notes factual about tone, not about the underlying business.",
+  "_source": "Derived 2026-08-27 from the scores and topic notes already recorded in Media Tracker.xlsx.",
+  "storylines": [
+    {
+      "name": "VT Basic lower-cost plan",
+      "match": [
+        "vt basic",
+        "vermont basic",
+        "lower-cost plan",
+        "lower cost plan",
+        "cheaper plan",
+        "proposed product line",
+        "$12,000 deductible"
+      ],
+      "note": "Coverage of BCBSVT proposing this plan reads adverse, because the reporting centres on its high deductible and on the regulator questioning it. Coverage of BCBSVT withdrawing or stepping back from it reads favourable. This inverts what the headlines suggest, so judge by which way the story cuts, not by the words 'pulls' or 'step back'.",
+      "evidence": [
+        "'Vermont's largest health insurer wants to offer a cheaper plan' scored neutral to negative",
+        "'BlueCross BlueShield of VT pulls its proposed lower-cost plan' scored positive",
+        "'BCBS Vermont takes step back with proposed product line' scored neutral to positive",
+        "'No one struggling to pay rent can meet a $12,000 deductible' scored negative"
+      ]
+    }
+  ]
+}

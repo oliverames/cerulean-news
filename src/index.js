@@ -288,6 +288,7 @@ export {
 export { dedupeResolvedItems, mergeWithArchive, normalizeCrawlState } from "./archive.js";
 export {
   buildSummaryPrompt,
+  matchStorylines,
   normalizeSentiment,
   parseSummaryResponse,
   SENTIMENT_VALUES,
