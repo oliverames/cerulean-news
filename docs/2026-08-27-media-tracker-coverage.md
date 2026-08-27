@@ -105,13 +105,16 @@ These four rules are what the generator's prompt now implements.
 ## Calibration measured against the tracker
 
 Agreement is measurable wherever the tracker and the archive have both scored
-the same article. On 2026-08-27 that overlap was 25 articles.
+the same article. Seeding the tracker took that overlap from 25 articles to
+91, and agreement improved rather than regressing to the mean, which is the
+stronger evidence that the calibration is real.
 
-| | Rules only | Rules plus worked examples |
-|---|---|---|
-| Exact agreement | 40% | **60%** |
-| Within one step | 72% | **84%** |
-| Mean bias (steps) | −0.56 | **−0.36** |
+| | Rules only | Rules plus worked examples | Same, over the seeded archive |
+|---|---|---|---|
+| Overlapping articles | 25 | 25 | **91** |
+| Exact agreement | 40% | 60% | **69%** |
+| Within one step | 72% | 84% | **85%** |
+| Mean bias (steps) | −0.56 | −0.36 | **−0.21** |
 
 Negative bias means the generator scores lower than the tracker does. The
 first pass scored ordinary favourable brand presence as neutral where the
