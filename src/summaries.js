@@ -89,10 +89,109 @@ export function shouldScoreSentiment(item) {
   );
 }
 
+// Worked examples taken verbatim from the tracker, with the scorer's own
+// rationale where she recorded one. These are the calibration anchor: her
+// scored set runs 65% positive, and the divergence measured on 2026-08-27 was
+// that a model working from the rules alone scored ordinary favourable brand
+// presence (sponsorships, awards, being named among payers) as neutral, where
+// she scores it positive. Examples correct that far better than more prose.
+const TRACKER_EXAMPLES = [
+  {
+    headline: "2026 Best of Business in Vermont recipients announced",
+    outlet: "VermontBiz",
+    context: "BCBSVT wins best health insurance provider",
+    sentiment: "positive",
+    why: "Award naming us; straightforwardly favourable.",
+  },
+  {
+    headline: "Business Briefs - Saturday, May 2",
+    outlet: "Times Argus",
+    context: "BCBSVT participation in National Walk@Lunch Day",
+    sentiment: "positive",
+    why: "Routine sponsorship visibility with nothing adverse is positive, not neutral.",
+  },
+  {
+    headline: "Payers pitch 2027 ACA rates: 7 updates",
+    outlet: "Becker's Payer Issues",
+    context: "2027 rates",
+    sentiment: "positive",
+    why: "Mention of lowest increase in five years.",
+  },
+  {
+    headline:
+      "UVM Health must cut expenses by $300 million in three years, independent liaison says",
+    outlet: "VTDigger",
+    context: "Liaison report on UVMHN finances; BCBSVT contract negotiations",
+    sentiment: "neutral to positive",
+    why: "Focused on UVMHN, but we are mentioned via our contract and low payment rates.",
+  },
+  {
+    headline: "Blue Cross Blue Shield requests rate increase for 2027",
+    outlet: "WVNY/WFFF",
+    context: "BCBSVT 2027 rates",
+    sentiment: "neutral to positive",
+    why: "The headline is what holds this back from positive.",
+  },
+  {
+    headline:
+      "Blue Cross Blue Shield of Vermont files for rate increases with state",
+    outlet: "WCAX",
+    context: "BCBSVT 2027 rates",
+    sentiment: "neutral",
+    why: "Headline focused on the increase; story balanced but leaned into affordability struggles.",
+  },
+  {
+    headline: "Health insurers hedge bets with surge in reinsurance",
+    outlet: "Modern Healthcare",
+    context: "BCBS Michigan upping reinsurance; BCBSVT named alongside",
+    sentiment: "neutral to negative",
+    why: "We are only mentioned in conjunction with Michigan, but the story topic is a negative one.",
+  },
+  {
+    headline: "Blue Cross financial performance trails national, regional rivals",
+    outlet: "Modern Healthcare",
+    context: "Blues plans financials; BCBSVT a passing mention",
+    sentiment: "neutral to negative",
+    why: "Negative on Blues financials, but Vermont is just a footnote.",
+  },
+  {
+    headline:
+      "Opinion - The 44 percent that's costing Vt big bucks",
+    outlet: "St. Albans Messenger",
+    context: "Rate decision orders, money flowing out of Vermont",
+    sentiment: "neutral to negative",
+    why: "Critical opinion piece where we are part of the cost story.",
+  },
+  {
+    headline:
+      "Vermont This Week - In review: Education reform still stalled",
+    outlet: "Vermont Public",
+    context: "Direct primary care and the impact to insurers like BCBSVT",
+    sentiment: "negative",
+    why: "Frames insurers, us included, as the problem.",
+  },
+];
+
+function renderTrackerExamples() {
+  return TRACKER_EXAMPLES.map(
+    (example, index) =>
+      [
+        `EXAMPLE ${index + 1}`,
+        `TITLE: ${example.headline}`,
+        `OUTLET: ${example.outlet}`,
+        `CONTEXT: ${example.context}`,
+        `SENTIMENT: ${example.sentiment}`,
+        `WHY: ${example.why}`,
+      ].join("\n"),
+  ).join("\n\n");
+}
+
 export function buildSummaryPrompt(batch) {
   const articles = batch
     .map((item, index) => {
-      const excerpt = cleanText(item.snippet || "").slice(0, 700);
+      // Raised from 700 on 2026-08-27: the scorer reads the article, and a
+      // thin excerpt was the main driver of the model hedging to neutral.
+      const excerpt = cleanText(item.snippet || "").slice(0, 1200);
       return [
         `ARTICLE ${index + 1}`,
         `TITLE: ${item.title}`,
@@ -115,11 +214,17 @@ export function buildSummaryPrompt(batch) {
     '- "sentiment": ONLY for articles marked MENTIONS BCBSVT: yes. Use exactly one of: "positive", "neutral to positive", "neutral", "neutral to negative", "negative". For articles marked no, return null.',
     '- "sentimentReason": under 20 words, why you chose that score. Omit when sentiment is null.',
     "",
-    "Score sentiment the way the communications team scores it, by these four rules:",
+    "Score sentiment EXACTLY as the communications team's media tracker scores it, by these five rules:",
     "1. Judge the tone TOWARD BCBSVT specifically, not the tone of the story overall. A story critical of hospital costs that quotes us favorably is positive for us.",
     "2. Weight the headline heavily and separately from the body. A balanced story under a negative headline lands at neutral or neutral to negative, not positive.",
     "3. Weight mention prominence. When BCBSVT is a footnote rather than the subject, pull the score toward neutral even if the topic is strongly negative.",
     "4. A negative story topic drags the score down even when BCBSVT is not the target of the criticism.",
+    "5. Ordinary favourable presence IS positive, not neutral. Awards, sponsorships, event participation, community items, and being named among payers on a routine story all score positive when nothing adverse is said. Reserve neutral for coverage that is genuinely balanced or leans into cost and affordability pressure, and reserve the negative half of the scale for criticism, denial, cost blame, and adverse opinion.",
+    "Do not hedge toward neutral when the excerpt is thin. Score what the headline and the outlet's framing support; the tracker's own scored set is roughly two thirds positive.",
+    "",
+    "These worked examples are the tracker's own scoring. Match them:",
+    "",
+    renderTrackerExamples(),
     "",
     "Respond with a JSON array of objects: [{\"id\": <article number>, \"summary\": \"...\", \"reason\": \"...\", \"relevant\": true, \"sentiment\": \"neutral to positive\", \"sentimentReason\": \"...\"}].",
     "",

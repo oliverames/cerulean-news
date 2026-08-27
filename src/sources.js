@@ -22,6 +22,11 @@ const LOCAL_OUTLET_FALLBACK_TERMS = [
   '"blue cross"',
 ];
 
+// Naming the brand is what keeps the national Blues firehose out of the trade
+// press searches; scoping to "Vermont" alone was measurably too loose.
+const TRADE_PRESS_BRAND_QUERY =
+  '("BCBS Vermont" OR "Blue Cross Vermont" OR "Blue Cross Blue Shield of Vermont")';
+
 const TOWNNEWS_SEARCH_THROTTLE = {
   throttleGroup: "townnews-search",
   throttleDelayMs: parseNonNegativeInteger(process.env.RSS_TOWNNEWS_DELAY_MS, 8000),
@@ -683,6 +688,74 @@ export const DEFAULT_SOURCES = [
     scanArticle: false,
     maxItems: 50,
   },
+  // Payer trade press. Kristina's media tracker leans on these three (Becker's
+  // alone is 17 of her 185 clips), but all three block direct crawling:
+  // beckerspayer.com and modernhealthcare.com answer 403 to any user agent and
+  // healthpayerspecialist.com redirects to a login, so none exposes a usable
+  // feed. They are reached through Google News site-scoped searches instead.
+  //
+  // Three deliberate choices, each measured on 2026-08-27.
+  //
+  // The queries name the brand explicitly rather than scoping to "Vermont".
+  // A bare `site:beckerspayer.com Vermont` looked good unbounded, because
+  // Google orders by relevance, but once the local date window trimmed it to
+  // recent items the survivors were national filler and Modern Healthcare
+  // returned job adverts. The broad-national relevance gate did not save it:
+  // "Registered Nurse Job Opening in Whitefield, New Hampshire" reads as a
+  // regional signal, so 6 of 7 kept items were junk. Naming the brand takes
+  // Becker's to 32 results that are almost exactly the tracker's own clips.
+  //
+  // None carries a `when:` bound. Adding one made Google News fall back to
+  // loosely-related results ("Senate confirms UnitedHealth leader"), the same
+  // degradation documented for long OR queries, so the date window is
+  // enforced locally by maxItemAgeDays instead.
+  //
+  // The window is wide because these are low-volume: Becker's has 32 matching
+  // stories in total and only 3 in the last 60 days, so a short window would
+  // miss most of the back catalogue this was added to capture.
+  //
+  // All three are in BROAD_NATIONAL_SOURCE_NAMES, so the relevance gate is a
+  // second guard. See docs/2026-08-27-media-tracker-coverage.md.
+  {
+    name: "Becker's Payer Issues",
+    homepage: "https://www.beckerspayer.com/",
+    feedUrl: googleNewsSearchUrl(
+      `site:beckerspayer.com ${TRADE_PRESS_BRAND_QUERY}`,
+    ),
+    isSearchFeed: true,
+    scanArticle: false,
+    maxItems: 25,
+    maxItemAgeDays: 180,
+  },
+  {
+    name: "Modern Healthcare",
+    homepage: "https://www.modernhealthcare.com/",
+    feedUrl: googleNewsSearchUrl(
+      `site:modernhealthcare.com ${TRADE_PRESS_BRAND_QUERY}`,
+    ),
+    isSearchFeed: true,
+    scanArticle: false,
+    maxItems: 25,
+    maxItemAgeDays: 180,
+  },
+  // Thin by measurement, not by mistake: Google News barely indexes this
+  // subscription trade title. On 2026-08-27 a brand-scoped search returned
+  // nothing and an unscoped one returned mostly newsletter signup pages, so
+  // this source is expected to sit at zero items. Kept because it costs one
+  // request per run, the brand matcher gates whatever it does return, and the
+  // index may improve. An empty 200 is not a fetch failure, so it will not
+  // trip the failure-streak alerting.
+  {
+    name: "Health Payer Specialist",
+    homepage: "https://www.healthpayerspecialist.com/",
+    feedUrl: googleNewsSearchUrl(
+      `site:healthpayerspecialist.com ${TRADE_PRESS_BRAND_QUERY}`,
+    ),
+    isSearchFeed: true,
+    scanArticle: false,
+    maxItems: 25,
+    maxItemAgeDays: 180,
+  },
   {
     name: "KFF Health News",
     homepage: "https://kffhealthnews.org/",
@@ -908,15 +981,18 @@ export const VERMONT_SOURCE_NAMES = new Set([
 
 export const BROAD_NATIONAL_SOURCE_NAMES = new Set([
   "ABC News Health",
+  "Becker's Payer Issues",
   "CBS News Health",
   "CNN Health",
   "Fierce Healthcare",
+  "Health Payer Specialist",
   "Google News Health Insurance Search",
   "Google News Health Trade Search",
   "Google News Kristina Source Search",
   "Google News National Health Policy Search",
   "Healthcare Dive",
   "KFF Health News",
+  "Modern Healthcare",
   "NPR Health",
   "STAT Health News",
   "The Hill Health Care",
