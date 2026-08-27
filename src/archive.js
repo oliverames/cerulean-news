@@ -18,6 +18,7 @@ import {
   TOPIC_TERMS,
 } from "./matching.js";
 import { parseFacebookRelativeDate } from "./parsers.js";
+import { itemOutletName } from "./relevance.js";
 import { isSocialSourceItem, socialSourcesEnabled } from "./sources.js";
 
 const CRAWL_STATE_VERSION = 1;
@@ -292,20 +293,34 @@ function hasCurrentMatchingEvidence(item) {
 // URL; title+domain dupes happen when two Google News search feeds surface
 // the same syndicated copy. The same headline from *different* outlets is
 // kept on purpose — the comms team tracks coverage spread.
-// Titles arrive as "Headline - Outlet", so the outlet suffix is stripped
-// before comparing. Stripping any trailing "- ..." was too greedy: a briefs
-// or calendar page is titled "Health Briefs - Jan 22, 2026", so the date was
-// removed and every edition collapsed into one. That silently discarded every
-// roundup after the first, which is where a sponsorship or event mention
-// usually lives. A suffix carrying a digit is a date, not an outlet.
-function normalizeTitleForDedupe(title) {
-  const cleaned = cleanText(title || "").toLowerCase().trim();
+// Google News titles arrive as "Headline - Outlet", so their final suffix is
+// stripped before comparison. Direct-publisher titles use the same punctuation
+// for real subtitles, so those suffixes are stripped only when they name the
+// item's outlet. Numeric suffixes remain intact because they usually identify
+// a dated briefs or calendar edition.
+function normalizeOutletLabel(value) {
+  return cleanText(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function normalizeTitleForDedupe(item, isAggregatorItem) {
+  const cleaned = cleanText(item.title || "").toLowerCase().trim();
   const match = cleaned.match(/^(.*\S)\s+-\s+([^-]+)$/);
   if (!match) {
     return cleaned;
   }
   const suffix = match[2].trim();
+  if (isAggregatorItem) {
+    return match[1].trim();
+  }
   if (/\d/.test(suffix)) {
+    return cleaned;
+  }
+  if (
+    normalizeOutletLabel(suffix) !== normalizeOutletLabel(itemOutletName(item))
+  ) {
     return cleaned;
   }
   return match[1].trim();
@@ -329,10 +344,10 @@ export function dedupeResolvedItems(items) {
     } catch {
       domain = "";
     }
-    const normalizedTitle = normalizeTitleForDedupe(item.title);
-    const titleKey = domain && normalizedTitle ? `${domain}|${normalizedTitle}` : "";
     const isAggregatorItem =
       domain === "news.google.com" || /^Google News\b/i.test(item.sourceName || "");
+    const normalizedTitle = normalizeTitleForDedupe(item, isAggregatorItem);
+    const titleKey = domain && normalizedTitle ? `${domain}|${normalizedTitle}` : "";
 
     if (titleKey && seenTitleDomain.has(titleKey) && !item.fromMediaTracker) {
       continue;

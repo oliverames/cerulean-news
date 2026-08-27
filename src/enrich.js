@@ -198,6 +198,22 @@ function writeArticleCache(articleCache, keys, item, resolvedLink, details, now)
   }
 }
 
+function fallbackMatchForItem(item) {
+  const matchedTerms = canonicalizeMatchedTerms(
+    item.fromMediaTracker
+      ? ["Blue Cross VT"]
+      : item.searchFallbackTerms || [],
+  );
+  return {
+    matchedTerms,
+    matchSource: matchedTerms.length > 0
+      ? item.fromMediaTracker
+        ? "mediaTracker"
+        : "searchFallback"
+      : "",
+  };
+}
+
 function itemFromArticleCache(
   item,
   resolvedLink,
@@ -212,12 +228,12 @@ function itemFromArticleCache(
   ]);
   let matchSource = cached.matchSource || "articleCache";
   if (matchedTerms.length === 0) {
-    const fallbackTerms = canonicalizeMatchedTerms(item.searchFallbackTerms || []);
-    if (fallbackTerms.length === 0) {
+    const fallback = fallbackMatchForItem(item);
+    if (fallback.matchedTerms.length === 0) {
       return null;
     }
-    matchedTerms = fallbackTerms;
-    matchSource = "searchFallback";
+    matchedTerms = fallback.matchedTerms;
+    matchSource = fallback.matchSource;
   }
 
   return {
@@ -430,8 +446,11 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
         ...feedBrandMatches,
         ...topicMatches,
       ]);
+      let matchSource = cached.matchSource || "";
       if (matchedTerms.length === 0) {
-        matchedTerms = canonicalizeMatchedTerms(item.searchFallbackTerms || []);
+        const fallback = fallbackMatchForItem(item);
+        matchedTerms = fallback.matchedTerms;
+        matchSource = fallback.matchSource;
       }
       const cachedItem = {
         ...item,
@@ -449,7 +468,7 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
         sentimentReason: cached.sentimentReason,
         comments: mergeComments(item.comments, cached.comments),
         articleError: cached.articleError,
-        matchSource: cached.matchSource || "",
+        matchSource,
       };
       matchedCachedItem = cachedItem;
       if (!previewRequested || cached.previewChecked === true) {
@@ -471,15 +490,8 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
         topicMatches,
       );
       if (!cachedItem) {
-        // A negative article cache means an earlier crawl fetched this URL and
-        // found nothing worth keeping. That verdict must not override a
-        // hand-logged clip: three tracker entries were being dropped here,
-        // before the always-include path further down could run, because the
-        // same URLs had already been crawled and cached as non-matching.
-        if (!item.fromMediaTracker) {
-          bumpMetric(metrics, "negativeCacheHits");
-          return null;
-        }
+        bumpMetric(metrics, "negativeCacheHits");
+        return null;
       } else if (
         !previewRequested ||
         freshArticleCache.previewChecked === true ||
@@ -670,10 +682,8 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
       // us only in the article body, which the seed cannot see, so dropping on
       // a failed term match would discard exactly the items the backfill
       // exists to recover. Provenance stands in for the term match.
-      const fallbackTerms = item.fromMediaTracker
-        ? ["Blue Cross VT"]
-        : canonicalizeMatchedTerms(item.searchFallbackTerms || []);
-      if (fallbackTerms.length === 0) {
+      const fallback = fallbackMatchForItem(item);
+      if (fallback.matchedTerms.length === 0) {
         writeArticleCache(
           articleCache,
           articleCacheKeys(originalLink, resolvedLink),
@@ -691,8 +701,8 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
         );
         return null;
       }
-      finalMatchedTerms = fallbackTerms;
-      matchSource = item.fromMediaTracker ? "mediaTracker" : "searchFallback";
+      finalMatchedTerms = fallback.matchedTerms;
+      matchSource = fallback.matchSource;
     }
 
     const snippetSource =
