@@ -33,12 +33,20 @@ async function postWebhook(url, payload, label) {
   if (!url) return;
 
   try {
-    await fetch(url, {
+    const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(10000),
     });
+    if (!response.ok) {
+      try {
+        await response.body?.cancel();
+      } catch {
+        // The status is enough to report the failed delivery.
+      }
+      throw new Error(`HTTP ${response.status}`);
+    }
     console.log(`Successfully sent ${label} alert.`);
   } catch (err) {
     console.error(`Failed to send ${label} alert:`, err.message);
@@ -51,6 +59,8 @@ export async function triggerWebhooks(failedSources) {
   const message = `⚠️ *Blue Cross VT News Mention Monitor Alert*\nSources failing for ${WEBHOOK_FAILURE_THRESHOLD}+ consecutive runs:\n` +
     failedSources.map(s => `- *${s.name}*: ${s.consecutiveFailures ?? "?"} consecutive failures (${s.error})`).join("\n");
 
-  await postWebhook(process.env.SLACK_WEBHOOK_URL, { text: message }, "Slack");
-  await postWebhook(process.env.DISCORD_WEBHOOK_URL, { content: message }, "Discord");
+  await Promise.all([
+    postWebhook(process.env.SLACK_WEBHOOK_URL, { text: message }, "Slack"),
+    postWebhook(process.env.DISCORD_WEBHOOK_URL, { content: message }, "Discord"),
+  ]);
 }
