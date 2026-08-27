@@ -289,6 +289,8 @@ export { dedupeResolvedItems, mergeWithArchive, normalizeCrawlState } from "./ar
 export {
   buildSummaryPrompt,
   matchStorylines,
+  orderItemsForRun,
+  selectPendingSummaryItems,
   normalizeSentiment,
   parseSummaryResponse,
   SENTIMENT_VALUES,

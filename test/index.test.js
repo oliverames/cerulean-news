@@ -18,6 +18,7 @@ import {
   applyDeterministicRelevance,
   applyFailureStreaks,
   selectFailureAlerts,
+  triggerWebhooks,
   selectPreviewBackfillItems,
   canonicalizeMatchedTerms,
   categorizeTerms,
@@ -38,6 +39,8 @@ import {
   parseSummaryResponse,
   parseMediaTrackerSeedItems,
   matchStorylines,
+  orderItemsForRun,
+  selectPendingSummaryItems,
   enrichAndFilterItems,
   normalizeSentiment,
   shouldScoreSentiment,
@@ -543,6 +546,23 @@ test("dedupeResolvedItems drops Google News wrappers when the outlet item exists
     dedupeResolvedItems(items).map((item) => item.link),
     ["https://www.healthcaredive.com/news/medicare-advantage-denials/"],
   );
+
+  const numberedOutlet = [
+    {
+      sourceName: "Google News Vermont Health Search",
+      link: "https://news.google.com/rss/articles/numbered-outlet",
+      title: "Hospital announces new primary care clinic - ABC22 & FOX44",
+    },
+    {
+      sourceName: "ABC22 & FOX44",
+      link: "https://www.mychamplainvalley.com/news/primary-care-clinic/",
+      title: "Hospital announces new primary care clinic",
+    },
+  ];
+  assert.deepEqual(
+    dedupeResolvedItems(numberedOutlet).map((item) => item.link),
+    ["https://www.mychamplainvalley.com/news/primary-care-clinic/"],
+  );
 });
 
 test("parseSummaryResponse applies the relevance verdict", () => {
@@ -759,6 +779,63 @@ test("failure streaks reset on success, accumulate on failure, alert once at thr
     ),
     [],
   );
+});
+
+test("webhooks reject HTTP failures and send configured endpoints concurrently", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalLog = console.log;
+  const originalError = console.error;
+  const originalSlack = process.env.SLACK_WEBHOOK_URL;
+  const originalDiscord = process.env.DISCORD_WEBHOOK_URL;
+  const calls = [];
+  const logs = [];
+  const errors = [];
+  let active = 0;
+  let maxActive = 0;
+
+  process.env.SLACK_WEBHOOK_URL = "https://hooks.example/slack";
+  process.env.DISCORD_WEBHOOK_URL = "https://hooks.example/discord";
+  globalThis.fetch = async (url) => {
+    calls.push(url);
+    active += 1;
+    maxActive = Math.max(maxActive, active);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    active -= 1;
+    return url.endsWith("/slack")
+      ? new Response("rate limited", { status: 429 })
+      : new Response(null, { status: 204 });
+  };
+  console.log = (...args) => logs.push(args.join(" "));
+  console.error = (...args) => errors.push(args.join(" "));
+
+  try {
+    await triggerWebhooks([
+      { name: "Broken Outlet", consecutiveFailures: 24, error: "HTTP 500" },
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.log = originalLog;
+    console.error = originalError;
+    if (originalSlack === undefined) {
+      delete process.env.SLACK_WEBHOOK_URL;
+    } else {
+      process.env.SLACK_WEBHOOK_URL = originalSlack;
+    }
+    if (originalDiscord === undefined) {
+      delete process.env.DISCORD_WEBHOOK_URL;
+    } else {
+      process.env.DISCORD_WEBHOOK_URL = originalDiscord;
+    }
+  }
+
+  assert.deepEqual(calls.sort(), [
+    "https://hooks.example/discord",
+    "https://hooks.example/slack",
+  ]);
+  assert.equal(maxActive, 2, "both webhook requests should overlap");
+  assert.ok(errors.some((message) => /Slack.*HTTP 429/.test(message)));
+  assert.ok(!logs.some((message) => /Slack/.test(message)));
+  assert.ok(logs.some((message) => /Discord/.test(message)));
 });
 
 test("summary prompt marks article text as untrusted", () => {
@@ -4369,6 +4446,23 @@ test("dedupe keeps successive roundup editions apart", () => {
   assert.equal(dedupeResolvedItems(sameStory).length, 1);
 });
 
+test("dedupe preserves semantic subtitles on direct-publisher stories", () => {
+  const stories = [
+    {
+      sourceName: "Times Argus",
+      title: "Hospital policy changes - What patients need to know",
+      link: "https://www.timesargus.com/patients",
+    },
+    {
+      sourceName: "Times Argus",
+      title: "Hospital policy changes - What employers need to know",
+      link: "https://www.timesargus.com/employers",
+    },
+  ];
+
+  assert.equal(dedupeResolvedItems(stories).length, 2);
+});
+
 test("the media tracker seed parses into feed items", () => {
   const source = DEFAULT_SOURCES.find(
     (entry) => entry.name === "Media Tracker Backfill",
@@ -4464,7 +4558,7 @@ test("a curated clip is never vetoed or deduped away", () => {
   assert.equal(deduped[0].link, curated.link, "the curated URL must survive");
 });
 
-test("a negative article cache never drops a curated clip", () => {
+test("a negative article cache never drops a curated clip", async () => {
   // An earlier crawl can fetch a URL, find nothing worth keeping, and cache
   // that verdict. Three tracker entries were dropped there, before the
   // always-include path could run, because the crawler had already seen the
@@ -4496,13 +4590,46 @@ test("a negative article cache never drops a curated clip", () => {
     pubDate: new Date("2026-07-01T12:00:00Z"),
   };
 
-  return enrichAndFilterItems([curated], new Map(), {
+  let fetchCount = 0;
+  const kept = await enrichAndFilterItems([curated], new Map(), {
     articleCache,
     now: new Date(),
-  }).then((kept) => {
-    assert.equal(kept.length, 1, "the curated clip must survive a negative cache");
-    assert.equal(kept[0].category, CATEGORY_BRAND);
+    fetchText: async () => {
+      fetchCount += 1;
+      throw new Error("a fresh cache entry must prevent an article fetch");
+    },
   });
+
+  assert.equal(kept.length, 1, "the curated clip must survive a negative cache");
+  assert.deepEqual(kept[0].matchedTerms, ["Blue Cross VT"]);
+  assert.equal(kept[0].category, CATEGORY_BRAND);
+  assert.equal(kept[0].matchSource, "mediaTracker");
+  assert.equal(fetchCount, 0);
+});
+
+test("a matched cache entry without terms keeps curated classification", async () => {
+  const link = "https://example.com/curated-clip";
+  const kept = await enrichAndFilterItems(
+    [
+      {
+        sourceName: "Media Tracker Backfill",
+        link,
+        title: "A hand-logged clip",
+        feedContent: "",
+        scanArticle: false,
+        fromMediaTracker: true,
+        pubDate: new Date("2026-07-01T12:00:00Z"),
+      },
+    ],
+    new Map([
+      [link, { matchedTerms: [], previewChecked: true, matchSource: "" }],
+    ]),
+  );
+
+  assert.equal(kept.length, 1);
+  assert.deepEqual(kept[0].matchedTerms, ["Blue Cross VT"]);
+  assert.equal(kept[0].category, CATEGORY_BRAND);
+  assert.equal(kept[0].matchSource, "mediaTracker");
 });
 
 test("standing context reaches the prompt only for the stories it applies to", () => {
@@ -4549,6 +4676,58 @@ test("a malformed context file never stops a run", () => {
       { title: "vt basic story" },
       [{ name: "", note: "", match: [] }],
     ),
+    [],
+  );
+});
+
+test("a re-score sweeps oldest-first so it can reach the whole archive", () => {
+  // Items arrive newest first. A re-score that took the head would redo the
+  // same newest N every run and never reach older items, which is how a set
+  // of June clips sat on stale scores through repeated re-scores.
+  const pending = [
+    { title: "newest" },
+    { title: "middle" },
+    { title: "oldest" },
+  ];
+
+  assert.deepEqual(
+    orderItemsForRun(pending, true).map((i) => i.title),
+    ["oldest", "middle", "newest"],
+  );
+  assert.deepEqual(
+    orderItemsForRun(pending, false).map((i) => i.title),
+    ["newest", "middle", "oldest"],
+  );
+  // Ordering must not mutate the caller's array.
+  assert.equal(pending[0].title, "newest");
+});
+
+test("pending selection picks up coverage that still needs a score", () => {
+  const brand = {
+    matchedTerms: ["BCBSVT"],
+    link: "https://vtdigger.org/story",
+    summary: "Already summarized.",
+    relevant: true,
+  };
+  const scored = { ...brand, sentiment: "positive" };
+  const topic = {
+    matchedTerms: ["Hospitals"],
+    link: "https://vtdigger.org/other",
+    summary: "Already summarized.",
+    relevant: true,
+  };
+  const rejected = { ...brand, relevant: false };
+
+  // Brand coverage with a summary but no score still needs a pass.
+  assert.deepEqual(selectPendingSummaryItems([brand, topic, scored]), [brand]);
+  // A re-score takes every eligible item, scored or not.
+  assert.deepEqual(
+    selectPendingSummaryItems([brand, topic, scored], { rescoreSentiment: true }),
+    [brand, scored],
+  );
+  // A rejected item is never re-summarized.
+  assert.deepEqual(
+    selectPendingSummaryItems([rejected], { rescoreSentiment: true }),
     [],
   );
 });
