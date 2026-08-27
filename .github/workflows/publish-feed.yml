@@ -143,9 +143,40 @@ jobs:
           NODE_EXTRA_CA_CERTS: ${{ github.workspace }}/certs/digicert-global-g2-tls-rsa-sha256-2020-ca1.pem
         run: npm run generate
 
+      # A static-only change deploys whatever is in site/, and the seed step
+      # above refreshes only feed-audit.json. The committed feed.json and
+      # feed.rss are build artefacts that go stale the moment a scheduled run
+      # publishes, so deploying them republishes an old feed: a docs-only
+      # commit on 2026-08-27 rolled the live reader back to a June 12 archive
+      # of 129 items. Pull both reader-facing files from the live site too,
+      # and fail the run rather than deploy a stale one.
       - name: Reuse live feed for static deploy
         if: steps.mode.outputs.full != 'true'
-        run: echo "Static-only change; reusing the live feed seeded into site/."
+        env:
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+
+          fetch_live() {
+            local name="$1" check="$2"
+            if curl -fsSL --retry 3 --retry-delay 5 --max-time 60 \
+                 "$SITE_URL/$name" -o "/tmp/$name"; then
+              if [ "$check" = "json" ]; then
+                jq -e '.items | type == "array"' "/tmp/$name" > /dev/null
+              else
+                grep -q "</rss>" "/tmp/$name"
+              fi
+              mv "/tmp/$name" "site/$name"
+              echo "Reused live $name"
+              return 0
+            fi
+            return 1
+          }
+
+          # Without this the deploy silently republishes a stale artefact,
+          # which is worse than a failed run: nobody notices a green tick.
+          fetch_live feed.json json
+          fetch_live feed.rss rss
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
