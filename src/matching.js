@@ -2,24 +2,102 @@
 // Vermont health care topics the comms team tracks.
 import { cleanText } from "./utils.js";
 
+const OTHER_BLUES_REGIONS = [
+  "alabama",
+  "alaska",
+  "arizona",
+  "arkansas",
+  "california",
+  "colorado",
+  "connecticut",
+  "delaware",
+  "district\\s+of\\s+columbia",
+  "florida",
+  "georgia",
+  "hawaii",
+  "idaho",
+  "illinois",
+  "indiana",
+  "iowa",
+  "kansas",
+  "kentucky",
+  "louisiana",
+  "maine",
+  "maryland",
+  "massachusetts",
+  "michigan",
+  "minnesota",
+  "mississippi",
+  "missouri",
+  "montana",
+  "nebraska",
+  "nevada",
+  "new\\s+hampshire",
+  "new\\s+jersey",
+  "new\\s+mexico",
+  "new\\s+york",
+  "north\\s+carolina",
+  "north\\s+dakota",
+  "ohio",
+  "oklahoma",
+  "oregon",
+  "pennsylvania",
+  "puerto\\s+rico",
+  "rhode\\s+island",
+  "south\\s+carolina",
+  "south\\s+dakota",
+  "tennessee",
+  "texas",
+  "utah",
+  "virginia",
+  "washington",
+  "west\\s+virginia",
+  "wisconsin",
+  "wyoming",
+].join("|");
+
+const OTHER_BLUES_PLAN_PATTERN = new RegExp(
+  `\\b(?:bcbs|bluecross|blue\\s*cross(?:\\s*(?:(?:and|&|/)\\s*)?blue\\s*shield)?)\\s+(?:of\\s+)?(?:${OTHER_BLUES_REGIONS})\\b`,
+  "i",
+);
+
+const VERMONT_PLAN_RELATION_PATTERN = new RegExp(
+  `\\b(?:the\\s+)?(?:vermont|vt)\\s+(?:plan|affiliate|insurer)\\b|\\b(?:${OTHER_BLUES_REGIONS})\\s+(?:and|&)\\s+(?:vermont|vt)\\b`,
+  "i",
+);
+
+export function namesOtherBluesPlan(text) {
+  return OTHER_BLUES_PLAN_PATTERN.test(cleanText(text));
+}
+
+export function namesVermontBluesRelationship(text) {
+  return VERMONT_PLAN_RELATION_PATTERN.test(cleanText(text));
+}
+
 export const MENTION_TERMS = [
   { label: "BCBSVT", pattern: /\bbcbs[\s-]?vt\b/i },
   { label: "BCBS of Vermont", pattern: /\bbcbs\s+(?:of\s+)?vermont\b|\bbcbs\s+of\s+vt\b/i },
   {
     label: "BCBS Vermont",
     pattern:
-      /\bbcbs\b[\s\S]*\b(?:vermont|vt)\b\.?|\b(?:vermont|vt)\b\.?[\s\S]*\bbcbs\b/i,
+      /\bbcbs\b[^.!?\n]{0,240}\b(?:vermont|vt)\b\.?|\b(?:vermont|vt)\b\.?[^.!?\n]{0,240}\bbcbs\b/i,
+    reject: OTHER_BLUES_PLAN_PATTERN,
+    rejectUnless: VERMONT_PLAN_RELATION_PATTERN,
   },
   { label: "Blue Cross VT", pattern: /\bblue\s*cross\s*(?:vt|vermont)\b/i },
   {
     label: "BlueCross Vermont",
     pattern:
-      /\bbluecross\b(?!\s*(?:(?:and|&|\/)\s*)?blue\s*shield\b)[\s\S]*\b(?:vermont|vt)\b\.?|\b(?:vermont|vt)\b\.?[\s\S]*\bbluecross\b(?!\s*(?:(?:and|&|\/)\s*)?blue\s*shield\b)/i,
+      /\bbluecross\b(?!\s*(?:(?:and|&|\/)\s*)?blue\s*shield\b)[^.!?\n]{0,240}\b(?:vermont|vt)\b\.?|\b(?:vermont|vt)\b\.?[^.!?\n]{0,240}\bbluecross\b(?!\s*(?:(?:and|&|\/)\s*)?blue\s*shield\b)/i,
+    reject: OTHER_BLUES_PLAN_PATTERN,
+    rejectUnless: VERMONT_PLAN_RELATION_PATTERN,
   },
   {
     label: "Blue Cross and Blue Shield of Vermont",
     pattern:
-      /\bblue\s*cross\s*(?:(?:and|&|\/)\s*)?blue\s*shield\b[\s\S]*\b(?:vermont|vt)\b\.?|\b(?:vermont|vt)\b\.?[\s\S]*\bblue\s*cross\s*(?:(?:and|&|\/)\s*)?blue\s*shield\b/i,
+      /\bblue\s*cross\s*(?:(?:and|&|\/)\s*)?blue\s*shield\b[^.!?\n]{0,240}\b(?:vermont|vt)\b\.?|\b(?:vermont|vt)\b\.?[^.!?\n]{0,240}\bblue\s*cross\s*(?:(?:and|&|\/)\s*)?blue\s*shield\b/i,
+    reject: OTHER_BLUES_PLAN_PATTERN,
+    rejectUnless: VERMONT_PLAN_RELATION_PATTERN,
   },
   {
     label: "Blue Cross of Vermont",
@@ -240,13 +318,37 @@ const TERM_LABEL_ALIASES = new Map([
   ["BlueCross & BlueShield of VT", "Blue Cross and Blue Shield of Vermont"],
 ]);
 
+function acceptedTermMatch(term, subject) {
+  term.pattern.lastIndex = 0;
+  const match = term.pattern.exec(subject);
+  if (!match) {
+    return null;
+  }
+  if (term.reject) {
+    term.reject.lastIndex = 0;
+    const rejectionContext = subject.slice(
+      match.index,
+      match.index + match[0].length + 40,
+    );
+    if (term.reject.test(rejectionContext)) {
+      if (term.rejectUnless) {
+        term.rejectUnless.lastIndex = 0;
+      }
+      if (!term.rejectUnless || !term.rejectUnless.test(rejectionContext)) {
+        return null;
+      }
+    }
+  }
+  return match;
+}
+
 export function findMentionTerms(text, terms = MENTION_TERMS) {
   const haystack = cleanText(text);
   const matches = [];
 
   for (const term of terms) {
     const subject = term.strip ? haystack.replace(term.strip, " ") : haystack;
-    if (term.pattern.test(subject)) {
+    if (acceptedTermMatch(term, subject)) {
       matches.push(term.label);
     }
   }
@@ -283,7 +385,7 @@ function findFirstMentionIndex(text, terms = MENTION_TERMS) {
     const subject = term.strip
       ? text.replace(term.strip, (stripped) => " ".repeat(stripped.length))
       : text;
-    const match = term.pattern.exec(subject);
+    const match = acceptedTermMatch(term, subject);
     if (!match) {
       continue;
     }

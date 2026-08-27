@@ -143,9 +143,12 @@ export async function generateFeed({
     previousFailureStreaks,
   );
 
-  // Alert (asynchronously) only for sources that just crossed the
-  // consecutive-failure threshold.
-  triggerWebhooks(selectFailureAlerts(sourceResults)).catch(err => console.error("Webhook trigger error:", err));
+  // Start alerts early so their network wait overlaps the expensive feed work,
+  // but join them before returning so callers know the run's side effects are
+  // complete. Individual endpoint failures remain best-effort and are logged.
+  const webhookPromise = triggerWebhooks(
+    selectFailureAlerts(sourceResults),
+  ).catch((error) => console.error("Webhook trigger error:", error));
 
   const currentMatched = await measurePhase(crawlMetrics, "enrich", () =>
     enrichAndFilterItems(enrichmentItems, cache, {
@@ -180,6 +183,7 @@ export async function generateFeed({
     jsonOutputPath,
     auditJsonOutputPath,
   );
+  await webhookPromise;
 
   return {
     rssOutputPath,
@@ -261,6 +265,7 @@ export {
   parseFacebookPageHtml,
   parseFacebookPostHtml,
   parseFeedItems,
+  isFeedDocument,
   parseMediaTrackerSeedItems,
   parseUvmHealthNewsroomItems,
 } from "./parsers.js";
@@ -285,7 +290,12 @@ export {
   itemOutletName,
   namesBlueCrossVermont,
 } from "./relevance.js";
-export { dedupeResolvedItems, mergeWithArchive, normalizeCrawlState } from "./archive.js";
+export {
+  dedupeResolvedItems,
+  loadPreviousState,
+  mergeWithArchive,
+  normalizeCrawlState,
+} from "./archive.js";
 export {
   buildSummaryPrompt,
   matchStorylines,

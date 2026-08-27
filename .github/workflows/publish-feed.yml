@@ -52,7 +52,7 @@ jobs:
           # This workflow never pushes back to the repo; don't leave the
           # workflow token in .git/config for later steps to read.
           persist-credentials: false
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Decide generation mode
         id: mode
@@ -66,7 +66,9 @@ jobs:
           before="${{ github.event.before }}"
           sha="${{ github.sha }}"
           if ! changed="$(git diff --name-only "$before" "$sha" 2>/dev/null)"; then
-            changed="$(git diff --name-only HEAD^ HEAD 2>/dev/null || true)"
+            echo "::warning::Could not compare the complete push range; using a full generation."
+            echo "full=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
           echo "Changed files:"
@@ -74,7 +76,7 @@ jobs:
 
           if [ -z "$changed" ]; then
             echo "full=true" >> "$GITHUB_OUTPUT"
-          elif printf '%s\n' "$changed" | grep -Eq '^(src/|test/|package(-lock)?\.json$|\.github/workflows/publish-feed\.yml$)'; then
+          elif printf '%s\n' "$changed" | grep -Eq '^(src/|test/|data/|certs/|package(-lock)?\.json$|\.github/workflows/publish-feed\.yml$)'; then
             echo "full=true" >> "$GITHUB_OUTPUT"
           else
             echo "full=false" >> "$GITHUB_OUTPUT"
@@ -107,6 +109,7 @@ jobs:
         env:
           SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
         run: |
+          set -euo pipefail
           mkdir -p site
 
           # Download to a temp file and require it to parse as JSON before
@@ -116,7 +119,12 @@ jobs:
           seed() {
             local url="$1" label="$2"
             if curl -fsSL --retry 3 --retry-delay 5 --max-time 60 "$url" -o /tmp/seed.json \
-              && jq -e '.items | type == "array"' /tmp/seed.json > /dev/null 2>&1; then
+              && jq -e '
+                .audit == true and
+                (.items | type == "array") and
+                (.sources | type == "array") and
+                (.crawlState | type == "object")
+              ' /tmp/seed.json > /dev/null 2>&1; then
               mv /tmp/seed.json site/feed-audit.json
               echo "Seeded archive from $label"
               return 0
@@ -125,14 +133,15 @@ jobs:
           }
 
           seed "$SITE_URL/feed-audit.json" "live audit feed" \
-            || seed "$SITE_URL/feed.json" "legacy live feed" \
-            || echo "::warning::Live archive unavailable; falling back to committed feed-audit.json (may be stale)"
+            || { echo "::error::Durable live audit unavailable; refusing to replace it with a public or stale seed"; exit 1; }
 
       - name: Generate feed
         if: steps.mode.outputs.full == 'true'
         env:
           SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           # One-shot re-passes, opt-in from the Actions "Run workflow" dialog.
           # Both cost Gemini calls proportional to the archive, so they are
           # never set on the scheduled run.

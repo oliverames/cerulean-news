@@ -12,7 +12,6 @@ import {
 import {
   buildSnippet,
   canonicalizeMatchedTerms,
-  categorizeTerms,
   CATEGORY_BRAND,
   CATEGORY_TOPIC,
   findMentionTerms,
@@ -80,19 +79,38 @@ function isFreshArticleCacheEntry(entry, now) {
   return Boolean(expiresAt) && expiresAt.valueOf() > now.valueOf();
 }
 
-function findArticleCacheEntry(articleCache, keys) {
+function findArticleCacheEntry(articleCache, keys, predicate = () => true) {
+  let newestEntry = null;
+  let newestCheckedAt = Number.NEGATIVE_INFINITY;
+
   for (const key of keys) {
     const entry = articleCache[key];
-    if (entry) {
-      return entry;
+    if (!entry || !predicate(entry)) {
+      continue;
+    }
+
+    const checkedAt = parseDate(entry.checkedAt)?.valueOf();
+    const checkedAtValue = Number.isFinite(checkedAt)
+      ? checkedAt
+      : Number.NEGATIVE_INFINITY;
+    // Keep the first key on a timestamp tie. writeArticleCache stores the same
+    // object under both aliases, while old or malformed entries can lack a
+    // checkedAt value and still need deterministic selection.
+    if (!newestEntry || checkedAtValue > newestCheckedAt) {
+      newestEntry = entry;
+      newestCheckedAt = checkedAtValue;
     }
   }
-  return null;
+
+  return newestEntry;
 }
 
 function findFreshArticleCacheEntry(articleCache, keys, now) {
-  const entry = findArticleCacheEntry(articleCache, keys);
-  return isFreshArticleCacheEntry(entry, now) ? entry : null;
+  return findArticleCacheEntry(
+    articleCache,
+    keys,
+    (entry) => isFreshArticleCacheEntry(entry, now),
+  );
 }
 
 // Expired entries that carry ETag/Last-Modified validators are kept for one
@@ -236,11 +254,12 @@ function itemFromArticleCache(
     matchSource = fallback.matchSource;
   }
 
+  const link = cached.resolvedUrl || resolvedLink || item.link;
   return {
     ...item,
-    link: cached.resolvedUrl || resolvedLink || item.link,
+    link,
     matchedTerms,
-    category: categorizeTerms(matchedTerms),
+    category: itemCategory({ ...item, link, matchedTerms }),
     snippet: cleanStorySnippet(cached.snippet || item.description || "", item.title),
     previewText: normalizePreviewText(cached.previewText || ""),
     previewChecked: cached.previewChecked === true,
@@ -391,6 +410,8 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
   const now = options.now || new Date();
   const fetchArticleText = options.fetchText || fetchText;
   const throttleArticleRequest = options.throttleRequest || throttleRequest;
+  const decodeGoogleNewsUrl =
+    options.decodeGoogleNewsUrl || ((url) => googleDecoder.decode(url));
   if (metrics.enrichment) {
     metrics.enrichment.itemsSeen = items.length;
   }
@@ -409,7 +430,7 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
 
     if (resolvedLink.includes("news.google.com/rss/articles")) {
       try {
-        const decoded = await googleDecoder.decode(resolvedLink);
+        const decoded = await decodeGoogleNewsUrl(resolvedLink);
         if (decoded && decoded.status && decoded.decoded_url) {
           resolvedLink = decoded.decoded_url;
         }
@@ -456,7 +477,7 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
         ...item,
         link: resolvedLink,
         matchedTerms,
-        category: categorizeTerms(matchedTerms),
+        category: itemCategory({ ...item, link: resolvedLink, matchedTerms }),
         pubDate: item.pubDate || cached.pubDate || null,
         snippet: cleanStorySnippet(cached.snippet, item.title),
         previewText: normalizePreviewText(cached.previewText || ""),
@@ -546,7 +567,10 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
         } = await fetchArticleText(
           resolvedLink,
           "text/html, application/xhtml+xml, */*",
-          { conditionalHeaders },
+          {
+            conditionalHeaders,
+            beforeRetry: () => throttleArticleRequest(resolvedLink),
+          },
         );
         if (notModified && staleArticleCache) {
           bumpMetric(metrics, "articleNotModified");

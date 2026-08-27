@@ -57,6 +57,21 @@ function sourceArticleScanMode(source) {
   return source.scanArticle === false ? "feedOnly" : "smart";
 }
 
+export function isFeedDocument(feedXml) {
+  if (typeof feedXml !== "string" || !feedXml.trim()) {
+    return false;
+  }
+
+  try {
+    const $ = cheerio.load(feedXml, { xmlMode: true });
+    const rootName = String($.root().children().first().get(0)?.name || "")
+      .toLowerCase();
+    return ["rss", "feed", "rdf:rdf"].includes(rootName);
+  } catch {
+    return false;
+  }
+}
+
 export function parseFeedItems(feedXml, source) {
   const $ = cheerio.load(feedXml, { xmlMode: true });
   const rssItems = $("item")
