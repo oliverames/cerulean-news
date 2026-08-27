@@ -101,3 +101,44 @@ the actual rules Kristina applies, and they are worth encoding verbatim:
   with Michigan, the story topic is a negative one.
 
 These four rules are what the generator's prompt now implements.
+
+## Calibration measured against the tracker
+
+Agreement is measurable wherever the tracker and the archive have both scored
+the same article. On 2026-08-27 that overlap was 25 articles.
+
+| | Rules only | Rules plus worked examples |
+|---|---|---|
+| Exact agreement | 40% | **60%** |
+| Within one step | 72% | **84%** |
+| Mean bias (steps) | −0.56 | **−0.36** |
+
+Negative bias means the generator scores lower than the tracker does. The
+first pass scored ordinary favourable brand presence as neutral where the
+tracker scores it positive, so the prompt gained an explicit fifth rule and
+ten worked examples lifted verbatim from the tracker, spanning all five points
+of the scale. Published positives went from 12% of scored items to 23%.
+
+### The residual gap is context, not calibration
+
+Four of the ten remaining disagreements need knowledge of our own business
+that no model can read off a headline, and they run in both directions:
+
+| Article | Tracker | Generator |
+|---|---|---|
+| Vermont's largest health insurer wants to offer a cheaper plan | neutral to negative | neutral to positive |
+| BlueCross BlueShield of VT pulls its proposed lower-cost plan | positive | neutral to negative |
+| BCBS Vermont takes step back with proposed product line | neutral to positive | neutral to negative |
+| Vermont will join multi-state prescription drug purchasing pool | positive | neutral |
+
+The first three are all the same underlying story, the VT Basic lower-cost
+qualified health plan. The tracker reads coverage of *proposing* it as adverse
+and coverage of *withdrawing* it as favourable, which inverts what the
+headlines suggest. Its topic column records the reason ("VT Basic - pulling
+from QHP"); the generator sees only the headline and excerpt.
+
+Closing this needs standing context notes rather than a better rubric: a short
+list of live storylines and how coverage of each should read. That list has to
+come from the communications team, so it is not something the generator can
+derive. Re-running the agreement measurement after any rubric change is the
+way to tell whether a change helped, rather than reasoning about it.
