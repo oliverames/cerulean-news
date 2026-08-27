@@ -274,11 +274,20 @@ export {
 export { freshUntilFromHeaders, politenessPolicyFor } from "./politeness.js";
 export { isObituaryItem } from "./filters.js";
 export { enrichAndFilterItems, selectPreviewBackfillItems } from "./enrich.js";
-export { applyDeterministicRelevance, isLikelyPaywalled } from "./relevance.js";
+export {
+  applyDeterministicRelevance,
+  isAssociationItem,
+  isJobListingItem,
+  isLikelyPaywalled,
+  itemOutletName,
+} from "./relevance.js";
 export { dedupeResolvedItems, mergeWithArchive, normalizeCrawlState } from "./archive.js";
 export {
   buildSummaryPrompt,
+  normalizeSentiment,
   parseSummaryResponse,
+  SENTIMENT_VALUES,
+  shouldScoreSentiment,
   summarizeItems,
 } from "./summaries.js";
 export {

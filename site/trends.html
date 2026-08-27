@@ -1,0 +1,1516 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Blue News: Sentiment</title>
+    <meta
+      name="description"
+      content="Sentiment of Blue Cross and Blue Shield of Vermont press coverage over time."
+    >
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="manifest" href="site.webmanifest">
+    <meta name="theme-color" content="#0077C8">
+    <!-- Early auth check - runs before body parses to prevent any flash of the password gate -->
+    <script>
+      try {
+        if (localStorage.getItem("bcbsNewsAuth") === "true") {
+          document.documentElement.classList.add("authenticated");
+        }
+      } catch (e) {
+        // localStorage not available (private browsing mode)
+      }
+    </script>
+    <style>
+      :root {
+        --fg: #111;
+        --muted: #555;
+        --link: #0000cc;
+        --visited: #551a8b;
+        --rule: #ccc;
+        --rule-soft: #e1e1e1;
+        --surface: #f5f8fc;
+        --rule-blue: #b7cbe9;
+        --bar-1: #0033a0;
+        --bar-1-hover: #002677;
+        --bar-2: #111;
+        --bar-3: #418fde;
+
+        /* Diverging sentiment ramp: two hues either side of a neutral
+           midpoint. Validated for colour-vision deficiency and for
+           normal-vision separation (worst adjacent pair dE 20.7 / 21.2).
+           Never reorder these: colour follows the sentiment, not the rank. */
+        --s-pos: #0d4c9e;
+        --s-npos: #4a90d9;
+        --s-neu: #dcdcd9;
+        --s-nneg: #e8883a;
+        --s-neg: #b02a1f;
+      }
+
+      body {
+        margin: 0;
+        background: #fff;
+        color: var(--fg);
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1.45;
+      }
+
+      .page {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 18px 16px 48px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 0.9rem;
+        margin-bottom: 24px;
+      }
+
+      .topbar .button {
+        display: inline-block;
+        padding: 4px 12px;
+        border: 1px solid var(--fg);
+        color: var(--fg);
+        text-decoration: none;
+      }
+
+      .topbar .button:hover { background: var(--surface); }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      h1 { margin: 0 0 6px; font-size: 1.65rem; font-weight: 700; }
+
+      .title-row {
+        display: flex;
+        align-items: baseline;
+        gap: 24px;
+        margin: 0 0 6px;
+      }
+
+      .title-row h1 { flex: 0 0 auto; margin: 0; }
+
+      .tricolor { display: flex; height: 5px; margin: 0 0 18px; }
+      .tricolor span { flex: 1; }
+      .tricolor .c1 { background: var(--bar-1); }
+      .tricolor .c2 { background: var(--bar-2); }
+      .tricolor .c3 { background: var(--bar-3); }
+
+      .dateline {
+        font-style: italic;
+        margin: 0 0 0 auto;
+        text-align: right;
+      }
+
+      a { color: var(--link); }
+      a:visited { color: var(--visited); }
+      a:hover { text-decoration-thickness: 2px; }
+
+      a:focus-visible,
+      button:focus-visible,
+      select:focus-visible {
+        outline: 3px solid var(--bar-3);
+        outline-offset: 2px;
+      }
+
+      @media (max-width: 640px) {
+        .title-row { display: block; }
+        .title-row h1 { margin-bottom: 4px; }
+        .dateline { margin: 0; text-align: left; }
+      }
+
+      /* Filters: one row above the charts */
+      .filters {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        margin: 0 0 22px;
+        padding: 0 0 14px;
+        border-bottom: 1px solid var(--rule);
+        font-size: 0.92rem;
+      }
+
+      .filters .label { font-weight: 700; }
+
+      .filters select {
+        padding: 3px 6px;
+        border: 1px solid var(--fg);
+        background: #fff;
+        color: var(--fg);
+        font: inherit;
+        font-size: 0.9rem;
+      }
+
+      /* Stat tiles */
+      .tiles {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        margin: 0 0 26px;
+        background: var(--rule-soft);
+        border: 1px solid var(--rule-soft);
+      }
+
+      .tile { background: #fff; padding: 10px 12px; }
+
+      .tile .value {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1.15;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .tile .caption {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        line-height: 1.3;
+      }
+
+      @media (max-width: 560px) {
+        .tiles { grid-template-columns: repeat(2, 1fr); }
+      }
+
+      figure { margin: 0 0 30px; }
+
+      figcaption { margin: 0 0 3px; font-size: 1rem; font-weight: 700; }
+
+      .figure-note {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.4;
+      }
+
+      .chart-scroll { overflow-x: auto; }
+
+      svg { display: block; }
+
+      .axis-line { stroke: var(--rule); stroke-width: 1; }
+      .grid-line { stroke: var(--rule-soft); stroke-width: 1; }
+      .zero-line { stroke: var(--muted); stroke-width: 1; }
+
+      .tick {
+        fill: var(--muted);
+        font-size: 11px;
+        font-family: Helvetica, Arial, sans-serif;
+      }
+
+      .point-label {
+        fill: var(--fg);
+        font-size: 11px;
+        font-weight: 700;
+        font-family: Helvetica, Arial, sans-serif;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .net-line { fill: none; stroke: var(--bar-1); stroke-width: 2; }
+      .net-dot { fill: var(--bar-1); stroke: #fff; stroke-width: 2; }
+      .crosshair { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+      .hit { fill: transparent; cursor: pointer; }
+      .seg { stroke: #fff; stroke-width: 2; }
+
+      /* Legend: identity is never colour-alone, so swatches sit beside labels */
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 14px;
+        margin: 8px 0 0;
+        padding: 0;
+        list-style: none;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+
+      .legend li { display: flex; align-items: center; gap: 5px; }
+
+      .legend .swatch {
+        width: 11px;
+        height: 11px;
+        flex: 0 0 auto;
+        border: 1px solid rgba(0, 0, 0, 0.18);
+      }
+
+      /* Tooltip */
+      .tooltip {
+        position: absolute;
+        z-index: 20;
+        min-width: 130px;
+        padding: 7px 9px;
+        border: 1px solid var(--fg);
+        background: #fff;
+        font-size: 0.8rem;
+        line-height: 1.4;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.12s ease;
+      }
+
+      .tooltip.visible { opacity: 1; }
+      .tooltip .tip-title { font-weight: 700; }
+
+      .tooltip dl {
+        display: grid;
+        grid-template-columns: max-content auto;
+        column-gap: 8px;
+        margin: 4px 0 0;
+      }
+
+      .tooltip dt { display: flex; align-items: center; gap: 5px; }
+      .tooltip dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+
+      .tooltip .swatch {
+        width: 9px;
+        height: 9px;
+        flex: 0 0 auto;
+        border: 1px solid rgba(0, 0, 0, 0.18);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .tooltip { transition: none; }
+      }
+
+      .chart-wrap { position: relative; }
+
+      /* Table view - the accessible equal of every chart above */
+      details.table-view { margin: 26px 0 0; font-size: 0.9rem; }
+
+      details.table-view summary {
+        cursor: pointer;
+        color: var(--link);
+        font-size: 0.85rem;
+      }
+
+      table {
+        width: 100%;
+        margin-top: 10px;
+        border-collapse: collapse;
+        font-size: 0.84rem;
+      }
+
+      th, td {
+        padding: 4px 6px;
+        border-bottom: 1px solid var(--rule-soft);
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      th:first-child, td:first-child { text-align: left; }
+
+      thead th {
+        border-bottom: 1px solid var(--rule);
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+
+      .status { color: var(--muted); font-style: italic; }
+
+      .status .retry-link {
+        appearance: none;
+        background: none;
+        border: 0;
+        color: var(--link);
+        cursor: pointer;
+        font: inherit;
+        padding: 0;
+        text-decoration: underline;
+      }
+
+      footer {
+        margin-top: 24px;
+        font-size: 0.8rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      footer::before {
+        content: "";
+        display: block;
+        height: 5px;
+        margin-bottom: 16px;
+        background: linear-gradient(
+          to right,
+          var(--bar-1) 0 33.333%,
+          var(--bar-2) 33.333% 66.666%,
+          var(--bar-3) 66.666% 100%
+        );
+      }
+
+      .site-notes {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        column-gap: 10px;
+        row-gap: 5px;
+        margin: 0;
+      }
+
+      .site-notes dt { color: var(--fg); font-weight: 700; }
+      .site-notes dd { margin: 0; }
+      footer a { color: var(--muted); }
+
+      @media (max-width: 520px) {
+        .site-notes { display: block; }
+        .site-notes dt { display: inline; }
+        .site-notes dt::after { content: ": "; }
+        .site-notes dd { display: inline; }
+        .site-notes dd::after { content: ""; display: block; margin-bottom: 6px; }
+      }
+
+      html:not(.authenticated),
+      html:not(.authenticated) body { overflow: hidden; height: 100%; }
+
+      .password-gate {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+        background: #fff;
+      }
+
+      html.authenticated .password-gate { display: none !important; }
+      .password-gate.instant-hidden { display: none !important; }
+
+      .password-card { width: 100%; max-width: 360px; text-align: center; }
+      .password-card .tricolor { margin: 0 0 20px; }
+      .password-card h1 { margin: 0 0 6px; font-size: 1.35rem; font-weight: 700; }
+
+      .password-card p {
+        margin: 0 0 18px;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+
+      .password-form { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+
+      .password-form input[type="password"] {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid var(--fg);
+        background: #fff;
+        color: var(--fg);
+        font: inherit;
+      }
+
+      .password-form button {
+        appearance: none;
+        padding: 8px 12px;
+        border: 1px solid var(--fg);
+        background: var(--bar-1);
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .password-form button:hover { background: var(--bar-1-hover); }
+
+      .password-error {
+        min-height: 1.2em;
+        margin: 2px 0 0;
+        color: #b00020;
+        font-size: 0.84rem;
+        visibility: hidden;
+      }
+
+      .password-error.visible { visibility: visible; }
+    </style>
+  </head>
+  <body>
+    <!-- Password gate - presentation gate only, not real security -->
+    <div
+      class="password-gate"
+      id="password-gate"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="password-gate-title"
+    >
+      <div class="password-card">
+        <div class="tricolor" aria-hidden="true">
+          <span class="c1"></span><span class="c2"></span><span class="c3"></span>
+        </div>
+        <h1 id="password-gate-title">Blue News</h1>
+        <p>This page is password protected. Enter the password to continue.</p>
+        <form class="password-form" id="password-form" autocomplete="off">
+          <label class="visually-hidden" for="password-input">Password</label>
+          <input
+            type="password"
+            id="password-input"
+            name="password"
+            placeholder="Enter password"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+            aria-describedby="password-error"
+            aria-invalid="false"
+          >
+          <button type="submit">Enter</button>
+          <p class="password-error" id="password-error" role="alert">Incorrect password</p>
+        </form>
+      </div>
+    </div>
+
+    <div class="page" id="trends-page" hidden inert aria-hidden="true">
+      <div class="topbar">
+        <a class="button" href="./">Back to stories</a>
+        <a class="button" href="feed.rss">RSS Feed</a>
+        <a class="button" href="feed.json">JSON Feed</a>
+      </div>
+
+      <main aria-labelledby="trends-title">
+        <div class="title-row">
+          <h1 id="trends-title" tabindex="-1">Coverage Sentiment</h1>
+          <p class="dateline" id="dateline">Loading&hellip;</p>
+        </div>
+        <div class="tricolor" aria-hidden="true">
+          <span class="c1"></span><span class="c2"></span><span class="c3"></span>
+        </div>
+
+        <div class="filters" id="filters" hidden>
+          <span class="label">Range:</span>
+          <label class="visually-hidden" for="range-select">Date range</label>
+          <select id="range-select">
+            <option value="6">Last 6 months</option>
+            <option value="12" selected>Last 12 months</option>
+            <option value="0">All time</option>
+          </select>
+          <span class="label">Outlet:</span>
+          <label class="visually-hidden" for="outlet-select">Outlet</label>
+          <select id="outlet-select">
+            <option value="">All outlets</option>
+          </select>
+        </div>
+
+        <p class="status" id="status" role="status" aria-live="polite">
+          Loading sentiment data&hellip;
+        </p>
+
+        <div id="report" hidden>
+          <div class="tiles" id="tiles"></div>
+
+          <p class="figure-note" id="trimmed-note" hidden></p>
+
+          <figure>
+            <figcaption>Net sentiment by month</figcaption>
+            <p class="figure-note">
+              Each clip scores from +2 (positive) to &minus;2 (negative). The line
+              is the average for that month, so above zero is net favourable.
+            </p>
+            <div class="chart-wrap">
+              <div class="chart-scroll">
+                <svg id="net-chart" role="img" aria-labelledby="net-chart-desc"></svg>
+              </div>
+              <p class="visually-hidden" id="net-chart-desc"></p>
+              <div class="tooltip" id="net-tip" role="presentation"></div>
+            </div>
+          </figure>
+
+          <figure>
+            <figcaption>Sentiment mix by month</figcaption>
+            <p class="figure-note">
+              Share of that month&rsquo;s scored clips at each point on the scale.
+              Bar width is constant, so read shape rather than volume here.
+            </p>
+            <div class="chart-wrap">
+              <div class="chart-scroll">
+                <svg id="mix-chart" role="img" aria-labelledby="mix-chart-desc"></svg>
+              </div>
+              <p class="visually-hidden" id="mix-chart-desc"></p>
+              <div class="tooltip" id="mix-tip" role="presentation"></div>
+            </div>
+            <ul class="legend" id="mix-legend"></ul>
+          </figure>
+
+          <figure>
+            <figcaption>Net sentiment by outlet</figcaption>
+            <p class="figure-note">
+              Outlets with at least three scored clips in range, worst first.
+            </p>
+            <div class="chart-wrap">
+              <div class="chart-scroll">
+                <svg id="outlet-chart" role="img" aria-labelledby="outlet-chart-desc"></svg>
+              </div>
+              <p class="visually-hidden" id="outlet-chart-desc"></p>
+              <div class="tooltip" id="outlet-tip" role="presentation"></div>
+            </div>
+          </figure>
+
+          <details class="table-view">
+            <summary>Show the numbers as a table</summary>
+            <table id="data-table">
+              <caption class="visually-hidden">
+                Scored clips per month by sentiment, with the monthly net score.
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Month</th>
+                  <th scope="col">Pos.</th>
+                  <th scope="col">Neut. to pos.</th>
+                  <th scope="col">Neutral</th>
+                  <th scope="col">Neut. to neg.</th>
+                  <th scope="col">Neg.</th>
+                  <th scope="col">Clips</th>
+                  <th scope="col">Net</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </details>
+        </div>
+      </main>
+
+      <footer>
+        <dl class="site-notes">
+          <dt>Scope</dt>
+          <dd>
+            Sentiment is scored only for press coverage that names Blue Cross VT.
+            Vermont health care stories that never mention us, BlueCrossVT.org
+            posts, and social items are excluded.
+          </dd>
+          <dt>Scale</dt>
+          <dd>
+            Five points, matching the communications team&rsquo;s media tracker:
+            positive, neutral to positive, neutral, neutral to negative, negative.
+            Tone is judged toward Blue Cross VT, not toward the story overall.
+          </dd>
+          <dt>Method</dt>
+          <dd>Scores are AI-generated and reviewed against the tracker&rsquo;s rubric. Treat them as a first pass, not a substitute for reading the clip.</dd>
+          <dt>Stories</dt>
+          <dd><a href="./">Back to the reader</a>, or take the <a href="feed.rss">RSS</a> or <a href="feed.json">JSON</a> feed.</dd>
+        </dl>
+      </footer>
+    </div>
+
+    <script>
+      // ==========================================================
+      // PASSWORD GATE
+      // NOTE: This is a PRESENTATION GATE only, not real security.
+      // The password is visible in the page source by design.
+      // Mirrors the gate on index.html and shares its storage key.
+      // ==========================================================
+      (function () {
+        const gate = document.getElementById("password-gate");
+        const form = document.getElementById("password-form");
+        const input = document.getElementById("password-input");
+        const errorEl = document.getElementById("password-error");
+        const page = document.getElementById("trends-page");
+        const heading = document.getElementById("trends-title");
+        const correctPassword = "REDACTED-OLD-PASSWORD";
+        const STORAGE_KEY = "bcbsNewsAuth";
+
+        function reveal({ focusHeading = false } = {}) {
+          page.removeAttribute("hidden");
+          page.removeAttribute("inert");
+          page.removeAttribute("aria-hidden");
+          if (focusHeading) {
+            heading.focus({ preventScroll: true });
+          }
+        }
+
+        function storageAvailable() {
+          try {
+            const testKey = "__bcbs_test__";
+            localStorage.setItem(testKey, "1");
+            localStorage.removeItem(testKey);
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
+
+        const alreadyAuthed =
+          storageAvailable() && localStorage.getItem(STORAGE_KEY) === "true";
+
+        function unlock() {
+          gate.classList.add("instant-hidden");
+          document.documentElement.classList.add("authenticated");
+          if (storageAvailable()) {
+            localStorage.setItem(STORAGE_KEY, "true");
+          }
+        }
+
+        if (alreadyAuthed) {
+          unlock();
+          reveal();
+        } else {
+          form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const entered = (input.value || "").trim().toLowerCase();
+            if (entered === correctPassword) {
+              unlock();
+              reveal({ focusHeading: true });
+              start();
+            } else {
+              errorEl.classList.add("visible");
+              input.setAttribute("aria-invalid", "true");
+              input.select();
+            }
+          });
+
+          input.addEventListener("input", () => {
+            errorEl.classList.remove("visible");
+            input.setAttribute("aria-invalid", "false");
+          });
+        }
+
+        window.__bcbsAuthed = alreadyAuthed;
+      })();
+    </script>
+
+    <script>
+      // ==========================================================
+      // SENTIMENT TRENDS
+      // Reads the published feed.json and charts the sentiment the
+      // generator wrote onto brand press coverage.
+      // ==========================================================
+
+      // Order is the scale, worst to best is reversed here so stacks read
+      // positive-on-top. Colour follows the sentiment, never its rank.
+      const SCALE = [
+        { key: "positive", label: "Positive", short: "Pos.", score: 2, color: "var(--s-pos)" },
+        { key: "neutral to positive", label: "Neutral to positive", short: "Neut. to pos.", score: 1, color: "var(--s-npos)" },
+        { key: "neutral", label: "Neutral", short: "Neutral", score: 0, color: "var(--s-neu)" },
+        { key: "neutral to negative", label: "Neutral to negative", short: "Neut. to neg.", score: -1, color: "var(--s-nneg)" },
+        { key: "negative", label: "Negative", short: "Neg.", score: -2, color: "var(--s-neg)" },
+      ];
+      const SCORE_BY_KEY = new Map(SCALE.map((s) => [s.key, s.score]));
+      const SVG_NS = "http://www.w3.org/2000/svg";
+      // A gap this long means the monitor was not running, not a quiet month.
+      const GAP_MONTHS = 6;
+
+      const statusEl = document.getElementById("status");
+      const reportEl = document.getElementById("report");
+      const filtersEl = document.getElementById("filters");
+      const datelineEl = document.getElementById("dateline");
+      const rangeSelect = document.getElementById("range-select");
+      const outletSelect = document.getElementById("outlet-select");
+
+      let scoredItems = [];
+      let started = false;
+
+      function el(tag, attrs = {}, text) {
+        const node = document.createElementNS(SVG_NS, tag);
+        for (const [key, value] of Object.entries(attrs)) {
+          node.setAttribute(key, String(value));
+        }
+        if (text !== undefined) {
+          node.textContent = text;
+        }
+        return node;
+      }
+
+      // The generator publishes `outlet`, the publisher recovered from the
+      // link. Older feeds predate that field, so fall back to sourceName.
+      function outletOf(item) {
+        return item.outlet || item.sourceName || "Unknown";
+      }
+
+      function monthKey(iso) {
+        return String(iso || "").slice(0, 7);
+      }
+
+      function monthLabel(key) {
+        const [year, month] = key.split("-");
+        const date = new Date(Number(year), Number(month) - 1, 1);
+        if (Number.isNaN(date.getTime())) {
+          return key;
+        }
+        return date.toLocaleDateString(undefined, {
+          month: "short",
+          year: "2-digit",
+        });
+      }
+
+      function monthLongLabel(key) {
+        const [year, month] = key.split("-");
+        const date = new Date(Number(year), Number(month) - 1, 1);
+        if (Number.isNaN(date.getTime())) {
+          return key;
+        }
+        return date.toLocaleDateString(undefined, {
+          month: "long",
+          year: "numeric",
+        });
+      }
+
+      // Fill gaps so a quiet month reads as a gap, not as continuity.
+      function monthRange(fromKey, toKey) {
+        const keys = [];
+        let [year, month] = fromKey.split("-").map(Number);
+        const [endYear, endMonth] = toKey.split("-").map(Number);
+        while (year < endYear || (year === endYear && month <= endMonth)) {
+          keys.push(`${year}-${String(month).padStart(2, "0")}`);
+          month += 1;
+          if (month > 12) {
+            month = 1;
+            year += 1;
+          }
+        }
+        return keys;
+      }
+
+      function filteredItems() {
+        const outlet = outletSelect.value;
+        const months = Number(rangeSelect.value);
+        let items = scoredItems;
+
+        if (outlet) {
+          items = items.filter((item) => outletOf(item) === outlet);
+        }
+
+        if (months > 0) {
+          const cutoff = new Date();
+          cutoff.setMonth(cutoff.getMonth() - (months - 1));
+          cutoff.setDate(1);
+          const cutoffKey = monthKey(cutoff.toISOString());
+          items = items.filter((item) => monthKey(item.pubDate) >= cutoffKey);
+        }
+
+        return items;
+      }
+
+      function groupByMonth(items) {
+        const byMonth = new Map();
+        for (const item of items) {
+          const key = monthKey(item.pubDate);
+          if (!/^\d{4}-\d{2}$/.test(key)) {
+            continue;
+          }
+          if (!byMonth.has(key)) {
+            byMonth.set(key, { key, total: 0, counts: new Map(), scoreSum: 0 });
+          }
+          const bucket = byMonth.get(key);
+          bucket.total += 1;
+          bucket.counts.set(
+            item.sentiment,
+            (bucket.counts.get(item.sentiment) || 0) + 1,
+          );
+          bucket.scoreSum += SCORE_BY_KEY.get(item.sentiment) || 0;
+        }
+
+        const keys = [...byMonth.keys()].sort();
+        if (keys.length === 0) {
+          return [];
+        }
+
+        // The archive holds a few stray clips from years before the monitor
+        // ran continuously. Charting from the earliest of those buries the
+        // real trend under 80 empty months, so start the axis at the current
+        // run of coverage: after the last gap of six months or more.
+        let startKey = keys[0];
+        for (let i = 1; i < keys.length; i += 1) {
+          if (monthRange(keys[i - 1], keys[i]).length - 1 >= GAP_MONTHS) {
+            startKey = keys[i];
+          }
+        }
+        const trimmed = keys[0] !== startKey;
+
+        const buckets = monthRange(startKey, keys[keys.length - 1]).map(
+          (key) =>
+            byMonth.get(key) || {
+              key,
+              total: 0,
+              counts: new Map(),
+              scoreSum: 0,
+            },
+        );
+        buckets.trimmedEarlier = trimmed
+          ? keys.filter((key) => key < startKey).length
+          : 0;
+        // The table lists every month that carries a clip, including any the
+        // axis trimmed, so nothing counted in the totals goes unlisted.
+        buckets.allWithData = keys.map((key) => byMonth.get(key));
+        return buckets;
+      }
+
+      function netOf(bucket) {
+        return bucket.total > 0 ? bucket.scoreSum / bucket.total : null;
+      }
+
+      function formatNet(value) {
+        if (value === null) {
+          return "n/a";
+        }
+        const rounded = Math.round(value * 100) / 100;
+        return (rounded > 0 ? "+" : "") + rounded.toFixed(2);
+      }
+
+      // ---- tooltips -------------------------------------------------------
+
+      function makeTip(tipEl, wrap) {
+        return {
+          show(html, x, y) {
+            tipEl.innerHTML = html;
+            tipEl.classList.add("visible");
+            const bounds = wrap.getBoundingClientRect();
+            const width = tipEl.offsetWidth;
+            let left = x + 14;
+            if (left + width > bounds.width) {
+              left = Math.max(0, x - width - 14);
+            }
+            tipEl.style.left = `${left}px`;
+            tipEl.style.top = `${Math.max(0, y - 12)}px`;
+          },
+          hide() {
+            tipEl.classList.remove("visible");
+          },
+        };
+      }
+
+      function swatchRow(color, label, value) {
+        return `<dt><span class="swatch" style="background:${color}"></span>${label}</dt><dd>${value}</dd>`;
+      }
+
+      // ---- charts ---------------------------------------------------------
+
+      function renderNetChart(buckets) {
+        const svg = document.getElementById("net-chart");
+        const wrap = svg.closest(".chart-wrap");
+        const tip = makeTip(document.getElementById("net-tip"), wrap);
+        svg.replaceChildren();
+
+        const withData = buckets.filter((b) => b.total > 0);
+        const pad = { top: 16, right: 16, bottom: 26, left: 34 };
+        const stepWidth = 56;
+        const plotWidth = Math.max(
+          320,
+          Math.max(1, buckets.length - 1) * stepWidth,
+        );
+        const plotHeight = 150;
+        const width = plotWidth + pad.left + pad.right;
+        const height = plotHeight + pad.top + pad.bottom;
+
+        svg.setAttribute("width", width);
+        svg.setAttribute("height", height);
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+        const x = (index) =>
+          pad.left +
+          (buckets.length === 1
+            ? plotWidth / 2
+            : (index / (buckets.length - 1)) * plotWidth);
+        const y = (value) =>
+          pad.top + ((2 - value) / 4) * plotHeight;
+
+        for (const value of [2, 1, 0, -1, -2]) {
+          const isZero = value === 0;
+          svg.appendChild(
+            el("line", {
+              x1: pad.left,
+              x2: pad.left + plotWidth,
+              y1: y(value),
+              y2: y(value),
+              class: isZero ? "zero-line" : "grid-line",
+            }),
+          );
+          svg.appendChild(
+            el(
+              "text",
+              {
+                x: pad.left - 6,
+                y: y(value) + 4,
+                "text-anchor": "end",
+                class: "tick",
+              },
+              value > 0 ? `+${value}` : String(value),
+            ),
+          );
+        }
+
+        const points = buckets
+          .map((bucket, index) => ({ bucket, index, net: netOf(bucket) }))
+          .filter((p) => p.net !== null);
+
+        if (points.length > 1) {
+          const d = points
+            .map((p, i) => `${i === 0 ? "M" : "L"}${x(p.index)},${y(p.net)}`)
+            .join(" ");
+          svg.appendChild(el("path", { d, class: "net-line" }));
+        }
+
+        for (const p of points) {
+          svg.appendChild(
+            el("circle", {
+              cx: x(p.index),
+              cy: y(p.net),
+              r: 4.5,
+              class: "net-dot",
+            }),
+          );
+        }
+
+        // Direct-label the first and last points only; never every point.
+        const labelled =
+          points.length > 1
+            ? [points[0], points[points.length - 1]]
+            : points.slice(0, 1);
+        labelled.filter(Boolean).forEach((p, order) => {
+          const isFirst = order === 0 && labelled.length > 1;
+          svg.appendChild(
+            el(
+              "text",
+              {
+                // Anchor the endpoints inward so neither collides with the
+                // y-axis ticks or the right edge.
+                x: x(p.index) + (isFirst ? 6 : -6),
+                y: y(p.net) - 10,
+                "text-anchor": isFirst ? "start" : "end",
+                class: "point-label",
+              },
+              formatNet(p.net),
+            ),
+          );
+        });
+
+        buckets.forEach((bucket, index) => {
+          if (index % Math.ceil(buckets.length / 8) !== 0 && index !== buckets.length - 1) {
+            return;
+          }
+          svg.appendChild(
+            el(
+              "text",
+              {
+                x: x(index),
+                y: height - 8,
+                "text-anchor": "middle",
+                class: "tick",
+              },
+              monthLabel(bucket.key),
+            ),
+          );
+        });
+
+        const crosshair = el("line", {
+          x1: 0,
+          x2: 0,
+          y1: pad.top,
+          y2: pad.top + plotHeight,
+          class: "crosshair",
+          opacity: 0,
+        });
+        svg.appendChild(crosshair);
+
+        // Hit targets are wider than the marks.
+        buckets.forEach((bucket, index) => {
+          const hit = el("rect", {
+            x: x(index) - stepWidth / 2,
+            y: pad.top,
+            width: stepWidth,
+            height: plotHeight,
+            class: "hit",
+          });
+          hit.addEventListener("mouseenter", () => {
+            const net = netOf(bucket);
+            crosshair.setAttribute("x1", x(index));
+            crosshair.setAttribute("x2", x(index));
+            crosshair.setAttribute("opacity", 1);
+            const rows = SCALE.filter((s) => bucket.counts.get(s.key))
+              .map((s) => swatchRow(s.color, s.label, bucket.counts.get(s.key)))
+              .join("");
+            tip.show(
+              `<span class="tip-title">${monthLongLabel(bucket.key)}</span>` +
+                `<dl><dt>Net score</dt><dd>${formatNet(net)}</dd>` +
+                `<dt>Clips</dt><dd>${bucket.total}</dd>${rows}</dl>`,
+              x(index),
+              net === null ? pad.top + plotHeight / 2 : y(net),
+            );
+          });
+          hit.addEventListener("mouseleave", () => {
+            crosshair.setAttribute("opacity", 0);
+            tip.hide();
+          });
+          svg.appendChild(hit);
+        });
+
+        document.getElementById("net-chart-desc").textContent =
+          withData.length > 0
+            ? `Line chart of average sentiment score per month, from ${monthLongLabel(withData[0].key)} to ${monthLongLabel(withData[withData.length - 1].key)}. Scores run from plus 2 to minus 2. Full figures are in the table below.`
+            : "No scored coverage in this range.";
+      }
+
+      function renderMixChart(buckets) {
+        const svg = document.getElementById("mix-chart");
+        const wrap = svg.closest(".chart-wrap");
+        const tip = makeTip(document.getElementById("mix-tip"), wrap);
+        svg.replaceChildren();
+
+        const pad = { top: 10, right: 16, bottom: 26, left: 34 };
+        const slot = 46;
+        const barWidth = 26;
+        const plotWidth = Math.max(320, buckets.length * slot);
+        const plotHeight = 150;
+        const width = plotWidth + pad.left + pad.right;
+        const height = plotHeight + pad.top + pad.bottom;
+
+        svg.setAttribute("width", width);
+        svg.setAttribute("height", height);
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+        for (const pct of [0, 25, 50, 75, 100]) {
+          const yy = pad.top + ((100 - pct) / 100) * plotHeight;
+          svg.appendChild(
+            el("line", {
+              x1: pad.left,
+              x2: pad.left + plotWidth,
+              y1: yy,
+              y2: yy,
+              class: "grid-line",
+            }),
+          );
+          svg.appendChild(
+            el(
+              "text",
+              { x: pad.left - 6, y: yy + 4, "text-anchor": "end", class: "tick" },
+              `${pct}%`,
+            ),
+          );
+        }
+
+        buckets.forEach((bucket, index) => {
+          const cx = pad.left + index * slot + slot / 2;
+          if (bucket.total === 0) {
+            return;
+          }
+          let cursor = 0;
+          for (const step of SCALE) {
+            const count = bucket.counts.get(step.key) || 0;
+            if (count === 0) {
+              continue;
+            }
+            const share = count / bucket.total;
+            const segHeight = share * plotHeight;
+            const rect = el("rect", {
+              x: cx - barWidth / 2,
+              y: pad.top + cursor,
+              width: barWidth,
+              height: Math.max(1, segHeight),
+              fill: step.color,
+              class: "seg",
+            });
+            rect.addEventListener("mouseenter", () => {
+              tip.show(
+                `<span class="tip-title">${monthLongLabel(bucket.key)}</span>` +
+                  `<dl>${swatchRow(step.color, step.label, `${count} of ${bucket.total}`)}` +
+                  `<dt>Share</dt><dd>${Math.round(share * 100)}%</dd></dl>`,
+                cx,
+                pad.top + cursor + segHeight / 2,
+              );
+            });
+            rect.addEventListener("mouseleave", () => tip.hide());
+            svg.appendChild(rect);
+            cursor += segHeight;
+          }
+        });
+
+        buckets.forEach((bucket, index) => {
+          if (index % Math.ceil(buckets.length / 8) !== 0 && index !== buckets.length - 1) {
+            return;
+          }
+          svg.appendChild(
+            el(
+              "text",
+              {
+                x: pad.left + index * slot + slot / 2,
+                y: height - 8,
+                "text-anchor": "middle",
+                class: "tick",
+              },
+              monthLabel(bucket.key),
+            ),
+          );
+        });
+
+        document.getElementById("mix-chart-desc").textContent =
+          "Stacked bar chart of the share of clips at each sentiment level per month. Full figures are in the table below.";
+      }
+
+      function renderOutletChart(items) {
+        const svg = document.getElementById("outlet-chart");
+        const wrap = svg.closest(".chart-wrap");
+        const tip = makeTip(document.getElementById("outlet-tip"), wrap);
+        svg.replaceChildren();
+
+        const byOutlet = new Map();
+        for (const item of items) {
+          const name = outletOf(item);
+          if (!byOutlet.has(name)) {
+            byOutlet.set(name, { name, total: 0, scoreSum: 0, counts: new Map() });
+          }
+          const bucket = byOutlet.get(name);
+          bucket.total += 1;
+          bucket.scoreSum += SCORE_BY_KEY.get(item.sentiment) || 0;
+          bucket.counts.set(
+            item.sentiment,
+            (bucket.counts.get(item.sentiment) || 0) + 1,
+          );
+        }
+
+        const rows = [...byOutlet.values()]
+          .filter((bucket) => bucket.total >= 3)
+          .map((bucket) => ({ ...bucket, net: bucket.scoreSum / bucket.total }))
+          .sort((a, b) => a.net - b.net)
+          .slice(0, 10);
+
+        if (rows.length === 0) {
+          svg.setAttribute("width", 320);
+          svg.setAttribute("height", 34);
+          svg.setAttribute("viewBox", "0 0 320 34");
+          svg.appendChild(
+            el(
+              "text",
+              { x: 0, y: 20, class: "tick" },
+              "No outlet has three or more scored clips in this range.",
+            ),
+          );
+          document.getElementById("outlet-chart-desc").textContent =
+            "No outlet has three or more scored clips in this range.";
+          return;
+        }
+
+        const pad = { top: 8, right: 46, bottom: 22, left: 168 };
+        const rowHeight = 24;
+        const barHeight = 13;
+        const plotWidth = 260;
+        const height = rows.length * rowHeight + pad.top + pad.bottom;
+        const width = plotWidth + pad.left + pad.right;
+
+        svg.setAttribute("width", width);
+        svg.setAttribute("height", height);
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+        const x = (value) => pad.left + ((value + 2) / 4) * plotWidth;
+
+        for (const value of [-2, -1, 0, 1, 2]) {
+          svg.appendChild(
+            el("line", {
+              x1: x(value),
+              x2: x(value),
+              y1: pad.top,
+              y2: pad.top + rows.length * rowHeight,
+              class: value === 0 ? "zero-line" : "grid-line",
+            }),
+          );
+          svg.appendChild(
+            el(
+              "text",
+              {
+                x: x(value),
+                y: height - 6,
+                "text-anchor": "middle",
+                class: "tick",
+              },
+              value > 0 ? `+${value}` : String(value),
+            ),
+          );
+        }
+
+        rows.forEach((row, index) => {
+          const cy = pad.top + index * rowHeight + rowHeight / 2;
+          const zero = x(0);
+          const end = x(row.net);
+          // Colour by where the value sits on the scale, not by rank.
+          const step =
+            row.net >= 1.5
+              ? SCALE[0]
+              : row.net > 0.25
+                ? SCALE[1]
+                : row.net >= -0.25
+                  ? SCALE[2]
+                  : row.net > -1.5
+                    ? SCALE[3]
+                    : SCALE[4];
+
+          svg.appendChild(
+            el(
+              "text",
+              {
+                x: pad.left - 8,
+                y: cy + 4,
+                "text-anchor": "end",
+                class: "tick",
+              },
+              row.name.length > 26 ? `${row.name.slice(0, 25)}…` : row.name,
+            ),
+          );
+
+          const rect = el("rect", {
+            x: Math.min(zero, end),
+            y: cy - barHeight / 2,
+            width: Math.max(2, Math.abs(end - zero)),
+            height: barHeight,
+            rx: 2,
+            fill: step.color,
+          });
+          rect.addEventListener("mouseenter", () => {
+            const detail = SCALE.filter((s) => row.counts.get(s.key))
+              .map((s) => swatchRow(s.color, s.label, row.counts.get(s.key)))
+              .join("");
+            tip.show(
+              `<span class="tip-title">${row.name}</span>` +
+                `<dl><dt>Net score</dt><dd>${formatNet(row.net)}</dd>` +
+                `<dt>Clips</dt><dd>${row.total}</dd>${detail}</dl>`,
+              end,
+              cy,
+            );
+          });
+          rect.addEventListener("mouseleave", () => tip.hide());
+          svg.appendChild(rect);
+
+          svg.appendChild(
+            el(
+              "text",
+              {
+                x: end + (row.net >= 0 ? 6 : -6),
+                y: cy + 4,
+                "text-anchor": row.net >= 0 ? "start" : "end",
+                class: "point-label",
+              },
+              formatNet(row.net),
+            ),
+          );
+        });
+
+        document.getElementById("outlet-chart-desc").textContent =
+          `Bar chart of net sentiment score for ${rows.length} outlets with three or more scored clips, worst first.`;
+      }
+
+      function renderTiles(items, buckets) {
+        const tilesEl = document.getElementById("tiles");
+        tilesEl.replaceChildren();
+
+        const total = items.length;
+        const favourable = items.filter(
+          (item) =>
+            item.sentiment === "positive" ||
+            item.sentiment === "neutral to positive",
+        ).length;
+        const adverse = items.filter(
+          (item) =>
+            item.sentiment === "negative" ||
+            item.sentiment === "neutral to negative",
+        ).length;
+        const net =
+          total > 0
+            ? items.reduce(
+                (sum, item) => sum + (SCORE_BY_KEY.get(item.sentiment) || 0),
+                0,
+              ) / total
+            : null;
+        const withData = buckets.filter((b) => b.total > 0);
+        const latest = withData[withData.length - 1];
+
+        const tiles = [
+          { value: String(total), caption: "Scored clips in range" },
+          {
+            value: total > 0 ? `${Math.round((favourable / total) * 100)}%` : "n/a",
+            caption: "Positive or leaning positive",
+          },
+          {
+            value: total > 0 ? `${Math.round((adverse / total) * 100)}%` : "n/a",
+            caption: "Negative or leaning negative",
+          },
+          {
+            value: formatNet(net),
+            caption: latest
+              ? `Net score, all clips in range`
+              : "Net score",
+          },
+        ];
+
+        for (const tile of tiles) {
+          const div = document.createElement("div");
+          div.className = "tile";
+          const value = document.createElement("span");
+          value.className = "value";
+          value.textContent = tile.value;
+          const caption = document.createElement("span");
+          caption.className = "caption";
+          caption.textContent = tile.caption;
+          div.append(value, caption);
+          tilesEl.appendChild(div);
+        }
+      }
+
+      function renderLegend() {
+        const legend = document.getElementById("mix-legend");
+        legend.replaceChildren();
+        for (const step of SCALE) {
+          const li = document.createElement("li");
+          const swatch = document.createElement("span");
+          swatch.className = "swatch";
+          swatch.style.background = step.color;
+          li.append(swatch, document.createTextNode(step.label));
+          legend.appendChild(li);
+        }
+      }
+
+      function renderTable(buckets) {
+        const tbody = document.querySelector("#data-table tbody");
+        tbody.replaceChildren();
+        // Empty months are meaningful in the charts, where they keep time
+        // linear, but as table rows they are 80 lines of zeroes.
+        const rows = buckets.allWithData || buckets.filter((b) => b.total > 0);
+        for (const bucket of rows) {
+          const tr = document.createElement("tr");
+          const cells = [
+            monthLongLabel(bucket.key),
+            ...SCALE.map((s) => String(bucket.counts.get(s.key) || 0)),
+            String(bucket.total),
+            formatNet(netOf(bucket)),
+          ];
+          cells.forEach((text, index) => {
+            const cell = document.createElement(index === 0 ? "th" : "td");
+            if (index === 0) {
+              cell.setAttribute("scope", "row");
+            }
+            cell.textContent = text;
+            tr.appendChild(cell);
+          });
+          tbody.appendChild(tr);
+        }
+      }
+
+      function render() {
+        const items = filteredItems();
+        const buckets = groupByMonth(items);
+
+        if (items.length === 0) {
+          reportEl.hidden = true;
+          statusEl.hidden = false;
+          statusEl.textContent =
+            "No scored coverage matches this range and outlet.";
+          return;
+        }
+
+        statusEl.hidden = true;
+        reportEl.hidden = false;
+
+        const trimmedNote = document.getElementById("trimmed-note");
+        const earlier = buckets.trimmedEarlier || 0;
+        trimmedNote.hidden = earlier === 0;
+        if (earlier > 0) {
+          trimmedNote.textContent =
+            `Charts start at the current run of coverage. ${earlier} earlier ` +
+            `month${earlier === 1 ? "" : "s"} with isolated clips ` +
+            `${earlier === 1 ? "is" : "are"} counted in the totals above and ` +
+            `listed in the table, but left off the time axis.`;
+        }
+
+        renderTiles(items, buckets);
+        renderNetChart(buckets);
+        renderMixChart(buckets);
+        renderOutletChart(items);
+        renderLegend();
+        renderTable(buckets);
+      }
+
+      function populateOutlets() {
+        const counts = new Map();
+        for (const item of scoredItems) {
+          const name = outletOf(item);
+          counts.set(name, (counts.get(name) || 0) + 1);
+        }
+        const names = [...counts.entries()]
+          .filter(([, count]) => count >= 3)
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+        for (const [name, count] of names) {
+          const option = document.createElement("option");
+          option.value = name;
+          option.textContent = `${name} (${count})`;
+          outletSelect.appendChild(option);
+        }
+      }
+
+      async function load() {
+        try {
+          const response = await fetch("feed.json", { cache: "no-cache" });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const feed = await response.json();
+          const items = Array.isArray(feed.items) ? feed.items : [];
+          scoredItems = items.filter(
+            (item) => item.sentiment && SCORE_BY_KEY.has(item.sentiment) && item.pubDate,
+          );
+
+          const generated = feed.generatedAt
+            ? new Date(feed.generatedAt)
+            : null;
+          datelineEl.textContent =
+            generated && !Number.isNaN(generated.getTime())
+              ? generated.toLocaleString(undefined, {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })
+              : "";
+
+          if (scoredItems.length === 0) {
+            statusEl.textContent =
+              "No coverage has been scored yet. Scores appear as the hourly run works through the archive.";
+            return;
+          }
+
+          filtersEl.hidden = false;
+          populateOutlets();
+          render();
+        } catch (error) {
+          statusEl.replaceChildren();
+          statusEl.appendChild(
+            document.createTextNode("Could not load the feed. "),
+          );
+          const retry = document.createElement("button");
+          retry.type = "button";
+          retry.className = "retry-link";
+          retry.textContent = "Try again";
+          retry.addEventListener("click", () => {
+            statusEl.textContent = "Loading sentiment data…";
+            load();
+          });
+          statusEl.appendChild(retry);
+        }
+      }
+
+      function start() {
+        if (started) {
+          return;
+        }
+        started = true;
+        rangeSelect.addEventListener("change", render);
+        outletSelect.addEventListener("change", render);
+        load();
+      }
+
+      if (window.__bcbsAuthed) {
+        start();
+      }
+    </script>
+  </body>
+</html>

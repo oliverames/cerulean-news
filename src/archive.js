@@ -168,6 +168,12 @@ export async function loadPreviousState(...jsonOutputPaths) {
           // summarized before the relevance gate existed get re-judged once.
           const relevant =
             typeof item.relevant === "boolean" ? item.relevant : undefined;
+          // Absent stays undefined so brand coverage scored before sentiment
+          // existed gets one scoring pass, rather than being re-scored hourly.
+          const sentiment = item.sentiment || undefined;
+          const sentimentReason = sentiment
+            ? item.sentimentReason || ""
+            : undefined;
           cache.set(item.link, {
             matchedTerms,
             category: item.category || categorizeTerms(matchedTerms),
@@ -178,6 +184,8 @@ export async function loadPreviousState(...jsonOutputPaths) {
             summary: item.summary || "",
             reason: item.reason || "",
             relevant,
+            sentiment,
+            sentimentReason,
             comments: Array.isArray(item.comments) ? item.comments : [],
             articleError: item.articleError || "",
             matchSource: item.matchSource || "",
@@ -197,6 +205,8 @@ export async function loadPreviousState(...jsonOutputPaths) {
             summary: item.summary || "",
             reason: item.reason || "",
             relevant,
+            sentiment,
+            sentimentReason,
             comments: Array.isArray(item.comments) ? item.comments : [],
             articleError: item.articleError || "",
             matchSource: item.matchSource || "",

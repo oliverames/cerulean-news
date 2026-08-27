@@ -1,4 +1,10 @@
 import { cleanText, parsePositiveInteger, sleep } from "./utils.js";
+import { CATEGORY_BRAND, canonicalizeMatchedTerms, categorizeTerms } from "./matching.js";
+import {
+  isAssociationItem,
+  isJobListingItem,
+  itemSourceType,
+} from "./relevance.js";
 
 // ---------------------------------------------------------------------------
 // AI summaries (Gemini). Each story is summarized exactly once — results are
@@ -24,6 +30,65 @@ const SUMMARY_MAX_REQUESTS_PER_RUN = parsePositiveInteger(
   10,
 );
 
+// ---------------------------------------------------------------------------
+// Sentiment. The five-point scale and the judging rules below are taken from
+// the communications team's own media tracker (Media Tracker.xlsx), where 155
+// clips are hand-scored. See docs/2026-08-27-media-tracker-coverage.md.
+//
+// Sentiment is only scored for press coverage that mentions BCBSVT. Vermont
+// health care stories that never name us are out of scope, and so are our own
+// BlueCrossVT.org posts and Facebook items.
+// ---------------------------------------------------------------------------
+
+export const SENTIMENT_VALUES = [
+  "positive",
+  "neutral to positive",
+  "neutral",
+  "neutral to negative",
+  "negative",
+];
+
+const SENTIMENT_LOOKUP = new Map(
+  SENTIMENT_VALUES.map((value) => [value, value]),
+);
+
+// The tracker's own cells carry typos ("Postive", "Neuttral") and append
+// free-text rationale after a dash or parenthesis. Models echo the same
+// shapes, so normalize before trusting a value.
+export function normalizeSentiment(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+  let text = value.trim().toLowerCase();
+  if (!text) {
+    return "";
+  }
+  text = text.split(/\s*[-(]/)[0].trim();
+  text = text.replace(/postive/g, "positive").replace(/neuttral/g, "neutral");
+  if (SENTIMENT_LOOKUP.has(text)) {
+    return SENTIMENT_LOOKUP.get(text);
+  }
+  if (text.startsWith("neutral to positive")) return "neutral to positive";
+  if (text.startsWith("neutral to negative")) return "neutral to negative";
+  if (text.startsWith("positive")) return "positive";
+  if (text.startsWith("negative")) return "negative";
+  if (text.startsWith("neutral")) return "neutral";
+  return "";
+}
+
+// Brand press coverage only: our own posts and social items are not media
+// coverage, and topic-only stories never name us so there is nothing to score.
+export function shouldScoreSentiment(item) {
+  const matchedTerms = canonicalizeMatchedTerms(item.matchedTerms || []);
+  const category = item.category || categorizeTerms(matchedTerms);
+  return (
+    category === CATEGORY_BRAND &&
+    itemSourceType(item) === "News" &&
+    !isAssociationItem(item) &&
+    !isJobListingItem(item)
+  );
+}
+
 export function buildSummaryPrompt(batch) {
   const articles = batch
     .map((item, index) => {
@@ -33,6 +98,7 @@ export function buildSummaryPrompt(batch) {
         `TITLE: ${item.title}`,
         `OUTLET: ${item.sourceName}`,
         `MATCHED KEYWORDS: ${(item.matchedTerms || []).join(", ")}`,
+        `MENTIONS BCBSVT: ${shouldScoreSentiment(item) ? "yes" : "no"}`,
         `EXCERPT: ${excerpt}`,
       ].join("\n");
     })
@@ -46,8 +112,16 @@ export function buildSummaryPrompt(batch) {
     '- "summary": 1-2 plain sentences describing what the story reports. Use only the title and excerpt; do not invent facts.',
     '- "reason": under 14 words, why this story matters to the team (e.g. "Names BCBSVT directly", "Hospital cost pressure affects premiums", "Legislative action on coverage").',
     '- "relevant": true or false, applying the priority order above. Geography matters: a Vermont story involving hospital operations, providers, coverage, regulators, access, public health, or costs is relevant. Crime, crash, and accident briefs are not relevant just because someone was taken, sent, treated, or airlifted to a hospital. A story OUTSIDE Vermont/New England is relevant ONLY if it concerns the insurance/payer industry, health policy, or coverage. When in doubt about a Vermont story, use true; when in doubt about a national story, use false.',
+    '- "sentiment": ONLY for articles marked MENTIONS BCBSVT: yes. Use exactly one of: "positive", "neutral to positive", "neutral", "neutral to negative", "negative". For articles marked no, return null.',
+    '- "sentimentReason": under 20 words, why you chose that score. Omit when sentiment is null.',
     "",
-    "Respond with a JSON array of objects: [{\"id\": <article number>, \"summary\": \"...\", \"reason\": \"...\", \"relevant\": true}].",
+    "Score sentiment the way the communications team scores it, by these four rules:",
+    "1. Judge the tone TOWARD BCBSVT specifically, not the tone of the story overall. A story critical of hospital costs that quotes us favorably is positive for us.",
+    "2. Weight the headline heavily and separately from the body. A balanced story under a negative headline lands at neutral or neutral to negative, not positive.",
+    "3. Weight mention prominence. When BCBSVT is a footnote rather than the subject, pull the score toward neutral even if the topic is strongly negative.",
+    "4. A negative story topic drags the score down even when BCBSVT is not the target of the criticism.",
+    "",
+    "Respond with a JSON array of objects: [{\"id\": <article number>, \"summary\": \"...\", \"reason\": \"...\", \"relevant\": true, \"sentiment\": \"neutral to positive\", \"sentimentReason\": \"...\"}].",
     "",
     articles,
   ].join("\n");
@@ -90,9 +164,24 @@ export function parseSummaryResponse(text, batch) {
     item.reason = cleanText(String(entry.reason || ""));
     // Only an explicit false excludes; missing/odd values keep the story.
     item.relevant = entry.relevant !== false;
+    // Sentiment is brand press coverage only. Scoring is gated locally rather
+    // than trusting the model to honour the per-article "MENTIONS BCBSVT"
+    // flag, so a stray score on a topic-only story is dropped here.
+    if (shouldScoreSentiment(item)) {
+      const sentiment = normalizeSentiment(entry.sentiment);
+      if (sentiment) {
+        item.sentiment = sentiment;
+        item.sentimentReason = cleanText(String(entry.sentimentReason || ""));
+      }
+    } else if (item.sentiment) {
+      // An item can lose brand status when its terms are recanonicalized;
+      // clear the stale score rather than leaving it on a topic story.
+      delete item.sentiment;
+      delete item.sentimentReason;
+    }
     // Log the pairing so a model id slip is visible in Actions logs.
     console.log(
-      `  summary -> [${entry.id}] ${String(item.title).slice(0, 60)}${item.relevant ? "" : " (marked NOT relevant)"}`,
+      `  summary -> [${entry.id}] ${String(item.title).slice(0, 60)}${item.sentiment ? ` [${item.sentiment}]` : ""}${item.relevant ? "" : " (marked NOT relevant)"}`,
     );
     applied += 1;
   }
@@ -154,10 +243,19 @@ export async function summarizeItems(items) {
   // SUMMARY_REJUDGE_ALL=true re-runs every item once — use after changing
   // the relevance rubric in the prompt.
   const rejudgeAll = process.env.SUMMARY_REJUDGE_ALL === "true";
+  // Brand press coverage summarized before sentiment existed carries a summary
+  // but no score, so it needs one more pass. SUMMARY_RESCORE_SENTIMENT=true
+  // re-scores every brand item once, for use after changing the rubric above.
+  const rescoreSentiment = process.env.SUMMARY_RESCORE_SENTIMENT === "true";
+  const needsSentiment = (item) =>
+    shouldScoreSentiment(item) && (rescoreSentiment || !item.sentiment);
   const pending = items.filter(
     (item) =>
       item.relevant !== false &&
-      (rejudgeAll || !item.summary || item.relevant === undefined),
+      (rejudgeAll ||
+        !item.summary ||
+        item.relevant === undefined ||
+        needsSentiment(item)),
   );
   if (pending.length === 0) {
     return;
