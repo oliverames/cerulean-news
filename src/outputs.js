@@ -11,6 +11,7 @@ import {
 } from "./utils.js";
 import { canonicalizeMatchedTerms, categorizeTerms } from "./matching.js";
 import { itemAccessLabel, itemOutletName, itemSourceType } from "./relevance.js";
+import { shouldScoreSentiment } from "./summaries.js";
 
 const SITE_URL = process.env.SITE_URL?.trim() || "";
 const FEED_URL = resolveFeedUrl();
@@ -272,6 +273,9 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
           : undefined,
         reason: item.reason || "",
         // Brand press coverage only; absent on topic stories and owned posts.
+        // Marks the coverage set the trends page charts volume over, so a
+        // freshly collected item counts even before it has been scored.
+        sentimentEligible: shouldScoreSentiment(item) || undefined,
         sentiment: item.sentiment || undefined,
         sentimentReason: item.sentiment ? item.sentimentReason || "" : undefined,
         // undefined (not yet judged) is omitted by JSON.stringify, which

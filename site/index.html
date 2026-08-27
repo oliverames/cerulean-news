@@ -287,18 +287,18 @@
       }
 
       ul.stories .sentiment {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
         margin: 8px 0 0;
         font-size: 0.8rem;
+        line-height: 1.4;
         color: var(--muted);
       }
 
       ul.stories .sentiment-swatch {
+        display: inline-block;
         width: 10px;
         height: 10px;
-        flex: 0 0 auto;
+        margin-right: 5px;
+        vertical-align: baseline;
         border: 1px solid rgba(0, 0, 0, 0.18);
       }
 
@@ -621,7 +621,7 @@
 
     <div class="page" id="reader-page" hidden inert aria-hidden="true">
       <div class="topbar">
-        <a class="button" href="trends.html">Sentiment</a>
+        <a class="button" href="trends.html">Trends</a>
         <a class="button" href="feed.rss">RSS Feed</a>
         <a class="button" href="feed.json">JSON Feed</a>
         <label class="search" for="search-input">
@@ -674,7 +674,7 @@
           <dt>Sections</dt>
           <dd>BlueCrossVT.org posts are available as a section but hidden from All by default.</dd>
           <dt>Sentiment</dt>
-          <dd>Scored only for coverage naming Blue Cross VT. <a href="trends.html">See it over time</a>.</dd>
+          <dd>Scored only for press coverage naming Blue Cross VT. <a href="trends.html">See volume, sentiment, and themes over time</a>.</dd>
           <dt>Feeds</dt>
           <dd><a href="feed.rss">RSS</a> or <a href="feed.json">JSON</a>. Summaries are AI-generated.</dd>
         </dl>
@@ -1168,6 +1168,17 @@
             li.appendChild(preview);
           }
 
+          if (item.reason) {
+            const reason = document.createElement("p");
+            reason.className = "reason";
+            const reasonLabel = document.createElement("span");
+            reasonLabel.className = "reason-label";
+            reasonLabel.textContent = "Included because: ";
+            reason.appendChild(reasonLabel);
+            reason.appendChild(document.createTextNode(item.reason));
+            li.appendChild(reason);
+          }
+
           if (item.sentiment && SENTIMENT_COLORS.has(item.sentiment)) {
             const sentiment = document.createElement("p");
             sentiment.className = "sentiment";
@@ -1185,17 +1196,6 @@
               );
             }
             li.appendChild(sentiment);
-          }
-
-          if (item.reason) {
-            const reason = document.createElement("p");
-            reason.className = "reason";
-            const reasonLabel = document.createElement("span");
-            reasonLabel.className = "reason-label";
-            reasonLabel.textContent = "Included because: ";
-            reason.appendChild(reasonLabel);
-            reason.appendChild(document.createTextNode(item.reason));
-            li.appendChild(reason);
           }
 
           if (Array.isArray(item.comments) && item.comments.length > 0) {

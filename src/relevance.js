@@ -198,6 +198,87 @@ export function isJobListingItem(item) {
   return JOB_BOARD_PATTERN.test(itemHost(item));
 }
 
+// itemSourceType only recognises Facebook as social, so short-video hosts
+// arrive labelled "News". They are not press and had been scored: two TikTok
+// explainers ("How to Find Insurance Policy Number on Insurance Card") carried
+// scores on 2026-08-27. Excluded from sentiment only; itemSourceType is left
+// alone so these keep their existing place in the reader.
+const SOCIAL_VIDEO_HOST_PATTERN =
+  /(?:^|\.)(?:tiktok|youtube|youtu\.be|instagram|threads|x|twitter|reddit)\.[a-z.]+$|^youtu\.be$/i;
+
+export function isSocialVideoItem(item) {
+  return SOCIAL_VIDEO_HOST_PATTERN.test(itemHost(item));
+}
+
+// Sentiment must not be scored for another Blues plan. The brand matcher
+// accepts a bare "Blue Cross", which is correct for surfacing a story but too
+// loose to score: on 2026-08-27 it had scored a BCBS Massachusetts story
+// (gazettenet.com, "Blue Cross, Cooley Dickinson assure Medicare Advantage
+// patients") and a generic "new Blue Cross CEO" piece in Modern Healthcare.
+// A bare "Blue Cross" match therefore has to be corroborated by Vermont.
+//
+// Deliberately narrower than REGIONAL_SIGNAL_PATTERN, which counts all of New
+// England and so would have let the Massachusetts story through.
+const VERMONT_SPECIFIC_BRAND_LABELS = new Set([
+  "BCBSVT",
+  "BCBS of Vermont",
+  "BCBS Vermont",
+  "Blue Cross VT",
+  "BlueCross Vermont",
+  "Blue Cross and Blue Shield of Vermont",
+  "Blue Cross of Vermont",
+  "Vermont Blue Advantage",
+  "Vermont Blues plan",
+  "Vermont's largest health insurer",
+  "bluecrossvt.org",
+]);
+
+const VERMONT_TEXT_PATTERN =
+  /\b(?:vermont|vermonters?|vt\.?|vtdigger|montpelier|burlington|rutland|bennington|brattleboro|st\.?\s+albans|st\.?\s+johnsbury|stowe|barre|winooski|williston|colchester|middlebury|waterbury|uvm|green\s+mountain)\b/i;
+
+const VERMONT_OUTLET_HOSTS = new Set([
+  "vtdigger.org",
+  "vermontbiz.com",
+  "vermontpublic.org",
+  "sevendaysvt.com",
+  "wcax.com",
+  "mynbc5.com",
+  "mychamplainvalley.com",
+  "timesargus.com",
+  "rutlandherald.com",
+  "benningtonbanner.com",
+  "reformer.com",
+  "manchesterjournal.com",
+  "samessenger.com",
+  "caledonianrecord.com",
+  "newportvermontdailyexpress.com",
+  "vermontdailychronicle.com",
+  "burlingtonfreepress.com",
+  "vermontjournal.com",
+  "willistonobserver.com",
+  "vtcng.com",
+  "compassvermont.com",
+  "vnews.com",
+]);
+
+export function namesBlueCrossVermont(item) {
+  const matchedTerms = canonicalizeMatchedTerms(item.matchedTerms || []);
+  if (matchedTerms.some((label) => VERMONT_SPECIFIC_BRAND_LABELS.has(label))) {
+    return true;
+  }
+
+  if (VERMONT_OUTLET_HOSTS.has(itemHost(item))) {
+    return true;
+  }
+
+  const evidence = cleanText(
+    [item.title, item.snippet, item.summary, item.sourceName]
+      .filter(Boolean)
+      .join(" "),
+  );
+  return VERMONT_TEXT_PATTERN.test(evidence);
+}
+
 export function itemAccessLabel(item) {
   const link = itemLink(item);
   if (FACEBOOK_HOST_PATTERN.test(link)) {

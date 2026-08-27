@@ -41,6 +41,8 @@ import {
   itemOutletName,
   isAssociationItem,
   isJobListingItem,
+  isSocialVideoItem,
+  namesBlueCrossVermont,
   SENTIMENT_VALUES,
   parseUvmHealthNewsroomItems,
   collectFeedItems,
@@ -4227,4 +4229,64 @@ test("payer trade press is sourced through site-scoped searches", () => {
       `${name} must be gated as broad national`,
     );
   }
+});
+
+test("a bare Blue Cross match must be corroborated by Vermont", () => {
+  // The brand matcher accepts a plain "Blue Cross", which is right for
+  // surfacing a story but too loose to score: it had scored a BCBS
+  // Massachusetts story and a generic "new Blue Cross CEO" piece.
+  const massachusetts = {
+    matchedTerms: ["Blue Cross"],
+    title: "Blue Cross, Cooley Dickinson assure Medicare Advantage patients",
+    sourceName: "Google News Search",
+    link: "https://www.gazettenet.com/blue-cross-cooley-dickinson",
+  };
+  assert.equal(namesBlueCrossVermont(massachusetts), false);
+  assert.equal(shouldScoreSentiment(massachusetts), false);
+
+  // A Vermont outlet on a bare match is ours.
+  const sevenDays = {
+    matchedTerms: ["Blue Cross"],
+    title: "In Ad Campaign, Blue Cross Asks Patients to Shop Around",
+    sourceName: "Google News Search",
+    link: "https://www.sevendaysvt.com/news/ad-campaign",
+  };
+  assert.equal(namesBlueCrossVermont(sevenDays), true);
+  assert.equal(shouldScoreSentiment(sevenDays), true);
+
+  // So is a bare match with Vermont in the text.
+  assert.equal(
+    namesBlueCrossVermont({
+      matchedTerms: ["Blue Cross"],
+      title: "Blue Cross, MVP block Vermont advocate from testifying",
+      link: "https://example.com/story",
+    }),
+    true,
+  );
+
+  // A Vermont-specific brand term never needs corroboration.
+  assert.equal(
+    namesBlueCrossVermont({
+      matchedTerms: ["BCBSVT"],
+      title: "Untitled",
+      link: "https://example.com/story",
+    }),
+    true,
+  );
+});
+
+test("social video is not press and is not scored", () => {
+  // itemSourceType only knows Facebook, so these arrive labelled "News".
+  const tiktok = {
+    matchedTerms: ["Blue Cross"],
+    title: "How to Find Insurance Policy Number on Insurance Card",
+    link: "https://www.tiktok.com/@user/video/123",
+  };
+  assert.equal(isSocialVideoItem(tiktok), true);
+  assert.equal(shouldScoreSentiment(tiktok), false);
+
+  assert.equal(
+    isSocialVideoItem({ link: "https://vtdigger.org/story" }),
+    false,
+  );
 });
