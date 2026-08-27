@@ -198,3 +198,69 @@ Coverage of proposing the plan reads adverse; coverage of withdrawing it reads
 favourable. That inverts the headlines, which is exactly why it has to be
 stated rather than inferred. Add a storyline whenever scores keep coming out
 wrong for the same subject.
+
+## What the scored coverage says
+
+Measured 2026-08-27 over 189 scored stories, once the tracker backfill was in.
+Scores run +2 (positive) to −2 (negative).
+
+### Sentiment by theme
+
+| Theme | Net | Stories |
+|-------|-----|---------|
+| ACA & marketplace | −0.80 | 5 |
+| Medicare Advantage | −0.67 | 6 |
+| Medicare | −0.67 | 6 |
+| Medical costs & billing | −0.40 | 5 |
+| UVM Health | −0.25 | 16 |
+| Health care | −0.13 | 47 |
+| Health insurance | +0.10 | 31 |
+| Green Mountain Care Board | +0.14 | 14 |
+| Premiums & rate review | +0.40 | 20 |
+| Hospitals | +0.42 | 12 |
+| Prescription drugs & pharmacy | +0.70 | 10 |
+| VAHHS | +1.60 | 5 |
+| Girls on the Run | +2.00 | 5 |
+
+Two results are worth pausing on, because both run against expectation.
+
+**Rate coverage is not hurting us.** Premiums and rate review scores +0.40 and
+the Green Mountain Care Board +0.14, despite being the single largest subject
+in the coverage set. The story that dominates our volume is not the story that
+damages us.
+
+**The adverse coverage is federal-programme coverage.** ACA and marketplace,
+Medicare Advantage, and Medicare are the three worst themes, and the stories
+behind them are industry pieces about federal policy where BCBSVT is named
+among a list of payers.
+
+### Vermont press against national trade
+
+| | Stories | Net | Positive-leaning | Negative-leaning |
+|---|---|---|---|---|
+| Vermont press | 160 | +0.71 | 57% | 26% |
+| National trade | 29 | +0.28 | 48% | 48% |
+
+National trade coverage is polarized rather than negative, and the split is
+almost entirely one outlet:
+
+| Outlet | Net | Stories |
+|--------|-----|---------|
+| Modern Healthcare | −0.78 | 9 |
+| Becker's Payer Issues | +1.00 | 12 |
+| Health Payer Specialist | +1.20 | 5 |
+
+Adding payer trade press did not import a block of negative coverage, which is
+what it looked like at first. Becker's and Health Payer Specialist are two of
+the most favourable outlets in the whole set. Modern Healthcare specifically is
+adverse, and its nine stories are the Medicare Advantage and ACA industry
+pieces that also drive the worst themes above. Those are the same articles
+counted twice, not two separate problems.
+
+### Known noise
+
+Four of the 212 items in the coverage set are not press coverage and were
+found by the crawler rather than logged by the team: a page-scan artefact
+("Page A18"), an employer-review page on `breakroom.cc`, a shopper insert, and
+an events listing. At roughly 2% they do not move any figure above, but the
+first two are not articles at all and should be filtered.
