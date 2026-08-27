@@ -231,6 +231,7 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
       const snippet = cleanStorySnippet(item.snippet, item.title);
       const previewText = normalizePreviewText(item.previewText || "");
       const access = itemAccessLabel(item);
+      const eligibleForSentiment = shouldScoreSentiment(item);
       const contentText = cleanText(
         [
           item.summary || snippet || item.description || "",
@@ -275,9 +276,17 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
         // Brand press coverage only; absent on topic stories and owned posts.
         // Marks the coverage set the trends page charts volume over, so a
         // freshly collected item counts even before it has been scored.
-        sentimentEligible: shouldScoreSentiment(item) || undefined,
-        sentiment: item.sentiment || undefined,
-        sentimentReason: item.sentiment ? item.sentimentReason || "" : undefined,
+        sentimentEligible: eligibleForSentiment || undefined,
+        // Gate the score at the publishing boundary, not just where scores are
+        // written. An item that loses eligibility (a rule change, or its terms
+        // recanonicalizing) already has a summary, so it never re-enters the
+        // Gemini batch where the score would be cleared, and a stale score
+        // would otherwise persist in the archive indefinitely.
+        sentiment: eligibleForSentiment ? item.sentiment || undefined : undefined,
+        sentimentReason:
+          eligibleForSentiment && item.sentiment
+            ? item.sentimentReason || ""
+            : undefined,
         // undefined (not yet judged) is omitted by JSON.stringify, which
         // marks the item for a relevance pass on the next run.
         relevant: typeof item.relevant === "boolean" ? item.relevant : undefined,

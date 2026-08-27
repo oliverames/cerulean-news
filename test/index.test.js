@@ -4290,3 +4290,30 @@ test("social video is not press and is not scored", () => {
     false,
   );
 });
+
+test("a stale score is dropped at the publishing boundary", () => {
+  // An item that loses eligibility already has a summary, so it never
+  // re-enters the Gemini batch where the score would be cleared. Publishing
+  // has to be the gate, or the stale score persists in the archive forever.
+  const summary = buildJsonSummary(
+    [
+      {
+        title: "Blue Cross, Cooley Dickinson assure Medicare Advantage patients",
+        link: "https://www.gazettenet.com/blue-cross-cooley-dickinson",
+        sourceName: "Google News Search",
+        matchedTerms: ["Blue Cross"],
+        pubDate: new Date("2026-08-01T12:00:00Z"),
+        summary: "A Massachusetts story.",
+        sentiment: "positive",
+        sentimentReason: "stale score from a looser rule",
+      },
+    ],
+    [],
+    new Date("2026-08-02T00:00:00Z"),
+  );
+
+  const [item] = summary.items;
+  assert.equal(item.sentiment, undefined);
+  assert.equal(item.sentimentReason, undefined);
+  assert.equal(item.sentimentEligible, undefined);
+});
