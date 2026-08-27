@@ -424,11 +424,11 @@ export function selectPendingSummaryItems(items, options = {}) {
     shouldScoreSentiment(item) && (rescoreSentiment || !item.sentiment);
   return items.filter(
     (item) =>
-      item.relevant !== false &&
-      (rejudgeAll ||
-        !item.summary ||
-        item.relevant === undefined ||
-        needsSentiment(item)),
+      rejudgeAll ||
+      (item.relevant !== false &&
+        (!item.summary ||
+          item.relevant === undefined ||
+          needsSentiment(item))),
   );
 }
 
@@ -467,10 +467,10 @@ export async function summarizeItems(items) {
   console.log(`Summarizing ${pending.length} new items with Gemini...`);
 
   const maxItemsThisRun = SUMMARY_BATCH_SIZE * SUMMARY_MAX_REQUESTS_PER_RUN;
-  const runItems = orderItemsForRun(pending, rescoreSentiment).slice(
-    0,
-    maxItemsThisRun,
-  );
+  const runItems = orderItemsForRun(
+    pending,
+    rescoreSentiment || rejudgeAll,
+  ).slice(0, maxItemsThisRun);
   if (pending.length > runItems.length) {
     console.log(
       `Summary cap: processing ${runItems.length}/${pending.length} new items this run.`,

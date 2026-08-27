@@ -6,6 +6,8 @@ import {
   CATEGORY_BRAND,
   CATEGORY_TOPIC,
   MENTION_TERMS,
+  namesOtherBluesPlan,
+  namesVermontBluesRelationship,
 } from "./matching.js";
 import {
   BROAD_NATIONAL_SOURCE_NAMES,
@@ -13,7 +15,7 @@ import {
 } from "./sources.js";
 
 const BLUECROSSVT_HOST_PATTERN = /^https?:\/\/(?:www\.)?bluecrossvt\.org\//i;
-const FACEBOOK_HOST_PATTERN = /^https?:\/\/(?:www\.)?facebook\.com\//i;
+const FACEBOOK_HOST_PATTERN = /^https?:\/\/(?:m\.|www\.)?facebook\.com\//i;
 
 const PAYWALL_HOSTS = [
   "burlingtonfreepress.com",
@@ -279,15 +281,23 @@ export function namesBlueCrossVermont(item) {
     return true;
   }
 
-  if (VERMONT_OUTLET_HOSTS.has(itemHost(item))) {
-    return true;
-  }
-
+  const sourceName = /^Google News\b/i.test(item.sourceName || "")
+    ? ""
+    : item.sourceName;
   const evidence = cleanText(
-    [item.title, item.snippet, item.summary, item.sourceName]
+    [item.title, item.snippet, item.summary, sourceName]
       .filter(Boolean)
       .join(" "),
   );
+  if (
+    namesOtherBluesPlan(evidence) &&
+    !namesVermontBluesRelationship(evidence)
+  ) {
+    return false;
+  }
+  if (VERMONT_OUTLET_HOSTS.has(itemHost(item))) {
+    return true;
+  }
   return VERMONT_TEXT_PATTERN.test(evidence);
 }
 

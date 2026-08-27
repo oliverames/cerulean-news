@@ -136,6 +136,13 @@ export async function loadPreviousState(...jsonOutputPaths) {
     try {
       const raw = await readFile(jsonOutputPath, "utf8");
       const parsed = JSON.parse(raw);
+      // A syntactically valid file is not necessarily a usable archive. If
+      // the preferred audit path was truncated to an object with no items
+      // array, accepting it here would suppress the valid public-feed
+      // fallback and silently rebuild history from scratch.
+      if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.items)) {
+        continue;
+      }
       const archiveGeneratedAt = parseDate(parsed?.generatedAt);
       for (const source of parsed?.sources || []) {
         if (source?.name && Number.isInteger(source.consecutiveFailures)) {
@@ -143,80 +150,78 @@ export async function loadPreviousState(...jsonOutputPaths) {
         }
       }
       crawlState = normalizeCrawlState(parsed?.crawlState || {});
-      if (parsed && Array.isArray(parsed.items)) {
-        for (const item of parsed.items) {
-          if (!item.link) {
-            continue;
-          }
-          if (isObituaryItem(item)) {
-            continue;
-          }
-          if (!socialSourcesEnabled() && isSocialSourceItem(item)) {
-            continue;
-          }
-          const matchedTerms = canonicalizeMatchedTerms(item.matchedTerms || []);
-          const recoveredPubDate =
-            parseDate(item.pubDate) ||
-            (archiveGeneratedAt
-              ? parseFacebookRelativeDate(
-                  [item.snippet, item.content_text, item.description]
-                    .filter(Boolean)
-                    .join(" "),
-                  archiveGeneratedAt,
-                )
-              : null);
-          // `relevant` stays undefined (not false) when absent so items
-          // summarized before the relevance gate existed get re-judged once.
-          const relevant =
-            typeof item.relevant === "boolean" ? item.relevant : undefined;
-          // Absent stays undefined so brand coverage scored before sentiment
-          // existed gets one scoring pass, rather than being re-scored hourly.
-          const sentiment = item.sentiment || undefined;
-          const sentimentReason = sentiment
-            ? item.sentimentReason || ""
-            : undefined;
-          cache.set(item.link, {
-            matchedTerms,
-            category: item.category || categorizeTerms(matchedTerms),
-            pubDate: recoveredPubDate,
-            snippet: cleanStorySnippet(item.snippet, item.title),
-            previewText: normalizePreviewText(item.previewText || ""),
-            previewChecked: item.previewChecked === true,
-            summary: item.summary || "",
-            reason: item.reason || "",
-            relevant,
-            sentiment,
-            sentimentReason,
-            fromMediaTracker: item.fromMediaTracker || undefined,
-            trackerOutlet: item.trackerOutlet || undefined,
-            comments: Array.isArray(item.comments) ? item.comments : [],
-            articleError: item.articleError || "",
-            matchSource: item.matchSource || "",
-          });
-          archivedItems.push({
-            sourceName: item.sourceName,
-            sourceFeedUrl: item.sourceFeedUrl || "",
-            title: item.title,
-            link: item.link,
-            guid: item.guid || item.link,
-            pubDate: recoveredPubDate,
-            matchedTerms,
-            category: item.category || categorizeTerms(matchedTerms),
-            snippet: cleanStorySnippet(item.snippet || "", item.title),
-            previewText: normalizePreviewText(item.previewText || ""),
-            previewChecked: item.previewChecked === true,
-            summary: item.summary || "",
-            reason: item.reason || "",
-            relevant,
-            sentiment,
-            sentimentReason,
-            fromMediaTracker: item.fromMediaTracker || undefined,
-            trackerOutlet: item.trackerOutlet || undefined,
-            comments: Array.isArray(item.comments) ? item.comments : [],
-            articleError: item.articleError || "",
-            matchSource: item.matchSource || "",
-          });
+      for (const item of parsed.items) {
+        if (!item.link) {
+          continue;
         }
+        if (isObituaryItem(item)) {
+          continue;
+        }
+        if (!socialSourcesEnabled() && isSocialSourceItem(item)) {
+          continue;
+        }
+        const matchedTerms = canonicalizeMatchedTerms(item.matchedTerms || []);
+        const recoveredPubDate =
+          parseDate(item.pubDate) ||
+          (archiveGeneratedAt
+            ? parseFacebookRelativeDate(
+                [item.snippet, item.content_text, item.description]
+                  .filter(Boolean)
+                  .join(" "),
+                archiveGeneratedAt,
+              )
+            : null);
+        // `relevant` stays undefined (not false) when absent so items
+        // summarized before the relevance gate existed get re-judged once.
+        const relevant =
+          typeof item.relevant === "boolean" ? item.relevant : undefined;
+        // Absent stays undefined so brand coverage scored before sentiment
+        // existed gets one scoring pass, rather than being re-scored hourly.
+        const sentiment = item.sentiment || undefined;
+        const sentimentReason = sentiment
+          ? item.sentimentReason || ""
+          : undefined;
+        cache.set(item.link, {
+          matchedTerms,
+          category: item.category || categorizeTerms(matchedTerms),
+          pubDate: recoveredPubDate,
+          snippet: cleanStorySnippet(item.snippet, item.title),
+          previewText: normalizePreviewText(item.previewText || ""),
+          previewChecked: item.previewChecked === true,
+          summary: item.summary || "",
+          reason: item.reason || "",
+          relevant,
+          sentiment,
+          sentimentReason,
+          fromMediaTracker: item.fromMediaTracker || undefined,
+          trackerOutlet: item.trackerOutlet || undefined,
+          comments: Array.isArray(item.comments) ? item.comments : [],
+          articleError: item.articleError || "",
+          matchSource: item.matchSource || "",
+        });
+        archivedItems.push({
+          sourceName: item.sourceName,
+          sourceFeedUrl: item.sourceFeedUrl || "",
+          title: item.title,
+          link: item.link,
+          guid: item.guid || item.link,
+          pubDate: recoveredPubDate,
+          matchedTerms,
+          category: item.category || categorizeTerms(matchedTerms),
+          snippet: cleanStorySnippet(item.snippet || "", item.title),
+          previewText: normalizePreviewText(item.previewText || ""),
+          previewChecked: item.previewChecked === true,
+          summary: item.summary || "",
+          reason: item.reason || "",
+          relevant,
+          sentiment,
+          sentimentReason,
+          fromMediaTracker: item.fromMediaTracker || undefined,
+          trackerOutlet: item.trackerOutlet || undefined,
+          comments: Array.isArray(item.comments) ? item.comments : [],
+          articleError: item.articleError || "",
+          matchSource: item.matchSource || "",
+        });
       }
       loadedPath = jsonOutputPath;
       break;
@@ -326,10 +331,16 @@ function normalizeTitleForDedupe(item, isAggregatorItem) {
   return match[1].trim();
 }
 
+function aggregatorOutletForTitle(item) {
+  const match = cleanText(item.title || "").match(/\s+-\s+([^-]+)$/);
+  return match ? normalizeOutletLabel(match[1]) : "";
+}
+
 export function dedupeResolvedItems(items) {
   const seenLinks = new Set();
   const seenTitleDomain = new Set();
-  const seenTitleOnly = new Map();
+  const seenTitleOutlet = new Map();
+  const seenTitleAny = new Map();
   const result = [];
 
   for (const item of items) {
@@ -344,17 +355,49 @@ export function dedupeResolvedItems(items) {
     } catch {
       domain = "";
     }
-    const isAggregatorItem =
-      domain === "news.google.com" || /^Google News\b/i.test(item.sourceName || "");
+    const isAggregatorItem = domain === "news.google.com";
     const normalizedTitle = normalizeTitleForDedupe(item, isAggregatorItem);
-    const titleKey = domain && normalizedTitle ? `${domain}|${normalizedTitle}` : "";
+    const aggregatorOutlet = isAggregatorItem
+      ? aggregatorOutletForTitle(item)
+      : "";
+    const titleOutlet =
+      aggregatorOutlet || normalizeOutletLabel(itemOutletName(item));
+    const storyKey = normalizedTitle && titleOutlet
+      ? `${normalizedTitle}|${titleOutlet}`
+      : "";
+    const titleKey = domain && normalizedTitle
+      ? `${domain}|${aggregatorOutlet}|${normalizedTitle}`
+      : "";
 
     if (titleKey && seenTitleDomain.has(titleKey) && !item.fromMediaTracker) {
       continue;
     }
 
-    if (normalizedTitle && seenTitleOnly.has(normalizedTitle)) {
-      const existingIndex = seenTitleOnly.get(normalizedTitle);
+    if (normalizedTitle && seenTitleAny.has(normalizedTitle)) {
+      const existingIndex = seenTitleAny.get(normalizedTitle);
+      const existingItem = result[existingIndex];
+      if (item.fromMediaTracker && !existingItem.fromMediaTracker) {
+        result[existingIndex] = item;
+        seenLinks.add(link);
+        if (titleKey) {
+          seenTitleDomain.add(titleKey);
+        }
+        if (storyKey) {
+          seenTitleOutlet.set(storyKey, existingIndex);
+        }
+        continue;
+      }
+      if (
+        existingItem.fromMediaTracker &&
+        !item.fromMediaTracker &&
+        isAggregatorItem
+      ) {
+        continue;
+      }
+    }
+
+    if (storyKey && seenTitleOutlet.has(storyKey)) {
+      const existingIndex = seenTitleOutlet.get(storyKey);
       const existingItem = result[existingIndex];
       let existingDomain = "";
       try {
@@ -363,9 +406,7 @@ export function dedupeResolvedItems(items) {
       } catch {
         existingDomain = "";
       }
-      const existingIsAggregator =
-        existingDomain === "news.google.com" ||
-        /^Google News\b/i.test(existingItem.sourceName || "");
+      const existingIsAggregator = existingDomain === "news.google.com";
 
       // A hand-logged clip carries the outlet and URL the team recorded, so
       // it wins a title collision against a copy the crawler happened to find.
@@ -394,8 +435,11 @@ export function dedupeResolvedItems(items) {
     if (titleKey) {
       seenTitleDomain.add(titleKey);
     }
+    if (storyKey) {
+      seenTitleOutlet.set(storyKey, result.length);
+    }
     if (normalizedTitle) {
-      seenTitleOnly.set(normalizedTitle, result.length);
+      seenTitleAny.set(normalizedTitle, result.length);
     }
     result.push(item);
   }
@@ -405,12 +449,43 @@ export function dedupeResolvedItems(items) {
 
 export function mergeWithArchive(currentItems, archivedItems, now = new Date()) {
   const byLink = new Map();
+
+  function mergeSameLink(existing, incoming) {
+    if (!existing) {
+      return incoming;
+    }
+
+    const curated = incoming.fromMediaTracker
+      ? incoming
+      : existing.fromMediaTracker
+        ? existing
+        : null;
+    if (!curated) {
+      return incoming;
+    }
+
+    return {
+      ...existing,
+      ...incoming,
+      matchedTerms: canonicalizeMatchedTerms([
+        ...(existing.matchedTerms || []),
+        ...(incoming.matchedTerms || []),
+      ]),
+      fromMediaTracker: true,
+      trackerOutlet:
+        curated.trackerOutlet ||
+        existing.trackerOutlet ||
+        incoming.trackerOutlet,
+      matchSource: curated.matchSource || "mediaTracker",
+    };
+  }
+
   for (const item of archivedItems) {
-    byLink.set(item.link, item);
+    byLink.set(item.link, mergeSameLink(byLink.get(item.link), item));
   }
   // Current items win: they carry fresh enrichment.
   for (const item of currentItems) {
-    byLink.set(item.link, item);
+    byLink.set(item.link, mergeSameLink(byLink.get(item.link), item));
   }
 
   const cutoff = now.valueOf() - ARCHIVE_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;

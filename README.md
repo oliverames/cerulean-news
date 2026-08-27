@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <code>92 default sources</code> &bull;
+  <code>99 default sources</code> &bull;
   <code>RSS + JSON Feed</code> &bull;
   <code>hourly GitHub Pages refresh</code>
 </p>

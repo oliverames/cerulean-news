@@ -19,6 +19,7 @@ import {
   parseFacebookPageHtml,
   parseFacebookPostHtml,
   parseFeedItems,
+  isFeedDocument,
   parseMediaTrackerSeedItems,
   parseUvmHealthNewsroomItems,
 } from "./parsers.js";
@@ -305,6 +306,9 @@ export async function fetchText(url, accept, options = {}) {
       : "";
 
   for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt += 1) {
+    if (attempt > 1 && options.beforeRetry) {
+      await options.beforeRetry(attempt);
+    }
     try {
       const headers = {
         accept,
@@ -390,10 +394,13 @@ export async function fetchText(url, accept, options = {}) {
 async function enrichFacebookPageItemsFromPosts(pageItems, source) {
   return mapWithConcurrency(pageItems, 2, async (pageItem) => {
     try {
-      await throttleRequest(pageItem.link);
+      await throttleSourceRequest(source, pageItem.link);
       const { text: postHtml } = await fetchText(
         pageItem.link,
         "text/html, application/xhtml+xml, */*",
+        {
+          beforeRetry: () => throttleSourceRequest(source, pageItem.link),
+        },
       );
       const postItem = parseFacebookPostHtml(postHtml, {
         ...source,
@@ -417,10 +424,21 @@ async function throttleSourceRequest(source, url) {
 
 function feedSource(source, feedConfig = {}) {
   const { fallbackFeed: _fallbackFeed, ...baseSource } = source;
-  return {
+  const merged = {
     ...baseSource,
     ...feedConfig,
   };
+  for (const key of [
+    "maxItems",
+    "maxItemAgeDays",
+    "minPubDate",
+    "maxPubDate",
+  ]) {
+    if (baseSource[key] !== undefined) {
+      merged[key] = baseSource[key];
+    }
+  }
+  return merged;
 }
 
 function bumpMetric(metrics, section, key, amount = 1) {
@@ -515,7 +533,15 @@ function setPrimaryCooldown(sourceState, error, now) {
   sourceState.lastPrimaryError = error.message || String(error);
 }
 
-async function fetchSourceText(source, sourceState, url, accept, metrics, now) {
+async function fetchSourceText(
+  source,
+  sourceState,
+  url,
+  accept,
+  metrics,
+  now,
+  options = {},
+) {
   if (cachedResponseStillFresh(sourceState, url, now)) {
     bumpMetric(metrics, "collection", "cacheFreshSkips");
     console.log(`Skipped ${url}: server-declared cache still fresh`);
@@ -527,7 +553,15 @@ async function fetchSourceText(source, sourceState, url, accept, metrics, now) {
   const result = await fetchText(url, accept, {
     conditionalHeaders: feedHeaderStateFor(sourceState, url),
     now,
+    beforeRetry: () => throttleSourceRequest(source, url),
   });
+  if (
+    !result.notModified &&
+    options.validateText &&
+    !options.validateText(result.text)
+  ) {
+    throw new Error(`Response from ${url} is not an RSS, Atom, or RDF feed`);
+  }
   updateFeedHeaderState(sourceState, url, result, now);
   if (result.notModified) {
     bumpMetric(metrics, "collection", "notModifiedFeeds");
@@ -558,6 +592,7 @@ async function fetchSourceFeedXml(source, crawlState, now, metrics) {
       FEED_ACCEPT,
       metrics,
       now,
+      { validateText: isFeedDocument },
     );
     return {
       xml: fallback.text,
@@ -579,6 +614,7 @@ async function fetchSourceFeedXml(source, crawlState, now, metrics) {
       FEED_ACCEPT,
       metrics,
       now,
+      { validateText: isFeedDocument },
     );
     sourceState.primaryCooldownUntil = "";
     sourceState.lastPrimaryError = "";
@@ -605,6 +641,7 @@ async function fetchSourceFeedXml(source, crawlState, now, metrics) {
       FEED_ACCEPT,
       metrics,
       now,
+      { validateText: isFeedDocument },
     );
     return {
       xml: fallback.text,

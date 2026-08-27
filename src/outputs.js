@@ -79,7 +79,7 @@ function itemDescription(item) {
     );
   }
 
-  if (item.sentiment) {
+  if (shouldScoreSentiment(item) && item.sentiment) {
     const sentimentNote = item.sentimentReason
       ? `${item.sentiment} — ${item.sentimentReason}`
       : item.sentiment;

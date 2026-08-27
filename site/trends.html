@@ -846,6 +846,16 @@
         return items;
       }
 
+      function currentCoverageStart(keys) {
+        let startKey = keys[0];
+        for (let i = 1; i < keys.length; i += 1) {
+          if (monthRange(keys[i - 1], keys[i]).length - 1 >= GAP_MONTHS) {
+            startKey = keys[i];
+          }
+        }
+        return startKey;
+      }
+
       function groupByMonth(items) {
         const byMonth = new Map();
         for (const item of items) {
@@ -874,12 +884,7 @@
         // ran continuously. Charting from the earliest of those buries the
         // real trend under 80 empty months, so start the axis at the current
         // run of coverage: after the last gap of six months or more.
-        let startKey = keys[0];
-        for (let i = 1; i < keys.length; i += 1) {
-          if (monthRange(keys[i - 1], keys[i]).length - 1 >= GAP_MONTHS) {
-            startKey = keys[i];
-          }
-        }
+        const startKey = currentCoverageStart(keys);
         const trimmed = keys[0] !== startKey;
 
         const buckets = monthRange(startKey, keys[keys.length - 1]).map(
@@ -1156,9 +1161,10 @@
             }
             const share = count / bucket.total;
             const segHeight = share * plotHeight;
+            const segmentTop = cursor;
             const rect = el("rect", {
               x: cx - barWidth / 2,
-              y: pad.top + cursor,
+              y: pad.top + segmentTop,
               width: barWidth,
               height: Math.max(1, segHeight),
               fill: step.color,
@@ -1170,7 +1176,7 @@
                   `<dl>${swatchRow(step.color, step.label, `${count} of ${bucket.total}`)}` +
                   `<dt>Share</dt><dd>${Math.round(share * 100)}%</dd></dl>`,
                 cx,
-                pad.top + cursor + segHeight / 2,
+                pad.top + segmentTop + segHeight / 2,
               );
             });
             rect.addEventListener("mouseleave", () => tip.hide());
@@ -1372,7 +1378,9 @@
             "No coverage in this range.";
           return;
         }
-        const months = monthRange(keys[0], keys[keys.length - 1]).map((key) => ({
+        const startKey = currentCoverageStart(keys);
+        const trimmed = startKey !== keys[0];
+        const months = monthRange(startKey, keys[keys.length - 1]).map((key) => ({
           key,
           total: counts.get(key) || 0,
           scored: items.filter(
@@ -1476,9 +1484,10 @@
           );
         });
 
-        const total = months.reduce((sum, m) => sum + m.total, 0);
+        const total = [...counts.values()].reduce((sum, count) => sum + count, 0);
         document.getElementById("volume-chart-desc").textContent =
-          `Bar chart of ${total} stories naming Blue Cross VT per month, peaking at ${peak}.`;
+          `Bar chart of ${total} stories naming Blue Cross VT per month, peaking at ${peak}.` +
+          (trimmed ? " The axis starts at the current coverage run." : "");
       }
 
       function renderTopicChart(items) {
