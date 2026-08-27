@@ -145,3 +145,56 @@ list of live storylines and how coverage of each should read. That list has to
 come from the communications team, so it is not something the generator can
 derive. Re-running the agreement measurement after any rubric change is the
 way to tell whether a change helped, rather than reasoning about it.
+
+## Coverage volume, and a correction
+
+An earlier reading of this data reported August 2026 as roughly double any
+prior month. That was an artefact of measuring before the tracker was seeded:
+each month was counted only from what the crawler independently found, and the
+crawler's reach grew over the period, so early months were undercounted rather
+than quiet.
+
+With the tracker seeded, the monthly coverage set reads:
+
+| Month | Stories naming us |
+|-------|-------------------|
+| 2026-03 | 23 |
+| 2026-04 | 5 |
+| 2026-05 | 31 |
+| 2026-06 | 26 |
+| 2026-07 | 18 |
+| 2026-08 | 25 |
+
+August is an ordinary month, not an outlier. May is the busiest.
+
+What August does show is a clear shift in subject. Against July, Green Mountain
+Care Board mentions go from 2 to 8 and premiums and rate review from 3 to 8,
+which is the annual rate-decision cycle: the board set 2027 premium rates in
+mid-August and five separate outlets covered it. The rest of the month is
+Kayak Days sponsorship coverage, which produces calendar and community items
+across four outlets. Both are predictable annual events, so the pattern is
+worth expecting next year rather than explaining after the fact.
+
+## Standing context
+
+`data/coverage-context.json` closes the part of the sentiment gap that no
+rubric can. It records how the team reads coverage of an ongoing storyline
+where that reading is not recoverable from a headline, and the notes reach the
+scorer only for articles that match. It is the team's file: the generator
+cannot derive its contents, and a malformed entry degrades to "no storylines"
+rather than stopping the run.
+
+It ships with one storyline, VT Basic, derived entirely from scores already
+recorded in the tracker:
+
+| Article | Tracker score |
+|---|---|
+| Vermont's largest health insurer wants to offer a cheaper plan | neutral to negative |
+| BlueCross BlueShield of VT pulls its proposed lower-cost plan | positive |
+| BCBS Vermont takes step back with proposed product line | neutral to positive |
+| No one struggling to pay rent can meet a $12,000 deductible | negative |
+
+Coverage of proposing the plan reads adverse; coverage of withdrawing it reads
+favourable. That inverts the headlines, which is exactly why it has to be
+stated rather than inferred. Add a storyline whenever scores keep coming out
+wrong for the same subject.

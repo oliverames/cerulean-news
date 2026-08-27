@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { cleanText, parsePositiveInteger, sleep } from "./utils.js";
 import { CATEGORY_BRAND, canonicalizeMatchedTerms, categorizeTerms } from "./matching.js";
 import {
@@ -87,6 +89,58 @@ export function shouldScoreSentiment(item) {
     !isAssociationItem(item) &&
     !isJobListingItem(item) &&
     !isSocialVideoItem(item)
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Standing context. Measuring agreement against the tracker showed a residual
+// gap that no rubric closes: some scores turn on knowledge of an ongoing
+// storyline that a headline does not carry. The clearest case is the VT Basic
+// plan, where the tracker reads coverage of proposing it as adverse and
+// coverage of withdrawing it as favourable, inverting what the headlines say.
+//
+// data/coverage-context.json is the team's file, not the crawler's. It is read
+// once at startup; a missing or malformed file simply means no storylines,
+// because a broken context note must never stop the run.
+// ---------------------------------------------------------------------------
+
+const COVERAGE_CONTEXT_PATH =
+  process.env.COVERAGE_CONTEXT_PATH || "data/coverage-context.json";
+
+function loadCoverageContext() {
+  try {
+    const raw = readFileSync(
+      path.resolve(process.cwd(), COVERAGE_CONTEXT_PATH),
+      "utf8",
+    );
+    const doc = JSON.parse(raw);
+    const storylines = Array.isArray(doc?.storylines) ? doc.storylines : [];
+    return storylines
+      .map((entry) => ({
+        name: cleanText(entry?.name || ""),
+        note: cleanText(entry?.note || ""),
+        match: (Array.isArray(entry?.match) ? entry.match : [])
+          .map((term) => String(term || "").toLowerCase().trim())
+          .filter(Boolean),
+      }))
+      .filter((entry) => entry.name && entry.note && entry.match.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+const COVERAGE_CONTEXT = loadCoverageContext();
+
+export function matchStorylines(item, storylines = COVERAGE_CONTEXT) {
+  const haystack = [item?.title, item?.summary, item?.snippet, item?.description]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  if (!haystack) {
+    return [];
+  }
+  return storylines.filter((entry) =>
+    entry.match.some((term) => haystack.includes(term)),
   );
 }
 
@@ -199,10 +253,21 @@ export function buildSummaryPrompt(batch) {
         `OUTLET: ${item.sourceName}`,
         `MATCHED KEYWORDS: ${(item.matchedTerms || []).join(", ")}`,
         `MENTIONS BCBSVT: ${shouldScoreSentiment(item) ? "yes" : "no"}`,
+        ...(matchStorylines(item).length > 0
+          ? [`STORYLINE: ${matchStorylines(item).map((e) => e.name).join("; ")}`]
+          : []),
         `EXCERPT: ${excerpt}`,
       ].join("\n");
     })
     .join("\n\n");
+
+  const batchStorylines = [
+    ...new Map(
+      batch
+        .flatMap((item) => matchStorylines(item))
+        .map((entry) => [entry.name, entry]),
+    ).values(),
+  ];
 
   return [
     "You support the communications team at Blue Cross and Blue Shield of Vermont (BCBSVT).",
@@ -227,6 +292,16 @@ export function buildSummaryPrompt(batch) {
     "",
     renderTrackerExamples(),
     "",
+    ...(batchStorylines.length > 0
+      ? [
+          "Standing context from the communications team. An article tagged with a STORYLINE above must be scored under its note, which reflects knowledge the headline does not carry:",
+          "",
+          batchStorylines
+            .map((entry) => `- ${entry.name}: ${entry.note}`)
+            .join("\n"),
+          "",
+        ]
+      : []),
     "Respond with a JSON array of objects: [{\"id\": <article number>, \"summary\": \"...\", \"reason\": \"...\", \"relevant\": true, \"sentiment\": \"neutral to positive\", \"sentimentReason\": \"...\"}].",
     "",
     articles,
