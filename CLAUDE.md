@@ -63,4 +63,14 @@ and set `RSS_ARTICLE_SCAN=false` for speed.
   usually mean too many runs in a short window, not a broken source.
 - Date-bounded sources auto-skip once `maxPubDate` passes (see
   `isSourceWindowClosed`); archived brand items are retained indefinitely.
+- Gemini 429s are a per-minute rate limit, not an exhausted daily quota. A run
+  on 2026-08-27 summarized 10/10 in its first batch and 429'd on the second, so
+  a failure does not mean scoring is finished for the day. `summarizeItems`
+  abandons the whole run on the first batch failure, which makes a transient
+  limit cost an entire run's scoring; prefer a small
+  `summary_max_requests` on a dispatched re-score, because a large one simply
+  fails on batch one and accomplishes nothing.
+- Re-scoring (`SUMMARY_RESCORE_SENTIMENT`) sweeps oldest-first, so repeated
+  runs cover the archive. A normal run takes newest-first, which is right for
+  items that have never been scored.
 - WORKLOG.md gets an entry per meaningful session, newest first.
