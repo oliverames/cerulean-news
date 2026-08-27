@@ -416,6 +416,32 @@ async function geminiGenerate(prompt) {
   throw lastError || new Error("All Gemini models failed");
 }
 
+// Which items need a Gemini pass. Brand coverage summarized before sentiment
+// existed carries a summary but no score, so it needs one more pass.
+export function selectPendingSummaryItems(items, options = {}) {
+  const { rejudgeAll = false, rescoreSentiment = false } = options;
+  const needsSentiment = (item) =>
+    shouldScoreSentiment(item) && (rescoreSentiment || !item.sentiment);
+  return items.filter(
+    (item) =>
+      item.relevant !== false &&
+      (rejudgeAll ||
+        !item.summary ||
+        item.relevant === undefined ||
+        needsSentiment(item)),
+  );
+}
+
+// Items arrive newest first. Taking the head is right for a normal run, where
+// the unscored items are the new ones. It is wrong for a re-score: the same
+// newest N would be redone every run and older items would never be reached,
+// which is how a set of June clips sat on stale scores through three
+// re-scores. Re-scoring works oldest-first, so repeated runs sweep the
+// archive instead of spinning on its head.
+export function orderItemsForRun(pending, rescoreSentiment = false) {
+  return rescoreSentiment ? [...pending].reverse() : pending;
+}
+
 export async function summarizeItems(items) {
   if (!GEMINI_API_KEY) {
     console.log("GEMINI_API_KEY not set; skipping AI summaries.");
@@ -431,23 +457,20 @@ export async function summarizeItems(items) {
   // but no score, so it needs one more pass. SUMMARY_RESCORE_SENTIMENT=true
   // re-scores every brand item once, for use after changing the rubric above.
   const rescoreSentiment = process.env.SUMMARY_RESCORE_SENTIMENT === "true";
-  const needsSentiment = (item) =>
-    shouldScoreSentiment(item) && (rescoreSentiment || !item.sentiment);
-  const pending = items.filter(
-    (item) =>
-      item.relevant !== false &&
-      (rejudgeAll ||
-        !item.summary ||
-        item.relevant === undefined ||
-        needsSentiment(item)),
-  );
+  const pending = selectPendingSummaryItems(items, {
+    rejudgeAll,
+    rescoreSentiment,
+  });
   if (pending.length === 0) {
     return;
   }
   console.log(`Summarizing ${pending.length} new items with Gemini...`);
 
   const maxItemsThisRun = SUMMARY_BATCH_SIZE * SUMMARY_MAX_REQUESTS_PER_RUN;
-  const runItems = pending.slice(0, maxItemsThisRun);
+  const runItems = orderItemsForRun(pending, rescoreSentiment).slice(
+    0,
+    maxItemsThisRun,
+  );
   if (pending.length > runItems.length) {
     console.log(
       `Summary cap: processing ${runItems.length}/${pending.length} new items this run.`,
