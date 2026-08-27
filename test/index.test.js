@@ -193,7 +193,7 @@ test("default sources cover recurring Kristina export outlets", () => {
         .join(" "),
     ).join(" "),
   ).replaceAll("+", " ");
-  assert.equal(DEFAULT_SOURCES.length, 91);
+  assert.equal(DEFAULT_SOURCES.length, 94);
 
   const expectedHosts = [
     "bcbs.com",
@@ -4169,4 +4169,62 @@ test("recruitment listings are not scored for sentiment", () => {
     }),
     true,
   );
+});
+
+test("buildSummaryPrompt carries the tracker's worked examples", () => {
+  const prompt = buildSummaryPrompt([
+    {
+      title: "Blue Cross VT files 2027 rates",
+      sourceName: "WCAX",
+      matchedTerms: ["BCBSVT"],
+      link: "https://www.wcax.com/2026/08/01/rates",
+      snippet: "Filing details.",
+    },
+  ]);
+
+  // Calibration is carried by examples, not by prose alone: a model working
+  // from the rules only scored routine favourable coverage as neutral.
+  assert.match(prompt, /2026 Best of Business in Vermont recipients announced/);
+  assert.match(prompt, /SENTIMENT: positive/);
+  assert.match(prompt, /SENTIMENT: neutral to negative/);
+  assert.match(prompt, /SENTIMENT: negative/);
+  assert.match(prompt, /Ordinary favourable presence IS positive/);
+  assert.match(prompt, /Do not hedge toward neutral when the excerpt is thin/);
+
+  // Every point on the scale must be represented, or the anchor is lopsided.
+  for (const value of SENTIMENT_VALUES) {
+    assert.ok(
+      prompt.includes(`SENTIMENT: ${value}`),
+      `no worked example for "${value}"`,
+    );
+  }
+});
+
+test("payer trade press is sourced through site-scoped searches", () => {
+  // All three block direct crawling, so they are reached via Google News.
+  // Scoped to Vermont: an unscoped site: search returns the national Blues
+  // firehose, which is not coverage of us.
+  const expected = [
+    ["Becker's Payer Issues", "beckerspayer.com"],
+    ["Modern Healthcare", "modernhealthcare.com"],
+    ["Health Payer Specialist", "healthpayerspecialist.com"],
+  ];
+
+  for (const [name, host] of expected) {
+    const source = DEFAULT_SOURCES.find((entry) => entry.name === name);
+    assert.ok(source, `missing source: ${name}`);
+    const query = decodeURIComponent(source.feedUrl).replaceAll("+", " ");
+    assert.ok(query.includes(`site:${host}`), `${name}: ${query}`);
+    assert.equal(source.isSearchFeed, true, name);
+    assert.equal(source.scanArticle, false, name);
+    // A `when:` bound made Google News fall back to unrelated results, so the
+    // date window is enforced locally instead.
+    assert.ok(!/when:/.test(query), `${name} must not carry a when: bound`);
+    assert.ok(source.maxItemAgeDays > 0, `${name} needs a local date window`);
+    // The broad-national gate is the second guard against other-Blues noise.
+    assert.ok(
+      BROAD_NATIONAL_SOURCE_NAMES.has(name),
+      `${name} must be gated as broad national`,
+    );
+  }
 });
