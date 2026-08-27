@@ -269,7 +269,10 @@ export function parseSummaryResponse(text, batch) {
     item.summary = cleanText(entry.summary);
     item.reason = cleanText(String(entry.reason || ""));
     // Only an explicit false excludes; missing/odd values keep the story.
-    item.relevant = entry.relevant !== false;
+    // A media-tracker entry is never excluded: a person already decided it was
+    // coverage, and the model sees only the headline and a topic note, so its
+    // veto is worse-informed than the judgement it would be overriding.
+    item.relevant = item.fromMediaTracker ? true : entry.relevant !== false;
     // Sentiment is brand press coverage only. Scoring is gated locally rather
     // than trusting the model to honour the per-article "MENTIONS BCBSVT"
     // flag, so a stray score on a topic-only story is dropped here.

@@ -4422,3 +4422,43 @@ test("a curated entry survives without a term match and outranks retention", () 
   // Provenance stands in for the Vermont corroboration a bare match needs.
   assert.equal(namesBlueCrossVermont({ fromMediaTracker: true }), true);
 });
+
+test("a curated clip is never vetoed or deduped away", () => {
+  // The summarizer sees only a headline and a topic note, so its relevance
+  // veto is worse-informed than the person who logged the clip.
+  const batch = [
+    {
+      title: "Payers pitch 2027 ACA rates: 7 updates",
+      sourceName: "Media Tracker Backfill",
+      matchedTerms: ["Blue Cross VT"],
+      link: "https://www.beckerspayer.com/payer/payers-pitch-2027-aca-rates",
+      fromMediaTracker: true,
+    },
+  ];
+  parseSummaryResponse(
+    JSON.stringify([
+      { id: 1, summary: "National rate filings.", reason: "n/a", relevant: false },
+    ]),
+    batch,
+  );
+  assert.equal(batch[0].relevant, true);
+
+  // And it outranks a crawler copy when titles collide.
+  const curated = {
+    title: "Blue Cross VT files 2027 rates",
+    link: "https://www.timesargus.com/tracker-url",
+    matchedTerms: ["Blue Cross VT"],
+    fromMediaTracker: true,
+    pubDate: new Date("2026-08-01T12:00:00Z"),
+  };
+  const crawled = {
+    title: "Blue Cross VT files 2027 rates",
+    link: "https://news.google.com/rss/articles/abc",
+    sourceName: "Google News Search",
+    matchedTerms: ["Blue Cross VT"],
+    pubDate: new Date("2026-08-01T12:00:00Z"),
+  };
+  const deduped = dedupeResolvedItems([crawled, curated]);
+  assert.equal(deduped.length, 1);
+  assert.equal(deduped[0].link, curated.link, "the curated URL must survive");
+});
