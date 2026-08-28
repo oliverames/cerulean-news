@@ -1,3 +1,36 @@
+## 2026-08-27 - Finished the interrupted feed-quality pass; released 1.2.0
+
+**What changed**: A Codex session was killed mid-fix and left the tree failing 4
+of 179 tests, three of them the exact defects it had named in its last message.
+Commit `973c86c` completes the work. A second `canonicalLinkPresentation` layer
+was overriding the dedupe winner's link with the tidiest URL in the group;
+`canonicalLinkQuality` already penalizes tracking parameters, so a cleaner URL
+should only win between peers. The override discarded the URL a hand-logged clip
+recorded and made the result order-dependent. Dedupe also stopped inventing a
+`guid` on items that never carried one. Released as v1.2.0.
+
+**Decisions made**: Kept the new crash-brief rule, which rejects an in-state
+crime or crash brief whose only health tie is an incidental provider mention;
+the out-of-region rule cannot catch these because a Vermont placename supplies a
+genuine regional signal. The pre-existing assertion that encoded the older,
+weaker behavior was stale and was updated with the rejection reason pinned.
+`canonicalLinkPresentation` is still used by the archive-merge path, which is
+correct there, so only the winner path changed.
+
+**Verification**: 179 tests pass under America/New_York, UTC, and Asia/Tokyo.
+Both UVM newsroom date assertions now compare calendar parts rather than an
+instant, because a bare card date resolves in the runner's local zone; the new
+one passed only under UTC, so CI would have hidden it.
+
+**Left off at**: Released and clean at v1.2.0.
+
+**Open questions**: Test 10 ("publisher dates without a space before am or pm")
+has the same latent zone dependence and fails under UTC+12. It predates this
+work and turns on whether bare publisher dates should be UTC-normalized in
+production, which is a separate decision. NEW.
+
+---
+
 ## 2026-08-27 - Remove publisher shells, stale roundup previews, and employment pages
 
 **What changed**: The Blue Cross site search omitted `site:` before `bluecrossvt.org`, so Google treated the domain as a search term and returned unrelated pages. The corrected query now stays on the four named domains. The relevance gate rejects Times Argus page placeholders, Vermont Journal full-edition wrappers, employment platform pages, and brand-search fallbacks with no Blue Cross text in the source material. Curated media-tracker entries remain authoritative, and the same deterministic gate runs after Gemini so a relevance re-judge cannot restore excluded pages.
