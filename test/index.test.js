@@ -477,7 +477,12 @@ test("parseFeedItems accepts publisher dates without a space before am or pm", (
     { name: "Fierce Healthcare", feedUrl: "https://example.com/feed" },
   );
 
-  assert.match(item.pubDate?.toISOString() || "", /^2026-07-10T/);
+  // The publisher date carries no zone, so Date resolves it in the runner's
+  // local zone. The feed itself always runs on ubuntu-latest, so production is
+  // consistently UTC; assert the calendar parts so the test holds anywhere.
+  assert.equal(item.pubDate?.getFullYear(), 2026);
+  assert.equal(item.pubDate?.getMonth(), 6);
+  assert.equal(item.pubDate?.getDate(), 10);
 });
 
 test("feed document validation accepts RSS, Atom, and RDF but rejects HTML", () => {
