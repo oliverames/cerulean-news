@@ -4,6 +4,7 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
+import vm from "node:vm";
 import {
   buildJsonSummary,
   buildRss,
@@ -15,10 +16,13 @@ import {
   buildSourcesFromEnv,
   buildSnippet,
   buildSummaryPrompt,
+  buildFailureAlertMessages,
+  articlePageHasArticleEvidence,
   applyDeterministicRelevance,
   applyFailureStreaks,
   selectFailureAlerts,
   triggerWebhooks,
+  webhookTargetId,
   selectPreviewBackfillItems,
   canonicalizeMatchedTerms,
   categorizeTerms,
@@ -38,6 +42,7 @@ import {
   parseFacebookPageHtml,
   parseFacebookPostHtml,
   parseSummaryResponse,
+  geminiGenerate,
   isFeedDocument,
   parseMediaTrackerSeedItems,
   matchStorylines,
@@ -442,6 +447,24 @@ test("the Times Argus UVM fallback stays specialized and source-bounded", () => 
   assert.equal(uvm.maxItems, 20);
 });
 
+test("first-party listing sources fail closed when their parsers return nothing", () => {
+  const listingSources = [
+    "UVM Health Newsroom",
+    "BlueCrossVT Newsroom",
+    "BlueCrossVT Be Well VT Blog",
+    "BCBSA Association News",
+  ].map((name) => DEFAULT_SOURCES.find((source) => source.name === name));
+
+  for (const source of listingSources) {
+    assert.equal(source.minimumParsedItems, 1, source.name);
+  }
+  assert.equal(
+    listingSources[0].listingUrl,
+    "https://www.uvmhealth.org/newsroom/search",
+  );
+  assert.equal(listingSources[0].maxItems, 15);
+});
+
 test("parseFeedItems accepts publisher dates without a space before am or pm", () => {
   const [item] = parseFeedItems(
     `
@@ -628,6 +651,97 @@ test("dedupeResolvedItems drops Google News wrappers when the outlet item exists
   );
 });
 
+test("dedupe strips known tracking parameters but preserves semantic queries", () => {
+  const direct = {
+    sourceName: "STAT Health News",
+    title: "STAT+: A suspicious denial pattern",
+    link: "https://www.statnews.com/2026/07/20/denials/?utm_campaign=rss&utm_source=feed#top",
+  };
+  const search = {
+    sourceName: "Google News Health Trade Search",
+    title: "A suspicious denial pattern in Medicare Advantage - STAT",
+    link: "https://www.statnews.com/2026/07/20/denials/",
+  };
+  const pages = [
+    { sourceName: "Example", title: "Directory page 1", link: "https://example.com/directory?page=1" },
+    { sourceName: "Example", title: "Directory page 2", link: "https://example.com/directory?page=2" },
+  ];
+
+  assert.deepEqual(dedupeResolvedItems([search, direct]), [direct]);
+  assert.equal(dedupeResolvedItems(pages).length, 2);
+});
+
+test("tracking-link dedupe merges evidence and is independent of input order", () => {
+  const curated = {
+    sourceName: "Media Tracker Backfill",
+    trackerOutlet: "VTDigger",
+    fromMediaTracker: true,
+    matchSource: "mediaTracker",
+    title: "Blue Cross VT files 2027 rates",
+    link: "https://vtdigger.org/2026/08/27/rates?utm_source=tracker",
+    matchedTerms: ["Blue Cross VT"],
+  };
+  const enriched = {
+    sourceName: "VTDigger",
+    title: "Blue Cross VT files 2027 rates",
+    link: "https://vtdigger.org/2026/08/27/rates",
+    matchedTerms: ["Premiums & rate review"],
+    snippet: "The filing proposes new individual market premiums.",
+    previewText: "Regulators will review the proposal this fall.",
+    summary: "BCBSVT filed its proposed 2027 rates.",
+    relevant: true,
+  };
+
+  const forward = dedupeResolvedItems([curated, enriched]);
+  const reverse = dedupeResolvedItems([enriched, curated]);
+  assert.deepEqual(forward, reverse);
+  assert.equal(forward.length, 1);
+  assert.equal(forward[0].link, curated.link);
+  assert.equal(forward[0].fromMediaTracker, true);
+  assert.equal(forward[0].snippet, enriched.snippet);
+  assert.equal(forward[0].previewText, enriched.previewText);
+  assert.equal(forward[0].summary, enriched.summary);
+  assert.deepEqual(forward[0].matchedTerms, [
+    "Blue Cross VT",
+    "Premiums & rate review",
+  ]);
+
+  const tracked = {
+    sourceName: "Example",
+    title: "Vermont hospital rate review",
+    link: "https://example.com/rates?utm_campaign=rss",
+    matchedTerms: ["Hospitals"],
+  };
+  const clean = {
+    ...tracked,
+    link: "https://example.com/rates",
+    snippet: "The regulator opened a rate review.",
+  };
+  assert.deepEqual(
+    dedupeResolvedItems([tracked, clean]),
+    dedupeResolvedItems([clean, tracked]),
+  );
+  assert.equal(dedupeResolvedItems([tracked, clean])[0].link, clean.link);
+});
+
+test("a curated same-title clip does not erase a different direct outlet", () => {
+  const direct = {
+    sourceName: "WCAX",
+    title: "Shared health policy headline",
+    link: "https://www.wcax.com/2026/08/27/shared",
+  };
+  const curated = {
+    sourceName: "Media Tracker Backfill",
+    trackerOutlet: "VT Digger",
+    fromMediaTracker: true,
+    title: "Shared health policy headline",
+    link: "https://vtdigger.org/2026/08/27/shared",
+  };
+
+  assert.equal(dedupeResolvedItems([direct, curated]).length, 2);
+  assert.equal(dedupeResolvedItems([curated, direct]).length, 2);
+});
+
 test("parseSummaryResponse applies the relevance verdict", () => {
   const batch = [
     { title: "Texas shooting", snippet: "x" },
@@ -794,19 +908,26 @@ test("deterministic relevance rejects out-of-region low-priority false positives
     undefined,
   );
 
+  // An in-state crash brief that only name-drops a hospital is still a low
+  // priority false positive. The out-of-region rule cannot catch it, because
+  // Townshend supplies a genuine Vermont signal, so the crash-brief rule
+  // rejects it on the incidental provider mention instead.
+  const townshendCrash = applyDeterministicRelevance({
+    sourceName: "MyChamplainValley",
+    title: "Three injured, one seriously, in Townshend crash",
+    description: "One person was airlifted to Dartmouth-Hitchcock Medical Center.",
+    matchedTerms: ["Vermont hospitals & providers"],
+    category: CATEGORY_TOPIC,
+  });
+  assert.equal(townshendCrash.relevant, false);
   assert.equal(
-    applyDeterministicRelevance({
-      sourceName: "MyChamplainValley",
-      title: "Three injured, one seriously, in Townshend crash",
-      description: "One person was airlifted to Dartmouth-Hitchcock Medical Center.",
-      matchedTerms: ["Vermont hospitals & providers"],
-      category: CATEGORY_TOPIC,
-    }).relevant,
-    undefined,
+    townshendCrash.reason,
+    "Crime or crash brief with only an incidental provider mention.",
   );
 });
 
-test("failure streaks reset on success, accumulate on failure, alert once at threshold", () => {
+test("failure streaks retry pending alerts and stop after endpoint delivery", () => {
+  const endpointIds = ["endpoint-a", "endpoint-b"];
   const previous = new Map([
     ["Flaky Facebook", 23],
     ["Recovered Outlet", 9],
@@ -826,22 +947,41 @@ test("failure streaks reset on success, accumulate on failure, alert once at thr
   assert.equal(results[2].consecutiveFailures, 1);
   assert.equal(results[3].consecutiveFailures, 0);
 
-  // Only the source crossing the threshold this run alerts; one already
-  // past it (25) must not re-alert every hour.
+  // A failed delivery remains pending after the threshold run.
   assert.deepEqual(
-    selectFailureAlerts(results, 24).map((result) => result.name),
+    selectFailureAlerts(results, 24, endpointIds).map((result) => result.name),
     ["Flaky Facebook"],
   );
-  assert.deepEqual(
-    selectFailureAlerts(
-      applyFailureStreaks(
-        [{ name: "Flaky Facebook", ok: false, error: "HTTP 500" }],
-        new Map([["Flaky Facebook", 24]]),
-      ),
-      24,
-    ),
-    [],
+  const retry = applyFailureStreaks(
+    [{ name: "Flaky Facebook", ok: false, error: "HTTP 500" }],
+    new Map([["Flaky Facebook", 24]]),
   );
+  assert.deepEqual(
+    selectFailureAlerts(retry, 24, endpointIds).map((result) => result.name),
+    ["Flaky Facebook"],
+  );
+
+  const delivered = applyFailureStreaks(
+    [{ name: "Flaky Facebook", ok: false, error: "HTTP 500" }],
+    new Map([["Flaky Facebook", 25]]),
+    new Map([["Flaky Facebook", endpointIds]]),
+  );
+  assert.deepEqual(selectFailureAlerts(delivered, 24, endpointIds), []);
+});
+
+test("rotating a webhook creates a new alert delivery target", () => {
+  const oldTargetId = webhookTargetId("https://hooks.example/old-secret");
+  const newTargetId = webhookTargetId("https://hooks.example/new-secret");
+  const [failed] = applyFailureStreaks(
+    [{ name: "Flaky Facebook", ok: false, error: "HTTP 500" }],
+    new Map([["Flaky Facebook", 24]]),
+    new Map([["Flaky Facebook", [oldTargetId]]]),
+  );
+
+  assert.deepEqual(selectFailureAlerts([failed], 24, [oldTargetId]), []);
+  assert.deepEqual(selectFailureAlerts([failed], 24, [newTargetId]), [failed]);
+  assert.notEqual(oldTargetId, newTargetId);
+  assert.doesNotMatch(oldTargetId, /slack|discord/i);
 });
 
 test("webhooks reject HTTP failures and send configured endpoints concurrently", async () => {
@@ -872,8 +1012,14 @@ test("webhooks reject HTTP failures and send configured endpoints concurrently",
   console.error = (...args) => errors.push(args.join(" "));
 
   try {
-    await triggerWebhooks([
-      { name: "Broken Outlet", consecutiveFailures: 24, error: "HTTP 500" },
+    const failedSource = {
+      name: "Broken Outlet",
+      consecutiveFailures: 24,
+      error: "HTTP 500",
+    };
+    await triggerWebhooks([failedSource]);
+    assert.deepEqual(failedSource.failureAlertDeliveries, [
+      webhookTargetId("https://hooks.example/discord"),
     ]);
   } finally {
     globalThis.fetch = originalFetch;
@@ -899,6 +1045,57 @@ test("webhooks reject HTTP failures and send configured endpoints concurrently",
   assert.ok(errors.some((message) => /Slack.*HTTP 429/.test(message)));
   assert.ok(!logs.some((message) => /Slack/.test(message)));
   assert.ok(logs.some((message) => /Discord/.test(message)));
+});
+
+test("failure alert messages stay within webhook payload limits", () => {
+  const failedSources = Array.from({ length: 99 }, (_, index) => ({
+    name: `Source ${index + 1}`,
+    consecutiveFailures: 24,
+    error: "A long repeated failure description ".repeat(12),
+  }));
+  const messages = buildFailureAlertMessages(failedSources, 24, 600);
+  assert.ok(messages.length > 1);
+  assert.ok(messages.every((message) => message.length <= 600));
+  assert.ok(messages.every((message) => /Sources failing for 24\+/.test(message)));
+});
+
+test("a partial webhook delivery retries only sources in unsent chunks", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalError = console.error;
+  const failedSources = Array.from({ length: 20 }, (_, index) => ({
+    name: `Source ${index + 1}`,
+    consecutiveFailures: 24,
+    error: "A long repeated failure description ".repeat(12),
+  }));
+  const target = {
+    id: webhookTargetId("https://hooks.example/slack"),
+    label: "Slack",
+    url: "https://hooks.example/slack",
+    payloadKey: "text",
+  };
+  let calls = 0;
+  console.error = () => {};
+  globalThis.fetch = async () => {
+    calls += 1;
+    return calls === 1
+      ? new Response(null, { status: 204 })
+      : new Response("failed", { status: 500 });
+  };
+
+  try {
+    await triggerWebhooks(failedSources, [target]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.error = originalError;
+  }
+
+  const delivered = failedSources.filter(
+    (source) => source.failureAlertDeliveries?.includes(target.id),
+  );
+  const pending = selectFailureAlerts(failedSources, 24, [target.id]);
+  assert.ok(delivered.length > 0);
+  assert.ok(pending.length > 0);
+  assert.equal(delivered.length + pending.length, failedSources.length);
 });
 
 test("generateFeed waits for a started failure alert before returning", async () => {
@@ -964,6 +1161,18 @@ test("generateFeed waits for a started failure alert before returning", async ()
     releaseWebhook();
     await generation;
     assert.equal(generationSettled, true);
+    const audit = JSON.parse(await readFile(auditJsonOutputPath, "utf8"));
+    const publicFeed = JSON.parse(await readFile(jsonOutputPath, "utf8"));
+    const targetId = webhookTargetId("https://hooks.example/slack");
+    assert.deepEqual(audit.sources[0].failureAlertDeliveries, [targetId]);
+    assert.doesNotMatch(JSON.stringify(audit.sources), /slack|discord/i);
+    assert.equal(publicFeed.sources[0].failureAlertDeliveries, undefined);
+
+    const restored = await loadPreviousState(auditJsonOutputPath);
+    assert.deepEqual(
+      restored.previousFailureAlertState.get("Missing Seed"),
+      [targetId],
+    );
   } finally {
     releaseWebhook?.();
     await generation?.catch(() => {});
@@ -1082,6 +1291,189 @@ test("summary prompt and response round-trip applies summaries", () => {
   assert.equal(parseSummaryResponse('{"a":1}', batch), 0);
 });
 
+test("geminiGenerate retries a rate limit using the API retry delay", async () => {
+  const responses = [
+    new Response(
+      JSON.stringify({
+        error: {
+          message: "Rate limit reached",
+        },
+      }),
+      {
+        status: 429,
+        headers: {
+          "content-type": "application/json",
+          "retry-after": "2",
+        },
+      },
+    ),
+    new Response(
+      JSON.stringify({
+        candidates: [{ content: { parts: [{ text: "[]" }] } }],
+      }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    ),
+  ];
+  const sleeps = [];
+  const result = await geminiGenerate("prompt", {
+    apiKey: "test-key",
+    models: ["test-model"],
+    fetchImpl: async () => responses.shift(),
+    sleepImpl: async (milliseconds) => sleeps.push(milliseconds),
+    random: () => 0,
+  });
+
+  assert.equal(result, "[]");
+  assert.deepEqual(sleeps, [2000]);
+});
+
+test("geminiGenerate honors a structured RetryInfo delay", async () => {
+  const responses = [
+    new Response(
+      JSON.stringify({
+        error: {
+          message: "Quota exhausted",
+          details: [{
+            "@type": "type.googleapis.com/google.rpc.RetryInfo",
+            retryDelay: "55s",
+          }],
+        },
+      }),
+      { status: 429, headers: { "content-type": "application/json" } },
+    ),
+    new Response(
+      JSON.stringify({
+        candidates: [{ content: { parts: [{ text: "[]" }] } }],
+      }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    ),
+  ];
+  const sleeps = [];
+  const result = await geminiGenerate("prompt", {
+    apiKey: "test-key",
+    models: ["test-model"],
+    fetchImpl: async () => responses.shift(),
+    sleepImpl: async (milliseconds) => sleeps.push(milliseconds),
+    random: () => 0,
+    retryMaxDelayMs: 60_000,
+  });
+
+  assert.equal(result, "[]");
+  assert.deepEqual(sleeps, [55_000]);
+});
+
+test("geminiGenerate retries transient server errors but not client errors", async () => {
+  let serverCalls = 0;
+  const sleeps = [];
+  const result = await geminiGenerate("prompt", {
+    apiKey: "test-key",
+    models: ["test-model"],
+    fetchImpl: async () => {
+      serverCalls += 1;
+      if (serverCalls === 1) {
+        return new Response("server error", { status: 500 });
+      }
+      return new Response(
+        JSON.stringify({
+          candidates: [{ content: { parts: [{ text: "ok" }] } }],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    },
+    sleepImpl: async (milliseconds) => sleeps.push(milliseconds),
+    random: () => 0,
+    retryBaseDelayMs: 100,
+  });
+  assert.equal(result, "ok");
+  assert.equal(serverCalls, 2);
+  assert.deepEqual(sleeps, [100]);
+
+  let clientCalls = 0;
+  await assert.rejects(
+    geminiGenerate("prompt", {
+      apiKey: "test-key",
+      models: ["test-model", "must-not-run"],
+      fetchImpl: async () => {
+        clientCalls += 1;
+        return new Response("bad request", { status: 400 });
+      },
+      sleepImpl: async () => assert.fail("400 must not sleep or retry"),
+    }),
+    /HTTP 400/,
+  );
+  assert.equal(clientCalls, 1);
+
+  let missingModelCalls = 0;
+  const fallbackResult = await geminiGenerate("prompt", {
+    apiKey: "test-key",
+    models: ["missing-model", "fallback-model"],
+    fetchImpl: async () => {
+      missingModelCalls += 1;
+      if (missingModelCalls === 1) {
+        return new Response("model not found", { status: 404 });
+      }
+      return new Response(
+        JSON.stringify({
+          candidates: [{ content: { parts: [{ text: "fallback" }] } }],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    },
+    sleepImpl: async () => assert.fail("404 fallback must not sleep"),
+  });
+  assert.equal(fallbackResult, "fallback");
+  assert.equal(missingModelCalls, 2);
+});
+
+test("geminiGenerate treats every 5xx status as transient", async () => {
+  for (const status of [520, 599]) {
+    let calls = 0;
+    const result = await geminiGenerate("prompt", {
+      apiKey: "test-key",
+      models: ["test-model"],
+      fetchImpl: async () => {
+        calls += 1;
+        if (calls === 1) {
+          return new Response("temporary server error", { status });
+        }
+        return new Response(
+          JSON.stringify({
+            candidates: [{ content: { parts: [{ text: "ok" }] } }],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      },
+      sleepImpl: async () => {},
+      random: () => 0,
+    });
+    assert.equal(result, "ok");
+    assert.equal(calls, 2);
+  }
+});
+
+test("geminiGenerate bounds retry attempts and sleep", async () => {
+  let calls = 0;
+  const sleeps = [];
+  await assert.rejects(
+    geminiGenerate("prompt", {
+      apiKey: "test-key",
+      models: ["test-model"],
+      fetchImpl: async () => {
+        calls += 1;
+        return new Response("rate limited", { status: 429 });
+      },
+      sleepImpl: async (milliseconds) => sleeps.push(milliseconds),
+      random: () => 0,
+      maxAttemptsPerModel: 3,
+      retryBaseDelayMs: 100,
+      retryMaxDelayMs: 150,
+    }),
+    /HTTP 429/,
+  );
+  assert.equal(calls, 3);
+  assert.deepEqual(sleeps, [100, 150]);
+});
+
 test("mergeWithArchive keeps stories that left their source feeds", () => {
   const now = new Date("2026-06-12T12:00:00Z");
   const current = [
@@ -1169,6 +1561,63 @@ test("mergeWithArchive keeps stories that left their source feeds", () => {
   ]);
   const shared = merged.find((item) => item.link === "https://example.com/shared");
   assert.equal(shared.summary, "fresh");
+});
+
+test("undated topic retention uses a stable first-seen date", () => {
+  const firstRun = new Date("2026-01-01T12:00:00Z");
+  const [newItem] = mergeWithArchive(
+    [{
+      link: "https://example.com/undated-topic",
+      title: "Health care policy briefing",
+      pubDate: null,
+      matchedTerms: ["Health care"],
+    }],
+    [],
+    firstRun,
+  );
+  assert.equal(newItem.firstSeenAt.toISOString(), firstRun.toISOString());
+
+  const oneDayLater = new Date("2026-01-02T12:00:00Z");
+  const [rediscovered] = mergeWithArchive(
+    [{ ...newItem, firstSeenAt: undefined }],
+    [newItem],
+    oneDayLater,
+  );
+  assert.equal(rediscovered.firstSeenAt.toISOString(), firstRun.toISOString());
+
+  const afterRetention = new Date("2026-04-04T12:00:00Z");
+  assert.deepEqual(mergeWithArchive([], [rediscovered], afterRetention), []);
+  assert.equal(
+    mergeWithArchive(
+      [],
+      [{ ...rediscovered, fromMediaTracker: true }],
+      afterRetention,
+    ).length,
+    1,
+  );
+});
+
+test("loadPreviousState migrates first-seen from the archive timestamp", async () => {
+  const workdir = await mkdtemp(path.join(tmpdir(), "vt-news-first-seen-"));
+  const auditPath = path.join(workdir, "feed-audit.json");
+  await writeFile(
+    auditPath,
+    JSON.stringify({
+      generatedAt: "2026-08-27T12:00:00Z",
+      sources: [],
+      items: [{
+        title: "Undated health care item",
+        link: "https://example.com/undated",
+        matchedTerms: ["Health care"],
+      }],
+    }),
+  );
+
+  const state = await loadPreviousState(auditPath);
+  assert.equal(
+    state.archivedItems[0].firstSeenAt.toISOString(),
+    "2026-08-27T12:00:00.000Z",
+  );
 });
 
 test("loadPreviousState falls back when the preferred archive has no items array", async () => {
@@ -1917,9 +2366,47 @@ test("parseUvmHealthNewsroomItems extracts dated newsroom cards", () => {
     items[0].link,
     "https://www.uvmhealth.org/newsroom/uvm-health-announces-elimination-of-76-positions",
   );
-  assert.equal(items[0].pubDate.toISOString().slice(0, 10), "2026-06-09");
-  assert.match(items[0].feedContent, /Vermont health care/);
+  // Bare card dates resolve in the local zone, so compare calendar parts.
+  assert.equal(items[0].pubDate.getFullYear(), 2026);
+  assert.equal(items[0].pubDate.getMonth(), 5);
+  assert.equal(items[0].pubDate.getDate(), 9);
+  assert.match(items[0].feedContent, /UVM Health/);
   assert.deepEqual(items[0].searchFallbackTerms, ["UVM Health"]);
+});
+
+test("parseUvmHealthNewsroomItems reads the complete search-result card shape", () => {
+  const items = parseUvmHealthNewsroomItems(
+    `<outline-search-result>
+      <div slot="eyebrow">Elizabethtown Community Hospital</div>
+      <div slot="heading"><h4><a href="/newsroom/a-screening-saved-her-life">A Screening Saved her Life</a></h4></div>
+      <div slot="date">August 27, 2026</div>
+      <div slot="body">A screening program helped a patient receive care.</div>
+    </outline-search-result>
+    <outline-search-result>
+      <div slot="heading"><a href="/newsroom/search">Search</a></div>
+    </outline-search-result>`,
+    {
+      name: "UVM Health Newsroom",
+      homepage: "https://www.uvmhealth.org/newsroom/search",
+      listingUrl: "https://www.uvmhealth.org/newsroom/search",
+      searchFallbackTerms: ["UVM Health"],
+      scanArticle: false,
+    },
+  );
+
+  assert.equal(items.length, 1);
+  assert.equal(items[0].title, "A Screening Saved her Life");
+  // The card carries a bare date, which Date resolves in the runner's local
+  // zone. Assert the calendar day rather than an instant, so the test holds
+  // outside UTC as well as inside CI.
+  assert.equal(items[0].pubDate.getFullYear(), 2026);
+  assert.equal(items[0].pubDate.getMonth(), 7);
+  assert.equal(items[0].pubDate.getDate(), 27);
+  assert.equal(
+    items[0].description,
+    "A screening program helped a patient receive care.",
+  );
+  assert.match(items[0].feedContent, /Elizabethtown Community Hospital/);
 });
 
 test("parseFacebookPostHtml extracts public post metadata and comments when present", () => {
@@ -2462,6 +2949,32 @@ test("buildJsonSummary keeps preview completion state audit-only", () => {
   assert.equal(auditSummary.items[0].previewChecked, true);
 });
 
+test("buildJsonSummary persists first-seen only in the audit feed", () => {
+  const item = {
+    sourceName: "Example",
+    title: "Undated health care item",
+    link: "https://example.com/undated",
+    matchedTerms: ["Health care"],
+    firstSeenAt: new Date("2026-08-27T12:00:00Z"),
+  };
+  const publicSummary = buildJsonSummary([item], [], new Date());
+  const auditSummary = buildJsonSummary([item], [], new Date(), {
+    includeRejected: true,
+  });
+  assert.equal(publicSummary.items[0].firstSeenAt, undefined);
+  assert.equal(
+    auditSummary.items[0].firstSeenAt,
+    "2026-08-27T12:00:00.000Z",
+  );
+  const datedAudit = buildJsonSummary(
+    [{ ...item, pubDate: new Date("2026-08-26T12:00:00Z") }],
+    [],
+    new Date(),
+    { includeRejected: true },
+  );
+  assert.equal(datedAudit.items[0].firstSeenAt, undefined);
+});
+
 test("parseFeedItems supports isSearchFeed property", () => {
   const xml = `<?xml version="1.0"?>
     <rss version="2.0">
@@ -2554,6 +3067,7 @@ test("enrichAndFilterItems skips fresh negative article-cache entries", async ()
           title: "Unrelated story",
           link,
           feedContent: "Unrelated local story without target terms.",
+          articleScanMode: "always",
         },
       ],
       new Map(),
@@ -2565,6 +3079,54 @@ test("enrichAndFilterItems skips fresh negative article-cache entries", async ()
     assert.equal(metrics.enrichment.negativeCacheHits, 1);
   } finally {
     await new Promise((resolve) => server.close(resolve));
+    if (originalScan === undefined) {
+      delete process.env.RSS_ARTICLE_SCAN;
+    } else {
+      process.env.RSS_ARTICLE_SCAN = originalScan;
+    }
+  }
+});
+
+test("scan-disabled runs retain fresh negative cache entries and validators", async () => {
+  const originalScan = process.env.RSS_ARTICLE_SCAN;
+  process.env.RSS_ARTICLE_SCAN = "false";
+  const now = new Date("2026-06-16T16:30:00Z");
+  const link = "https://example.com/cached-negative";
+  const cachedEntry = {
+    url: link,
+    resolvedUrl: link,
+    checkedAt: "2026-06-16T15:30:00.000Z",
+    expiresAt: "2026-06-30T15:30:00.000Z",
+    matchedTerms: [],
+    comments: [],
+    articleHeaders: { etag: '"negative-v1"', lastModified: "" },
+  };
+  const articleCache = { [link]: cachedEntry };
+  const metrics = { enrichment: { scanModes: {} } };
+
+  try {
+    const filtered = await enrichAndFilterItems(
+      [{
+        sourceName: "Cached Negative Outlet",
+        title: "Unrelated story",
+        link,
+        feedContent: "Unrelated local story without target terms.",
+        articleScanMode: "always",
+      }],
+      new Map(),
+      {
+        articleCache,
+        metrics,
+        now,
+        fetchText: async () => assert.fail("scan-disabled runs must not fetch"),
+      },
+    );
+
+    assert.deepEqual(filtered, []);
+    assert.equal(articleCache[link], cachedEntry);
+    assert.equal(articleCache[link].articleHeaders.etag, '"negative-v1"');
+    assert.equal(metrics.enrichment.articleFetchSkipped, 1);
+  } finally {
     if (originalScan === undefined) {
       delete process.env.RSS_ARTICLE_SCAN;
     } else {
@@ -2605,10 +3167,7 @@ test("enrichAndFilterItems skips smart article fetches with no feed signal", asy
     assert.deepEqual(filtered, []);
     assert.equal(requests, 0);
     assert.equal(metrics.enrichment.articleFetchSkipped, 1);
-    assert.deepEqual(Object.keys(articleCache), [
-      `http://127.0.0.1:${port}/no-signal`,
-    ]);
-    assert.deepEqual(articleCache[`http://127.0.0.1:${port}/no-signal`].matchedTerms, []);
+    assert.deepEqual(Object.keys(articleCache), []);
   } finally {
     await new Promise((resolve) => server.close(resolve));
     if (originalScan === undefined) {
@@ -2616,6 +3175,44 @@ test("enrichAndFilterItems skips smart article fetches with no feed signal", asy
     } else {
       process.env.RSS_ARTICLE_SCAN = originalScan;
     }
+  }
+});
+
+test("enrichAndFilterItems caches a negative only after an article fetch", async () => {
+  const originalScan = process.env.RSS_ARTICLE_SCAN;
+  process.env.RSS_ARTICLE_SCAN = "true";
+  const link = "https://example.com/fetched-no-match";
+  const articleCache = {};
+
+  try {
+    const filtered = await enrichAndFilterItems(
+      [{
+        sourceName: "Always Scan Outlet",
+        title: "School budget story",
+        link,
+        feedContent: "School board discusses budget timing.",
+        articleScanMode: "always",
+      }],
+      new Map(),
+      {
+        articleCache,
+        now: new Date("2026-06-16T16:30:00Z"),
+        fetchText: async (url) => ({
+          text: "<article><h1>School budget story</h1><p>No target words appear here.</p></article>",
+          url,
+          notModified: false,
+          etag: "",
+          lastModified: "",
+        }),
+        throttleRequest: async () => {},
+      },
+    );
+
+    assert.deepEqual(filtered, []);
+    assert.deepEqual(articleCache[link].matchedTerms, []);
+  } finally {
+    if (originalScan === undefined) delete process.env.RSS_ARTICLE_SCAN;
+    else process.env.RSS_ARTICLE_SCAN = originalScan;
   }
 });
 
@@ -2890,6 +3487,102 @@ test("unchanged article URLs keep body-only brand matches when headlines differ"
 
     assert.deepEqual(item.matchedTerms, ["Blue Cross VT"]);
     assert.equal(item.link, link);
+  } finally {
+    if (originalScan === undefined) delete process.env.RSS_ARTICLE_SCAN;
+    else process.env.RSS_ARTICLE_SCAN = originalScan;
+  }
+});
+
+test("unchanged soft-404 pages cannot contribute body-only brand matches", async () => {
+  const originalScan = process.env.RSS_ARTICLE_SCAN;
+  process.env.RSS_ARTICLE_SCAN = "true";
+  const link = "https://example.com/article";
+
+  try {
+    const items = await enrichAndFilterItems(
+      [{
+        sourceName: "Example Outlet",
+        title: "Expected health story",
+        link,
+        feedContent: "A local business story.",
+        articleScanMode: "always",
+      }],
+      new Map(),
+      {
+        articleCache: {},
+        now: new Date("2026-07-12T12:00:00Z"),
+        fetchText: async () => ({
+          text: "<article><h1>Page not found</h1><p>The Blue Cross VT coverage page has moved.</p></article>",
+          url: link,
+          notModified: false,
+          etag: "",
+          lastModified: "",
+        }),
+        throttleRequest: async () => {},
+      },
+    );
+
+    assert.deepEqual(items, []);
+  } finally {
+    if (originalScan === undefined) delete process.env.RSS_ARTICLE_SCAN;
+    else process.env.RSS_ARTICLE_SCAN = originalScan;
+  }
+});
+
+test("article evidence preserves semantic query identity and rejects punctuated 404s", () => {
+  assert.equal(
+    articlePageHasArticleEvidence(
+      '<html><head><link rel="canonical" href="https://youtube.com/watch?v=wrong"></head><body><article><p>Blue Cross VT.</p></article></body></html>',
+      "https://youtube.com/watch?v=expected&utm_source=rss",
+    ),
+    false,
+  );
+  assert.equal(
+    articlePageHasArticleEvidence(
+      '<html><head><link rel="canonical" href="https://youtube.com/watch?utm_medium=feed&v=expected"></head><body><article><p>Blue Cross VT.</p></article></body></html>',
+      "https://youtube.com/watch?v=expected&utm_source=rss",
+    ),
+    true,
+  );
+  assert.equal(
+    articlePageHasArticleEvidence(
+      "<article><h1>Error 404: Not Found</h1><p>Blue Cross VT.</p></article>",
+      "https://example.com/missing",
+    ),
+    false,
+  );
+});
+
+test("matching canonical links preserve renamed article body matches", async () => {
+  const originalScan = process.env.RSS_ARTICLE_SCAN;
+  process.env.RSS_ARTICLE_SCAN = "true";
+  const link = "https://example.com/article";
+
+  try {
+    const [item] = await enrichAndFilterItems(
+      [{
+        sourceName: "Example Outlet",
+        title: "Feed headline before an editor update",
+        link,
+        feedContent: "A local business story.",
+        articleScanMode: "always",
+      }],
+      new Map(),
+      {
+        articleCache: {},
+        now: new Date("2026-07-12T12:00:00Z"),
+        fetchText: async () => ({
+          text: `<html><head><link rel="canonical" href="${link}"></head><body><main><h1>Updated publisher headline</h1><p>Blue Cross VT announced a coverage change.</p></main></body></html>`,
+          url: link,
+          notModified: false,
+          etag: "",
+          lastModified: "",
+        }),
+        throttleRequest: async () => {},
+      },
+    );
+
+    assert.deepEqual(item.matchedTerms, ["Blue Cross VT"]);
   } finally {
     if (originalScan === undefined) delete process.env.RSS_ARTICLE_SCAN;
     else process.env.RSS_ARTICLE_SCAN = originalScan;
@@ -3891,13 +4584,22 @@ test("a source stays unfetched while the origin's declared cache is still fresh"
   const server = createServer((_request, response) => {
     requestCount += 1;
     response.writeHead(200, { "content-type": "text/html" });
-    response.end("<html><body>listing</body></html>");
+    response.end(`<outline-search-result>
+      <div slot="heading"><a href="/newsroom/current-story">Current story</a></div>
+      <div slot="date">August 7, 2026</div>
+    </outline-search-result>`);
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 
   try {
     const listingUrl = `http://127.0.0.1:${server.address().port}/health-community/news`;
-    const source = { name: "Fresh Listing", listingUrl, scanArticle: false };
+    const source = {
+      name: "Fresh Listing",
+      listingUrl,
+      listingParser: "uvmHealthNewsroom",
+      minimumParsedItems: 1,
+      scanArticle: false,
+    };
     const now = new Date("2026-08-07T12:00:00Z");
     const crawlState = normalizeCrawlState({
       sourceState: {
@@ -3924,6 +4626,68 @@ test("a source stays unfetched while the origin's declared cache is still fresh"
     const later = new Date("2026-08-07T18:00:00Z");
     await collectFeedItems([source], later, crawlState, { collection: {} });
     assert.equal(requestCount, 1);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("a fresh listing response that parses no items marks the source unhealthy", async () => {
+  const server = createServer((_request, response) => {
+    response.writeHead(200, { "content-type": "text/html" });
+    response.end("<html><body><p>A redesigned listing with no known cards.</p></body></html>");
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+
+  try {
+    const listingUrl = `http://127.0.0.1:${server.address().port}/newsroom/search`;
+    const result = await collectFeedItems(
+      [{
+        name: "Redesigned Listing",
+        listingUrl,
+        listingParser: "uvmHealthNewsroom",
+        minimumParsedItems: 1,
+        scanArticle: false,
+      }],
+      new Date("2026-08-27T12:00:00Z"),
+      normalizeCrawlState({}),
+      { collection: {} },
+    );
+
+    assert.equal(result.sourceResults[0].ok, false);
+    assert.match(result.sourceResults[0].error, /parser returned 0 items/);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("date bounds may reduce a healthy nonempty listing to zero items", async () => {
+  const server = createServer((_request, response) => {
+    response.writeHead(200, { "content-type": "text/html" });
+    response.end(`<outline-search-result>
+      <div slot="heading"><a href="/newsroom/old-story">Old story</a></div>
+      <div slot="date">June 1, 2026</div>
+    </outline-search-result>`);
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+
+  try {
+    const listingUrl = `http://127.0.0.1:${server.address().port}/newsroom/search`;
+    const result = await collectFeedItems(
+      [{
+        name: "Bounded Listing",
+        listingUrl,
+        listingParser: "uvmHealthNewsroom",
+        minimumParsedItems: 1,
+        maxItemAgeDays: 1,
+        scanArticle: false,
+      }],
+      new Date("2026-08-27T12:00:00Z"),
+      normalizeCrawlState({}),
+      { collection: {} },
+    );
+
+    assert.equal(result.sourceResults[0].ok, true);
+    assert.equal(result.sourceResults[0].itemCount, 0);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
@@ -4341,6 +5105,17 @@ test("buildSummaryPrompt flags which articles get a sentiment score", () => {
   assert.match(prompt, /Weight mention prominence/);
 });
 
+test("buildSummaryPrompt names the resolved publisher, not the discovery feed", () => {
+  const prompt = buildSummaryPrompt([{
+    sourceName: "Google News Blue Cross Boolean Search A",
+    title: "Blue Cross VT files 2027 rates",
+    link: "https://www.wcax.com/2026/08/18/rates/",
+    matchedTerms: ["BCBSVT"],
+  }]);
+  assert.match(prompt, /OUTLET: WCAX/);
+  assert.doesNotMatch(prompt, /OUTLET: Google News/);
+});
+
 test("parseSummaryResponse scores brand items and ignores stray scores", () => {
   const batch = [
     {
@@ -4541,6 +5316,16 @@ test("itemOutletName recovers the publisher behind a Google News search", () => 
     }),
     "example.org",
   );
+
+  assert.equal(itemOutletName({ trackerOutlet: "VT Digger" }), "VTDigger");
+  assert.equal(
+    itemOutletName({ trackerOutlet: "Vermon Business Magazine" }),
+    "Vermont Business Magazine",
+  );
+  assert.equal(
+    itemOutletName({ trackerOutlet: "The World" }),
+    "The World",
+  );
 });
 
 test("association pages are not scored for sentiment", () => {
@@ -4728,6 +5513,72 @@ test("deterministic relevance rejects publisher placeholders and unverified sear
     }).relevant,
     undefined,
   );
+});
+
+test("deterministic relevance rejects exact non-article search result shapes", () => {
+  const targets = [
+    [
+      "Transplant Static List - Blue Cross Blue Shield",
+      "https://www.bcbs.com/media/pdf/Blue-Distinction-Transplants-Providers.pdf",
+      "Association provider directory, not news coverage.",
+    ],
+    [
+      "BCBS News - Association News & Press Releases",
+      "https://www.bcbs.com/about-us/association-news?_rsc=abc&page=4",
+      "Association news index, not an article.",
+    ],
+    [
+      "How to Find Insurance Policy Number on Insurance Card",
+      "https://www.tiktok.com/discover/how-to-find-insurance-policy-number-on-insurance-card",
+      "Social search page, not news coverage.",
+    ],
+    [
+      "Member Tools and Resources",
+      "https://www.bluecrossvt.org/members/member-tools-and-resources",
+      "Member resource page, not a news or blog post.",
+    ],
+  ];
+
+  for (const [title, link, reason] of targets) {
+    const rejected = applyDeterministicRelevance({
+      title,
+      link,
+      matchedTerms: ["Blue Cross"],
+      category: CATEGORY_BRAND,
+    });
+    assert.equal(rejected.relevant, false, link);
+    assert.equal(rejected.reason, reason, link);
+    assert.equal(
+      applyDeterministicRelevance({
+        title,
+        link,
+        matchedTerms: ["Blue Cross"],
+        category: CATEGORY_BRAND,
+        fromMediaTracker: true,
+        relevant: false,
+      }).relevant,
+      true,
+      `curated target should survive: ${link}`,
+    );
+  }
+
+  for (const link of [
+    "https://www.bcbs.com/media/pdf/health-policy-report.pdf",
+    "https://www.bcbs.com/about-us/association-news/blue-cross-statement",
+    "https://www.tiktok.com/@reporter/video/123",
+    "https://www.bluecrossvt.org/health-community/news/community-update",
+  ]) {
+    assert.notEqual(
+      applyDeterministicRelevance({
+        title: "Blue Cross coverage update",
+        link,
+        matchedTerms: ["Blue Cross"],
+        category: CATEGORY_BRAND,
+      }).relevant,
+      false,
+      link,
+    );
+  }
 });
 
 test("buildSummaryPrompt carries the tracker's worked examples", () => {
@@ -5003,7 +5854,7 @@ test("a curated entry survives without a term match and outranks retention", () 
 
   const merged = mergeWithArchive([curated], [], new Date("2026-08-27T12:00:00Z"));
   assert.equal(merged.length, 1, "a curated item must outlive the retention window");
-  assert.equal(itemOutletName({ ...curated, trackerOutlet: "VT Digger" }), "VT Digger");
+  assert.equal(itemOutletName({ ...curated, trackerOutlet: "VT Digger" }), "VTDigger");
   // Provenance stands in for the Vermont corroboration a bare match needs.
   assert.equal(namesBlueCrossVermont({ fromMediaTracker: true }), true);
 });
@@ -5460,6 +6311,44 @@ test("same-link merges preserve media-tracker provenance", () => {
   ]);
 });
 
+test("a fresh tracking variant replaces a stale rejected archive record", () => {
+  const archived = {
+    sourceName: "Old feed label",
+    title: "Outdated unrelated headline",
+    link: "https://example.com/rates?utm_source=rss",
+    pubDate: new Date("2026-08-26T10:00:00Z"),
+    firstSeenAt: new Date("2026-08-26T11:00:00Z"),
+    matchedTerms: ["Health insurance"],
+    relevant: false,
+    reason: "Low-priority health mention outside Vermont or New England.",
+  };
+  const current = {
+    sourceName: "Example Vermont News",
+    title: "Blue Cross VT files updated 2027 rates",
+    link: "https://example.com/rates",
+    pubDate: new Date("2026-08-27T10:00:00Z"),
+    matchedTerms: ["Blue Cross VT", "Premiums & rate review"],
+    snippet: "The Vermont filing updates proposed individual market rates.",
+  };
+
+  const merged = mergeWithArchive(
+    [current],
+    [archived],
+    new Date("2026-08-27T12:00:00Z"),
+  )
+    .sort((left, right) => right.pubDate.valueOf() - left.pubDate.valueOf());
+  const [item] = dedupeResolvedItems(merged).map(applyDeterministicRelevance);
+  assert.equal(merged.length, 1);
+  assert.equal(item.link, current.link);
+  assert.equal(item.title, current.title);
+  assert.notEqual(item.relevant, false);
+  assert.equal(item.reason, undefined);
+  assert.equal(
+    item.firstSeenAt.toISOString(),
+    archived.firstSeenAt.toISOString(),
+  );
+});
+
 test("both enrichment caches apply contextual category rules", async () => {
   const now = new Date("2026-08-27T12:00:00Z");
   const link = "https://example.com/insurance/new-blue-cross-ceo";
@@ -5533,6 +6422,31 @@ test("publish workflow preserves durable state and classifies runtime inputs", a
     workflow,
     /DISCORD_WEBHOOK_URL: \$\{\{ secrets\.DISCORD_WEBHOOK_URL \}\}/,
   );
+  assert.match(workflow, /name: Install dependencies\n\s+run: npm ci/);
+  assert.match(workflow, /name: Run tests\n\s+run: npm test/);
+  assert.doesNotMatch(
+    workflow,
+    /name: (?:Set up Node|Install dependencies|Run tests)\n\s+if:/,
+  );
+  assert.ok(
+    (workflow.match(/curl [^\n]*--compressed/g) || []).length >= 2,
+    "state seed and reuse requests must accept compressed JSON",
+  );
+});
+
+test("reader and trends inline JavaScript compiles", async () => {
+  for (const file of ["../site/index.html", "../site/trends.html"]) {
+    const html = await readFile(new URL(file, import.meta.url), "utf8");
+    const scripts = [...html.matchAll(/<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/gi)]
+      .filter((match) => !/type=["']application\/(?:ld\+)?json["']/i.test(match[0]));
+
+    assert.ok(scripts.length > 0, `${file} should contain executable JavaScript`);
+    for (const [index, script] of scripts.entries()) {
+      assert.doesNotThrow(
+        () => new vm.Script(script[1], { filename: `${file}#script-${index + 1}` }),
+      );
+    }
+  }
 });
 
 test("trends charts trim stale coverage and anchor sentiment tooltips", async () => {

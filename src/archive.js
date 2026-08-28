@@ -18,7 +18,7 @@ import {
   TOPIC_TERMS,
 } from "./matching.js";
 import { parseFacebookRelativeDate } from "./parsers.js";
-import { itemOutletName } from "./relevance.js";
+import { itemCategory, itemOutletName } from "./relevance.js";
 import { isSocialSourceItem, socialSourcesEnabled } from "./sources.js";
 
 const CRAWL_STATE_VERSION = 1;
@@ -128,6 +128,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
   const cache = new Map();
   const archivedItems = [];
   const previousFailureStreaks = new Map();
+  const previousFailureAlertState = new Map();
   let crawlState = normalizeCrawlState();
   const attemptedPaths = jsonOutputPaths.filter(Boolean);
   let loadedPath = "";
@@ -147,6 +148,16 @@ export async function loadPreviousState(...jsonOutputPaths) {
       for (const source of parsed?.sources || []) {
         if (source?.name && Number.isInteger(source.consecutiveFailures)) {
           previousFailureStreaks.set(source.name, source.consecutiveFailures);
+        }
+        if (
+          source?.name &&
+          Array.isArray(source.failureAlertDeliveries)
+        ) {
+          previousFailureAlertState.set(
+            source.name,
+            [...new Set(source.failureAlertDeliveries)]
+              .filter((id) => typeof id === "string" && id),
+          );
         }
       }
       crawlState = normalizeCrawlState(parsed?.crawlState || {});
@@ -181,7 +192,9 @@ export async function loadPreviousState(...jsonOutputPaths) {
         const sentimentReason = sentiment
           ? item.sentimentReason || ""
           : undefined;
+        const firstSeenAt = parseDate(item.firstSeenAt) || archiveGeneratedAt;
         cache.set(item.link, {
+          title: item.title || "",
           matchedTerms,
           category: item.category || categorizeTerms(matchedTerms),
           pubDate: recoveredPubDate,
@@ -195,6 +208,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
           sentimentReason,
           fromMediaTracker: item.fromMediaTracker || undefined,
           trackerOutlet: item.trackerOutlet || undefined,
+          firstSeenAt,
           comments: Array.isArray(item.comments) ? item.comments : [],
           articleError: item.articleError || "",
           matchSource: item.matchSource || "",
@@ -218,6 +232,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
           sentimentReason,
           fromMediaTracker: item.fromMediaTracker || undefined,
           trackerOutlet: item.trackerOutlet || undefined,
+          firstSeenAt,
           comments: Array.isArray(item.comments) ? item.comments : [],
           articleError: item.articleError || "",
           matchSource: item.matchSource || "",
@@ -237,7 +252,13 @@ export async function loadPreviousState(...jsonOutputPaths) {
     console.log("No existing feed found to populate cache, starting fresh.");
   }
 
-  return { cache, archivedItems, previousFailureStreaks, crawlState };
+  return {
+    cache,
+    archivedItems,
+    previousFailureStreaks,
+    previousFailureAlertState,
+    crawlState,
+  };
 }
 
 // Stories stay in the archive even after they fall out of their source
@@ -265,7 +286,7 @@ function isRejectedBySourceShape(item) {
 }
 
 function isBrandCategoryItem(item) {
-  return (item.category || categorizeTerms(item.matchedTerms || [])) === CATEGORY_BRAND;
+  return itemCategory(item) === CATEGORY_BRAND;
 }
 
 // Curated backfill entries are retained on the same footing as brand items,
@@ -336,14 +357,263 @@ function aggregatorOutletForTitle(item) {
   return match ? normalizeOutletLabel(match[1]) : "";
 }
 
+const TRACKING_QUERY_KEY_PATTERN =
+  /^(?:utm_.+|fbclid|gclid|dclid|msclkid|mc_cid|mc_eid)$/i;
+
+function canonicalStoryLink(link) {
+  try {
+    const url = new URL(link);
+    for (const key of [...url.searchParams.keys()]) {
+      if (TRACKING_QUERY_KEY_PATTERN.test(key)) {
+        url.searchParams.delete(key);
+      }
+    }
+    url.searchParams.sort();
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return link;
+  }
+}
+
+function hasTrackingParameters(link) {
+  try {
+    return [...new URL(link).searchParams.keys()].some((key) =>
+      TRACKING_QUERY_KEY_PATTERN.test(key),
+    );
+  } catch {
+    return false;
+  }
+}
+
+function canonicalLinkPresentation(primary, fallback) {
+  const score = (item) => {
+    const link = item?.link || item?.guid || "";
+    let fragmentFree = true;
+    try {
+      fragmentFree = !new URL(link).hash;
+    } catch {
+      fragmentFree = true;
+    }
+    return (!hasTrackingParameters(link) ? 2 : 0) + (fragmentFree ? 1 : 0);
+  };
+  return score(fallback) > score(primary) ? fallback : primary;
+}
+
+function isGoogleDiscoveryItem(item) {
+  if (/^Google News\b/i.test(item.sourceName || "")) {
+    return true;
+  }
+  try {
+    return new URL(item.sourceFeedUrl || "").hostname === "news.google.com";
+  } catch {
+    return false;
+  }
+}
+
+function mergeArrayValues(primary, fallback) {
+  const values = [...(primary || []), ...(fallback || [])];
+  const seen = new Set();
+  return values.filter((value) => {
+    const key = JSON.stringify(value);
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function earliestFirstSeenAt(primary, fallback) {
+  const dates = [primary?.firstSeenAt, fallback?.firstSeenAt]
+    .map(parseDate)
+    .filter(Boolean)
+    .sort((left, right) => left.valueOf() - right.valueOf());
+  return dates[0] || null;
+}
+
+function mergeEquivalentStoryItems(
+  primary,
+  fallback,
+  { preferPrimaryVerdict = false } = {},
+) {
+  const merged = { ...fallback, ...primary };
+  const evidenceFields = [
+    "description",
+    "content_text",
+    "feedContent",
+    "snippet",
+    "previewText",
+    "summary",
+    "sentiment",
+    "sentimentReason",
+  ];
+  for (const field of evidenceFields) {
+    if (!cleanText(primary?.[field]) && cleanText(fallback?.[field])) {
+      merged[field] = fallback[field];
+    }
+  }
+
+  const termPrimary = primary?.fromMediaTracker
+    ? primary
+    : fallback?.fromMediaTracker
+      ? fallback
+      : primary;
+  const termFallback = termPrimary === primary ? fallback : primary;
+  const matchedTerms = canonicalizeMatchedTerms([
+    ...(termPrimary?.matchedTerms || []),
+    ...(termFallback?.matchedTerms || []),
+  ]);
+  if (
+    matchedTerms.length > 0 ||
+    Object.hasOwn(primary || {}, "matchedTerms") ||
+    Object.hasOwn(fallback || {}, "matchedTerms")
+  ) {
+    merged.matchedTerms = matchedTerms;
+    merged.category = itemCategory({ ...merged, matchedTerms });
+  }
+  const primaryPubDate = parseDate(primary?.pubDate);
+  const fallbackPubDate = parseDate(fallback?.pubDate);
+  if (!primaryPubDate && fallbackPubDate) {
+    merged.pubDate = fallbackPubDate;
+  }
+  if (primary?.comments || fallback?.comments) {
+    merged.comments = mergeArrayValues(primary?.comments, fallback?.comments);
+  }
+  if (primary?.previewChecked === true || fallback?.previewChecked === true) {
+    merged.previewChecked = true;
+  }
+
+  const firstSeenAt = earliestFirstSeenAt(primary, fallback);
+  if (firstSeenAt) {
+    merged.firstSeenAt = firstSeenAt;
+  }
+
+  if (preferPrimaryVerdict && primary?.relevant === false) {
+    merged.relevant = false;
+  } else if (primary?.relevant === true || fallback?.relevant === true) {
+    merged.relevant = true;
+  } else if (
+    primary?.relevant === undefined ||
+    fallback?.relevant === undefined
+  ) {
+    delete merged.relevant;
+  } else if (primary?.relevant === false && fallback?.relevant === false) {
+    merged.relevant = false;
+  }
+
+  if (
+    !cleanText(primary?.reason) &&
+    cleanText(fallback?.reason) &&
+    ((merged.relevant === false && fallback?.relevant === false) ||
+      (merged.relevant !== false && fallback?.relevant !== false))
+  ) {
+    merged.reason = fallback.reason;
+  } else if (!cleanText(primary?.reason)) {
+    delete merged.reason;
+  }
+
+  const curated = primary?.fromMediaTracker
+    ? primary
+    : fallback?.fromMediaTracker
+      ? fallback
+      : null;
+  if (curated) {
+    merged.fromMediaTracker = true;
+    merged.trackerOutlet =
+      curated.trackerOutlet ||
+      primary?.trackerOutlet ||
+      fallback?.trackerOutlet;
+    merged.matchSource = curated.matchSource || "mediaTracker";
+  }
+
+  return merged;
+}
+
+function canonicalLinkQuality(item) {
+  const link = item.link || item.guid || "";
+  const usefulText = [
+    item.summary,
+    item.snippet,
+    item.previewText,
+    item.description,
+    item.content_text,
+  ].filter((value) => cleanText(value)).length;
+  return (
+    (item.fromMediaTracker ? 1_000 : 0) +
+    (!isGoogleDiscoveryItem(item) ? 100 : 0) +
+    (!hasTrackingParameters(link) ? 20 : 0) +
+    (item.relevant === true ? 10 : item.relevant === undefined ? 5 : 0) +
+    usefulText * 2 +
+    Math.min((item.matchedTerms || []).length, 5)
+  );
+}
+
+function canonicalLinkWinner(existing, incoming) {
+  const existingQuality = canonicalLinkQuality(existing);
+  const incomingQuality = canonicalLinkQuality(incoming);
+  if (incomingQuality !== existingQuality) {
+    return incomingQuality > existingQuality ? incoming : existing;
+  }
+  const identity = (item) =>
+    cleanText([
+      item.link || item.guid || "",
+      item.sourceName || "",
+      item.title || "",
+    ].join("|"));
+  return identity(incoming).localeCompare(identity(existing)) < 0
+    ? incoming
+    : existing;
+}
+
+function selectCanonicalLinkWinners(items) {
+  const groups = new Map();
+  for (const item of items) {
+    const link = item.link || item.guid || "";
+    const key = canonicalStoryLink(link);
+    groups.set(key, [...(groups.get(key) || []), item]);
+  }
+
+  return [...groups.values()].map((group) => {
+    const winner = group.reduce((existing, item) =>
+      canonicalLinkWinner(existing, item),
+    );
+    const identity = (item) => cleanText([
+      item.link || item.guid || "",
+      item.sourceName || "",
+      item.title || "",
+    ].join("|"));
+    const fallbacks = group
+      .filter((item) => item !== winner)
+      .sort((left, right) =>
+        canonicalLinkQuality(right) - canonicalLinkQuality(left) ||
+        identity(left).localeCompare(identity(right)),
+      );
+    const merged = fallbacks.reduce(
+      (merged, fallback) => mergeEquivalentStoryItems(merged, fallback),
+      winner,
+    );
+    // canonicalLinkQuality already penalizes tracking parameters, so a tidier
+    // URL only wins when the two items are otherwise peers. Keep the winning
+    // item's own link rather than substituting the cleanest URL in the group,
+    // which would discard the URL a hand-logged clip actually recorded.
+    const canonical = { ...merged, link: winner.link || winner.guid };
+    const canonicalGuid = winner.guid || merged.guid;
+    if (canonicalGuid) {
+      canonical.guid = canonicalGuid;
+    }
+    return canonical;
+  });
+}
+
 export function dedupeResolvedItems(items) {
   const seenLinks = new Set();
-  const seenTitleDomain = new Set();
+  const seenTitleDomain = new Map();
   const seenTitleOutlet = new Map();
   const seenTitleAny = new Map();
   const result = [];
 
-  for (const item of items) {
+  for (const item of selectCanonicalLinkWinners(items)) {
     const link = item.link || item.guid || "";
     if (seenLinks.has(link)) {
       continue;
@@ -370,17 +640,36 @@ export function dedupeResolvedItems(items) {
       : "";
 
     if (titleKey && seenTitleDomain.has(titleKey) && !item.fromMediaTracker) {
+      const existingIndex = seenTitleDomain.get(titleKey);
+      if (Number.isInteger(existingIndex)) {
+        result[existingIndex] = mergeEquivalentStoryItems(
+          result[existingIndex],
+          item,
+        );
+      }
       continue;
     }
 
     if (normalizedTitle && seenTitleAny.has(normalizedTitle)) {
       const existingIndex = seenTitleAny.get(normalizedTitle);
       const existingItem = result[existingIndex];
-      if (item.fromMediaTracker && !existingItem.fromMediaTracker) {
-        result[existingIndex] = item;
+      let existingDomain = "";
+      try {
+        existingDomain = new URL(existingItem.link || existingItem.guid || "")
+          .hostname.replace(/^www\./, "");
+      } catch {
+        existingDomain = "";
+      }
+      const existingIsAggregator = existingDomain === "news.google.com";
+      if (
+        item.fromMediaTracker &&
+        !existingItem.fromMediaTracker &&
+        existingIsAggregator
+      ) {
+        result[existingIndex] = mergeEquivalentStoryItems(item, existingItem);
         seenLinks.add(link);
         if (titleKey) {
-          seenTitleDomain.add(titleKey);
+          seenTitleDomain.set(titleKey, existingIndex);
         }
         if (storyKey) {
           seenTitleOutlet.set(storyKey, existingIndex);
@@ -392,6 +681,7 @@ export function dedupeResolvedItems(items) {
         !item.fromMediaTracker &&
         isAggregatorItem
       ) {
+        result[existingIndex] = mergeEquivalentStoryItems(existingItem, item);
         continue;
       }
     }
@@ -411,21 +701,23 @@ export function dedupeResolvedItems(items) {
       // A hand-logged clip carries the outlet and URL the team recorded, so
       // it wins a title collision against a copy the crawler happened to find.
       if (item.fromMediaTracker && !existingItem.fromMediaTracker) {
-        result[existingIndex] = item;
+        result[existingIndex] = mergeEquivalentStoryItems(item, existingItem);
         seenLinks.add(link);
         if (titleKey) {
-          seenTitleDomain.add(titleKey);
+          seenTitleDomain.set(titleKey, existingIndex);
         }
         continue;
       }
 
       if (existingIsAggregator || isAggregatorItem) {
         if (existingIsAggregator && !isAggregatorItem) {
-          result[existingIndex] = item;
+          result[existingIndex] = mergeEquivalentStoryItems(item, existingItem);
           seenLinks.add(link);
           if (titleKey) {
-            seenTitleDomain.add(titleKey);
+            seenTitleDomain.set(titleKey, existingIndex);
           }
+        } else {
+          result[existingIndex] = mergeEquivalentStoryItems(existingItem, item);
         }
         continue;
       }
@@ -433,7 +725,7 @@ export function dedupeResolvedItems(items) {
 
     seenLinks.add(link);
     if (titleKey) {
-      seenTitleDomain.add(titleKey);
+      seenTitleDomain.set(titleKey, result.length);
     }
     if (storyKey) {
       seenTitleOutlet.set(storyKey, result.length);
@@ -452,40 +744,31 @@ export function mergeWithArchive(currentItems, archivedItems, now = new Date()) 
 
   function mergeSameLink(existing, incoming) {
     if (!existing) {
-      return incoming;
+      return {
+        ...incoming,
+        firstSeenAt: parseDate(incoming.firstSeenAt) || now,
+      };
     }
 
-    const curated = incoming.fromMediaTracker
-      ? incoming
-      : existing.fromMediaTracker
-        ? existing
-        : null;
-    if (!curated) {
-      return incoming;
-    }
-
+    const linkItem = canonicalLinkPresentation(incoming, existing);
     return {
-      ...existing,
-      ...incoming,
-      matchedTerms: canonicalizeMatchedTerms([
-        ...(existing.matchedTerms || []),
-        ...(incoming.matchedTerms || []),
-      ]),
-      fromMediaTracker: true,
-      trackerOutlet:
-        curated.trackerOutlet ||
-        existing.trackerOutlet ||
-        incoming.trackerOutlet,
-      matchSource: curated.matchSource || "mediaTracker",
+      ...mergeEquivalentStoryItems(incoming, existing, {
+        preferPrimaryVerdict: true,
+      }),
+      link: linkItem.link || linkItem.guid,
+      guid: linkItem.guid || linkItem.link,
+      firstSeenAt: earliestFirstSeenAt(existing, incoming) || now,
     };
   }
 
-  for (const item of archivedItems) {
-    byLink.set(item.link, mergeSameLink(byLink.get(item.link), item));
+  for (const item of selectCanonicalLinkWinners(archivedItems)) {
+    const key = canonicalStoryLink(item.link || item.guid || "");
+    byLink.set(key, mergeSameLink(byLink.get(key), item));
   }
   // Current items win: they carry fresh enrichment.
-  for (const item of currentItems) {
-    byLink.set(item.link, mergeSameLink(byLink.get(item.link), item));
+  for (const item of selectCanonicalLinkWinners(currentItems)) {
+    const key = canonicalStoryLink(item.link || item.guid || "");
+    byLink.set(key, mergeSameLink(byLink.get(key), item));
   }
 
   const cutoff = now.valueOf() - ARCHIVE_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
@@ -498,14 +781,17 @@ export function mergeWithArchive(currentItems, archivedItems, now = new Date()) 
       return false;
     }
 
-    const time = item.pubDate?.valueOf();
-    // Keep undated items; they are rare and usually recent.
-    if (time === undefined || time === null || Number.isNaN(time)) {
-      return true;
-    }
-    if (time > maxFutureTime) {
+    const publishedTime = parseDate(item.pubDate)?.valueOf();
+    const firstSeenTime = parseDate(item.firstSeenAt)?.valueOf();
+    if (Number.isFinite(publishedTime) && publishedTime > maxFutureTime) {
       return false;
     }
-    return isBrandCategoryItem(item) || isCuratedItem(item) || time >= cutoff;
+    if (isBrandCategoryItem(item) || isCuratedItem(item)) {
+      return true;
+    }
+    const retentionTime = Number.isFinite(publishedTime)
+      ? publishedTime
+      : firstSeenTime;
+    return Number.isFinite(retentionTime) && retentionTime >= cutoff;
   });
 }

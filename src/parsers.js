@@ -344,7 +344,7 @@ export function parseUvmHealthNewsroomItems(html, source) {
   const $ = cheerio.load(html);
   const items = [];
 
-  $("outline-card-clickable").each((_, element) => {
+  $("outline-card-clickable, outline-search-result").each((_, element) => {
     const card = $(element);
     const linkElement = card.find('a[href^="/newsroom/"]').first();
     const title = cleanText(linkElement.text());
@@ -362,6 +362,10 @@ export function parseUvmHealthNewsroomItems(html, source) {
     const dateText = cleanText(card.find("[slot='date']").first().text());
     const pubDate = parseDate(dateText);
     const imageAlt = cleanText(card.find("img[alt]").first().attr("alt") || "");
+    const description = cleanText(
+      card.find("[slot='body']").first().text() || imageAlt,
+    );
+    const partner = cleanText(card.find("[slot='eyebrow']").first().text());
 
     items.push({
       sourceName: source.name,
@@ -373,9 +377,9 @@ export function parseUvmHealthNewsroomItems(html, source) {
       link,
       guid: link,
       pubDate,
-      description: imageAlt,
+      description,
       feedContent: cleanText(
-        [title, imageAlt, "UVM Health", "Vermont health care"]
+        [title, description, partner, "UVM Health"]
           .filter(Boolean)
           .join(" "),
       ),
@@ -1300,6 +1304,143 @@ export function articlePageMatchesTitle(
     ).length;
     return matches >= requiredMatches && matches / expectedTokens.size >= 0.3;
   });
+}
+
+function normalizedArticleUrl(value) {
+  const url = new URL(value);
+  for (const key of [...url.searchParams.keys()]) {
+    if (
+      /^(?:utm_.+|fbclid|gclid|dclid|msclkid|mc_cid|mc_eid)$/i.test(key)
+    ) {
+      url.searchParams.delete(key);
+    }
+  }
+  url.searchParams.sort();
+  return {
+    host: `${url.hostname.replace(/^www\./i, "").toLowerCase()}${
+      url.port ? `:${url.port}` : ""
+    }`,
+    pathname: url.pathname.replace(/\/+$/, "") || "/",
+    query: url.searchParams.toString(),
+  };
+}
+
+export function articleUrlsMatch(left, right) {
+  try {
+    const leftUrl = normalizedArticleUrl(left);
+    const rightUrl = normalizedArticleUrl(right);
+    return (
+      leftUrl.host === rightUrl.host &&
+      leftUrl.pathname === rightUrl.pathname &&
+      leftUrl.query === rightUrl.query
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function articleUrlQueriesMatch(left, right) {
+  try {
+    return normalizedArticleUrl(left).query === normalizedArticleUrl(right).query;
+  } catch {
+    return false;
+  }
+}
+
+function jsonLdDeclaresArticle(value, expectedUrl) {
+  if (Array.isArray(value)) {
+    return value.some((entry) => jsonLdDeclaresArticle(entry, expectedUrl));
+  }
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const types = Array.isArray(value["@type"])
+    ? value["@type"]
+    : [value["@type"]];
+  const isArticle = types.some((type) =>
+    /^(?:article|newsarticle|reportagenewsarticle)$/i.test(String(type || "")),
+  );
+  if (isArticle) {
+    const declaredUrl = value.url || value.mainEntityOfPage?.["@id"] || "";
+    return !declaredUrl || articleUrlsMatch(declaredUrl, expectedUrl);
+  }
+
+  return Object.values(value).some((entry) =>
+    jsonLdDeclaresArticle(entry, expectedUrl),
+  );
+}
+
+// A publisher can return a soft 404 or its homepage at the requested URL.
+// When the visible title changed, require evidence that the response is still
+// an article before body text is trusted for brand matching.
+function articlePageHasMissingMarker($) {
+  const pageIdentity = cleanText([
+    $("title").first().text(),
+    $("h1").first().text(),
+    $("meta[property='og:title']").attr("content") || "",
+  ].join(" "));
+  const bodyLead = cleanText(
+    $("main, article, [role='main'], body").first().text(),
+  ).slice(0, 400);
+  const identityMissing =
+    /(?:\b404\b|\bpage not found\b|\barticle not found\b|\bstory not found\b)/i
+      .test(pageIdentity);
+  const bodyMissing =
+    /(?:^|\s)(?:error\s*)?404\s*[:|-]?\s*(?:page\s+)?not found\b/i
+      .test(bodyLead) ||
+    /^(?:page|article|story) not found\b/i.test(bodyLead);
+  return identityMissing || bodyMissing;
+}
+
+function articlePageCanonical($, expectedUrl) {
+  return resolveUrl(
+    $('link[rel="canonical"]').first().attr("href"),
+    expectedUrl,
+  );
+}
+
+export function articlePageContradictsExpectedIdentity(html, expectedUrl) {
+  const $ = cheerio.load(html);
+  if (articlePageHasMissingMarker($)) {
+    return true;
+  }
+  const canonical = articlePageCanonical($, expectedUrl);
+  return Boolean(canonical) && !articleUrlsMatch(canonical, expectedUrl);
+}
+
+export function articlePageHasArticleEvidence(html, expectedUrl) {
+  const $ = cheerio.load(html);
+  if (articlePageHasMissingMarker($)) {
+    return false;
+  }
+  const canonical = articlePageCanonical($, expectedUrl);
+  if (canonical) {
+    return articleUrlsMatch(canonical, expectedUrl);
+  }
+  if (/^article$/i.test($("meta[property='og:type']").attr("content") || "")) {
+    return true;
+  }
+  if ($("[itemprop='articleBody']").length > 0) {
+    return true;
+  }
+  if (
+    $("article").filter((_, article) =>
+      $(article).find("p, [itemprop='articleBody']").length > 0,
+    ).length > 0
+  ) {
+    return true;
+  }
+
+  return $("script[type='application/ld+json']")
+    .toArray()
+    .some((script) => {
+      try {
+        return jsonLdDeclaresArticle(JSON.parse($(script).text()), expectedUrl);
+      } catch {
+        return false;
+      }
+    });
 }
 
 // ---------------------------------------------------------------------------

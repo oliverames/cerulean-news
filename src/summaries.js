@@ -8,6 +8,7 @@ import {
   isJobListingItem,
   isSocialVideoItem,
   itemCategory,
+  itemOutletName,
   itemSourceType,
 } from "./relevance.js";
 
@@ -20,11 +21,16 @@ import {
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY?.trim() || "";
 // Fallback chain: start with the current stable Flash-Lite model because it is
 // the lowest-cost/free-tier-friendly option. Active project limits still vary
-// and should be checked in AI Studio; a model that 404s or 429s passes through.
+// and should be checked in AI Studio. A missing model or exhausted short retry
+// cycle can fall through; a longer explicit server delay defers the batch.
 const GEMINI_MODELS = [
   "gemini-2.5-flash-lite",
   "gemini-2.5-flash",
 ];
+const GEMINI_MAX_ATTEMPTS_PER_MODEL = 3;
+const GEMINI_RETRY_BASE_DELAY_MS = 1000;
+const GEMINI_RETRY_MAX_DELAY_MS = 60000;
+const GEMINI_REQUEST_TIMEOUT_MS = 90000;
 const SUMMARY_BATCH_SIZE = parsePositiveInteger(process.env.SUMMARY_BATCH_SIZE, 10);
 const SUMMARY_BATCH_DELAY_MS = parsePositiveInteger(
   process.env.SUMMARY_BATCH_DELAY_MS,
@@ -252,7 +258,7 @@ export function buildSummaryPrompt(batch) {
       return [
         `ARTICLE ${index + 1}`,
         `TITLE: ${item.title}`,
-        `OUTLET: ${item.sourceName}`,
+        `OUTLET: ${itemOutletName(item)}`,
         `MATCHED KEYWORDS: ${(item.matchedTerms || []).join(", ")}`,
         `MENTIONS BCBSVT: ${shouldScoreSentiment(item) ? "yes" : "no"}`,
         ...(matchStorylines(item).length > 0
@@ -378,44 +384,164 @@ export function parseSummaryResponse(text, batch) {
   return applied;
 }
 
-async function geminiGenerate(prompt) {
+function retryAfterHeaderMs(value, nowMs) {
+  const text = String(value || "").trim();
+  if (!text) return 0;
+  if (/^\d+$/.test(text)) {
+    return Number.parseInt(text, 10) * 1000;
+  }
+  const dateMs = Date.parse(text);
+  return Number.isFinite(dateMs) ? Math.max(0, dateMs - nowMs) : 0;
+}
+
+function retryInfoDelayMs(payload) {
+  const details = Array.isArray(payload?.error?.details)
+    ? payload.error.details
+    : [];
+  for (const detail of details) {
+    if (
+      !String(detail?.["@type"] || "").endsWith("/google.rpc.RetryInfo")
+    ) {
+      continue;
+    }
+    const match = String(detail.retryDelay || "").trim().match(/^(\d+(?:\.\d+)?)s$/);
+    if (match) {
+      return Math.ceil(Number.parseFloat(match[1]) * 1000);
+    }
+  }
+  return 0;
+}
+
+async function geminiResponseError(response, model, nowMs) {
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    try {
+      await response.body?.cancel();
+    } catch {
+      // The status still carries enough information to classify the failure.
+    }
+  }
+  const detail = cleanText(payload?.error?.message || "").slice(0, 180);
+  const error = new Error(
+    `HTTP ${response.status} from ${model}${detail ? `: ${detail}` : ""}`,
+  );
+  error.status = response.status;
+  error.retryAfterMs = Math.max(
+    retryAfterHeaderMs(response.headers?.get?.("retry-after"), nowMs),
+    retryInfoDelayMs(payload),
+  );
+  return error;
+}
+
+function isTransientGeminiError(error) {
+  if (!Number.isInteger(error?.status)) {
+    return true;
+  }
+  return (
+    error.status === 408 ||
+    error.status === 429 ||
+    (error.status >= 500 && error.status <= 599)
+  );
+}
+
+function geminiRetryDelayMs(error, attempt, options) {
+  if (error.retryAfterMs) {
+    return error.retryAfterMs;
+  }
+  const baseDelay = Math.min(
+    options.retryMaxDelayMs,
+    options.retryBaseDelayMs * (2 ** (attempt - 1)),
+  );
+  const jitter = Math.floor(baseDelay * 0.25 * options.random());
+  return Math.min(options.retryMaxDelayMs, baseDelay + jitter);
+}
+
+export async function geminiGenerate(prompt, options = {}) {
+  const settings = {
+    apiKey: options.apiKey ?? GEMINI_API_KEY,
+    models: options.models || GEMINI_MODELS,
+    fetchImpl: options.fetchImpl || fetch,
+    sleepImpl: options.sleepImpl || sleep,
+    random: options.random || Math.random,
+    nowMs: options.nowMs || (() => Date.now()),
+    maxAttemptsPerModel:
+      options.maxAttemptsPerModel || GEMINI_MAX_ATTEMPTS_PER_MODEL,
+    retryBaseDelayMs:
+      options.retryBaseDelayMs ?? GEMINI_RETRY_BASE_DELAY_MS,
+    retryMaxDelayMs:
+      options.retryMaxDelayMs ?? GEMINI_RETRY_MAX_DELAY_MS,
+    requestTimeoutMs:
+      options.requestTimeoutMs ?? GEMINI_REQUEST_TIMEOUT_MS,
+  };
   let lastError = null;
 
-  for (const model of GEMINI_MODELS) {
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-goog-api-key": GEMINI_API_KEY,
-          },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              responseMimeType: "application/json",
-              temperature: 0.2,
+  for (const model of settings.models) {
+    for (
+      let attempt = 1;
+      attempt <= settings.maxAttemptsPerModel;
+      attempt += 1
+    ) {
+      try {
+        const response = await settings.fetchImpl(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-goog-api-key": settings.apiKey,
             },
-          }),
-          signal: AbortSignal.timeout(90000),
-        },
-      );
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                responseMimeType: "application/json",
+                temperature: 0.2,
+              },
+            }),
+            signal: AbortSignal.timeout(settings.requestTimeoutMs),
+          },
+        );
 
-      if (!response.ok) {
-        lastError = new Error(`HTTP ${response.status} from ${model}`);
-        continue;
-      }
+        if (!response.ok) {
+          throw await geminiResponseError(response, model, settings.nowMs());
+        }
 
-      const data = await response.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) {
-        lastError = new Error(`Empty response from ${model}`);
-        continue;
+        const data = await response.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) {
+          lastError = new Error(`Empty response from ${model}`);
+          break;
+        }
+        return text;
+      } catch (error) {
+        lastError = error;
+        if (!isTransientGeminiError(error)) {
+          // A missing model can fall through to the next configured model.
+          // Other client errors describe the request or credentials and will
+          // repeat unchanged across the model list.
+          if (error.status === 404) {
+            break;
+          }
+          throw error;
+        }
+        if (
+          attempt >= settings.maxAttemptsPerModel
+        ) {
+          break;
+        }
+        const delayMs = geminiRetryDelayMs(error, attempt, settings);
+        if (delayMs > settings.retryMaxDelayMs) {
+          // Do not retry before an explicit server delay. The next scheduled
+          // feed run can resume the unfinished batch without holding this run
+          // open for an unbounded sleep.
+          throw error;
+        }
+        console.warn(
+          `Gemini ${model} attempt ${attempt} failed; retrying in ${delayMs}ms: ${error.message}`,
+        );
+        await settings.sleepImpl(delayMs);
       }
-      return text;
-    } catch (error) {
-      lastError = error;
     }
   }
 

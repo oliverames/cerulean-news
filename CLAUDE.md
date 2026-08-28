@@ -3,8 +3,8 @@
 Personal project: an hourly news monitor that publishes RSS/JSON feeds and a
 text-only reader page for Blue Cross VT mentions and Vermont health care news.
 GitHub Actions regenerates and deploys `site/` to GitHub Pages hourly; the
-live `feed-audit.json` is the durable archive, summary cache, and
-failure-streak store (each run seeds from it before generating).
+live `feed-audit.json` is the durable archive, summary cache, and source-health
+store (each run seeds from it before generating).
 
 ## Layout
 
@@ -55,21 +55,22 @@ and set `RSS_ARTICLE_SCAN=false` for speed.
 - The audit JSON is the persistence layer: anything written into its `sources`
   array or item fields survives across runs via the workflow's seed step.
   Rejected items stay in the audit but are excluded from public feeds.
-- The per-domain politeness delay (`RSS_DOMAIN_DELAY_MS`, 1s) genuinely
-  dominates run time (~9 min builds) because only matched items are cached;
-  unmatched articles are re-fetched each run. See WORKLOG 2026-06-12.
+- Article cache entries are written only after an article request. Source
+  policies that skip article fetching must not create blank negative entries.
+  Successful and negative fetch results expire according to the TTL rules in
+  `src/enrich.js`.
 - TownNews-platform outlets (Times Argus, Rutland Herald, Bennington Banner,
   Reformer, VTCNG, Newport, St. Albans) share rate limiting; clustered 429s
   usually mean too many runs in a short window, not a broken source.
 - Date-bounded sources auto-skip once `maxPubDate` passes (see
   `isSourceWindowClosed`); archived brand items are retained indefinitely.
-- Gemini 429s are a per-minute rate limit, not an exhausted daily quota. A run
-  on 2026-08-27 summarized 10/10 in its first batch and 429'd on the second, so
-  a failure does not mean scoring is finished for the day. `summarizeItems`
-  abandons the whole run on the first batch failure, which makes a transient
-  limit cost an entire run's scoring; prefer a small
-  `summary_max_requests` on a dispatched re-score, because a large one simply
-  fails on batch one and accomplishes nothing.
+- Gemini requests retry transient network, 408, 429, and 5xx failures up to
+  three times per model with exponential backoff and jitter. The retry honors
+  `Retry-After` when present. If both models still fail, later batches stop and
+  the unfinished items remain pending for the next run.
+- First-party listing sources declare `minimumParsedItems`. A fresh 200 response
+  below that minimum is a source failure, while a 304, fresh cache skip, or
+  date-bounded empty result remains healthy.
 - Re-scoring (`SUMMARY_RESCORE_SENTIMENT`) sweeps oldest-first, so repeated
   runs cover the archive. A normal run takes newest-first, which is right for
   items that have never been scored.

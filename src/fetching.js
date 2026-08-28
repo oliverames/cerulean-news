@@ -786,7 +786,11 @@ async function fetchItemsForSource(source, now, crawlState, metrics) {
       sourceItems = applySourceItemBounds(sourceItems, source, now);
     } else if (source.listingUrl) {
       feedUrl = source.listingUrl;
-      const { text: html, notModified: pageNotModified } = await fetchSourceText(
+      const {
+        text: html,
+        notModified: pageNotModified,
+        cacheFresh: pageCacheFresh,
+      } = await fetchSourceText(
         source,
         sourceState,
         feedUrl,
@@ -803,6 +807,17 @@ async function fetchItemsForSource(source, now, crawlState, metrics) {
         sourceItems = parseCnnHealthSitemapItems(html, source);
       } else {
         sourceItems = parseBlueCrossVtListingItems(html, source);
+      }
+      const minimumParsedItems = Number(source.minimumParsedItems || 0);
+      if (
+        !pageNotModified &&
+        !pageCacheFresh &&
+        minimumParsedItems > 0 &&
+        sourceItems.length < minimumParsedItems
+      ) {
+        throw new Error(
+          `${source.name} listing parser returned ${sourceItems.length} items; expected at least ${minimumParsedItems}`,
+        );
       }
       sourceItems = applySourceItemBounds(sourceItems, source, now);
     } else {

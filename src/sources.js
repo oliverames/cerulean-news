@@ -116,12 +116,13 @@ export const DEFAULT_SOURCES = [
   },
   {
     name: "UVM Health Newsroom",
-    homepage: "https://www.uvmhealth.org/newsroom",
-    listingUrl: "https://www.uvmhealth.org/newsroom",
+    homepage: "https://www.uvmhealth.org/newsroom/search",
+    listingUrl: "https://www.uvmhealth.org/newsroom/search",
     listingParser: "uvmHealthNewsroom",
     searchFallbackTerms: ["UVM Health"],
     scanArticle: false,
-    maxItems: 10,
+    maxItems: 15,
+    minimumParsedItems: 1,
   },
   {
     name: "BlueCrossVT Newsroom",
@@ -129,6 +130,7 @@ export const DEFAULT_SOURCES = [
     listingUrl: "https://www.bluecrossvt.org/health-community/news",
     searchFallbackTerms: ["bluecrossvt.org"],
     scanArticle: false,
+    minimumParsedItems: 1,
   },
   {
     name: "BlueCrossVT Be Well VT Blog",
@@ -136,6 +138,7 @@ export const DEFAULT_SOURCES = [
     listingUrl: "https://www.bluecrossvt.org/health-community/blog/listing",
     searchFallbackTerms: ["bluecrossvt.org"],
     scanArticle: false,
+    minimumParsedItems: 1,
   },
   {
     name: "BCBSA Association News",
@@ -145,6 +148,7 @@ export const DEFAULT_SOURCES = [
     searchFallbackTerms: ["Blue Cross Blue Shield Association"],
     scanArticle: false,
     maxItems: 20,
+    minimumParsedItems: 1,
   },
   {
     name: "Addison Independent",

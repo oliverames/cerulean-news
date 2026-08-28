@@ -98,7 +98,7 @@ body.
 
 The matcher scans feed titles, descriptions, source text, and, when enabled, selected article pages. Brand terms scan both feed text and article body text. Topic terms scan feed text only, because full article bodies mention health care too often for that to be precise.
 
-Article scanning is selective. Items with a brand, topic, declared search fallback, or brand-required source signal can fetch article pages for body text and comments. Items with no feed-level signal are cached as negative results for a bounded period instead of being scraped again every run. Sources can also opt into `feedOnly`, `smart`, `brandBody`, or `always` article scan modes through source metadata.
+Article scanning is selective. Items with a brand, topic, declared search fallback, or brand-required source signal can fetch article pages for body text and comments. The collector caches a negative result only after it fetched the article and found no match. Items that source policy does not fetch leave no blank cache record. Sources can also opt into `feedOnly`, `smart`, `brandBody`, or `always` article scan modes through source metadata.
 
 For articles labeled `Paywall likely`, the collector also tries to publish a clearly labeled publisher preview from the normal unauthenticated page response. The preview is capped at two editorial paragraphs and 600 characters, excludes subscription and login prompts, and is cached separately from generated summaries. The collector does not use authenticated sessions, alternate user agents, AMP or cache copies, archive services, or embedded full-article metadata to bypass access controls.
 
@@ -125,6 +125,8 @@ The relevance gate then removes common false positives:
 | Broad national health lifestyle stories | Rejected unless they include payer, policy, coverage, or regional signals |
 | Out-of-region outbreaks | Rejected unless they include policy, payer, or regional relevance |
 | Infrastructure or grant stories | Rejected when health care is only an incidental phrase |
+| Publisher placeholders, search pages, indexes, and provider directories | Rejected by narrow title and URL rules before summaries are published |
+| Job listings and social discovery pages | Rejected because they are not press coverage |
 | BlueCrossVT.org posts | Available as a section but hidden from the default All view |
 | Social posts | Not collected by default; archived social items are pruned unless `ENABLE_SOCIAL_SOURCES=true` is set |
 
@@ -233,9 +235,9 @@ trends page groups by that rather than by `sourceName`.
 | `RSS_MAX_RESPONSE_BYTES` | No | `10485760` | Maximum decompressed response size before a fetch is abandoned |
 | `RSS_ARTICLE_SCAN` | No | `true` | Set to `false` to filter only RSS feed text |
 | `RSS_PREVIEW_BACKFILL_MAX_PER_RUN` | No | `25` | Maximum archived paywall stories to revisit for previews in one run |
-| `RSS_NEGATIVE_CACHE_TTL_DAYS` | No | `14` | Days to keep article cache entries, including negative no-match results, before validating or refreshing. No-match verdicts caused by a failed article fetch expire after one day regardless, so a transient 429 or timeout cannot suppress matching for two weeks. |
+| `RSS_NEGATIVE_CACHE_TTL_DAYS` | No | `14` | Days to keep article cache entries written after an article fetch, including negative no-match results, before validating or refreshing. No-match verdicts caused by a failed fetch expire after one day, so a transient 429 or timeout cannot suppress matching for two weeks. |
 | `RSS_MAX_FUTURE_HOURS` | No | `6` | Future-dated item tolerance before exclusion |
-| `ARCHIVE_MAX_AGE_DAYS` | No | `92` | Maximum age for topic-only archived stories |
+| `ARCHIVE_MAX_AGE_DAYS` | No | `92` | Maximum age for topic-only archived stories. Undated stories use their persisted first-seen date. |
 | `FEED_URL` | No | empty | Public URL for the RSS self-link |
 | `JSON_FEED_URL` | No | empty | Public URL for the JSON Feed |
 | `SITE_URL` | No | empty | Public base URL for the channel link |
@@ -253,7 +255,9 @@ trends page groups by that rather than by `sourceName`.
 | `FACEBOOK_PAGE_URLS` | No | empty | Optional comma- or newline-separated `Name\|URL` public Facebook pages, used only when social sources are enabled |
 | `FACEBOOK_PAGE_MAX_POSTS` | No | `10` | Maximum post links to read from each configured Facebook page when social sources are enabled |
 
-Gemini rate limits vary by project, model, and usage tier. The summarizer starts with `gemini-2.5-flash-lite`, batches stories, caches successful summaries in `feed-audit.json`, and caps requests per run so hourly refreshes stay conservative.
+Gemini rate limits vary by project, model, and usage tier. The summarizer batches stories, caches successful summaries in `feed-audit.json`, and caps requests per run. Each configured model gets up to three attempts for network failures, HTTP 408 or 429, and transient 5xx responses. The retry uses exponential backoff with jitter and honors `Retry-After` when present. A batch that still fails remains pending for the next scheduled run.
+
+Fresh first-party listing responses must produce at least one parser result. A zero-result response marks that source unhealthy instead of resetting its failure streak after a site redesign. Cached responses, `304 Not Modified` responses, and nonempty listings reduced to zero by date bounds remain healthy. Webhook delivery state is endpoint-specific, so a failed Slack or Discord request retries without duplicating a delivery the other endpoint accepted.
 
 Source cooldowns are automatic when a primary feed has a fallback. HTTP 403 primary failures cool down for 24 hours, HTTP 429 failures use `Retry-After` (delta-seconds or HTTP-date form, capped at 24 hours) when present or two hours otherwise, and other primary errors cool down for one hour. During cooldown, the run goes straight to the fallback feed and records the reason in the audit feed. In-run retries treat HTTP 429 and 408 as transient and sleep up to 15 seconds between attempts; if `Retry-After` asks for longer than that, the fetch fails fast and the cooldown machinery takes over. Non-UTF-8 responses decode using the `Content-Type` charset or the document's own declaration, with bytes that validate as UTF-8 always taking precedence. Feed and article responses also store `ETag` and `Last-Modified` validators when servers provide them.
 
@@ -323,7 +327,7 @@ RSS_ARTICLE_SCAN=false \
 npm run generate
 ```
 
-The publish workflow runs on pushes to `main`, manual dispatches, and an hourly schedule. Scheduled and manual runs always do a full test and feed generation pass. Pushes that only change static reader or documentation files reuse the live feed seeded into `site/` and deploy the static artifact without crawling every source again.
+The publish workflow runs on pushes to `main`, manual dispatches, and an hourly schedule. Every run installs dependencies and runs the test suite. Scheduled and manual runs then generate the feed. Pushes that only change static reader or documentation files reuse the live feed seeded into `site/` and deploy the static artifact without crawling every source again.
 
 ## License
 
