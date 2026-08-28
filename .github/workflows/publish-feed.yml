@@ -88,18 +88,15 @@ jobs:
           enablement: true
 
       - name: Set up Node.js
-        if: steps.mode.outputs.full == 'true'
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 22
           cache: npm
 
       - name: Install dependencies
-        if: steps.mode.outputs.full == 'true'
         run: npm ci
 
       - name: Run tests
-        if: steps.mode.outputs.full == 'true'
         run: npm test
 
       # The live feed-audit.json is the durable archive and summary cache.
@@ -118,7 +115,7 @@ jobs:
           # it as "no archive" and the deploy would shrink the live history).
           seed() {
             local url="$1" label="$2"
-            if curl -fsSL --retry 3 --retry-delay 5 --max-time 60 "$url" -o /tmp/seed.json \
+            if curl -fsSL --compressed --retry 3 --retry-delay 5 --max-time 60 "$url" -o /tmp/seed.json \
               && jq -e '
                 .audit == true and
                 (.items | type == "array") and
@@ -174,7 +171,7 @@ jobs:
 
           fetch_live() {
             local name="$1" check="$2"
-            if curl -fsSL --retry 3 --retry-delay 5 --max-time 60 \
+            if curl -fsSL --compressed --retry 3 --retry-delay 5 --max-time 60 \
                  "$SITE_URL/$name" -o "/tmp/$name"; then
               if [ "$check" = "json" ]; then
                 jq -e '.items | type == "array"' "/tmp/$name" > /dev/null

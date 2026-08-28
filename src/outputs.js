@@ -6,6 +6,7 @@ import {
   cleanText,
   escapeXml,
   normalizePreviewText,
+  parseDate,
   sortItemsByDate,
   wrapCdata,
 } from "./utils.js";
@@ -260,7 +261,27 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
     visibleItemCount: items.length - rejectedItemCount,
     rejectedItemCount,
     audit: includeRejected || undefined,
-    sources: sourceResults,
+    // Persist successful deliveries without exposing webhook platform names
+    // in the publicly deployed audit archive.
+    sources: sourceResults.map((source) => {
+      const {
+        failureAlertDeliveries,
+        ...safeSource
+      } = source;
+      if (includeRejected) {
+        return {
+          ...safeSource,
+          ...(failureAlertDeliveries?.length > 0
+            ? {
+                failureAlertDeliveries: [
+                  ...new Set(failureAlertDeliveries),
+                ],
+              }
+            : {}),
+        };
+      }
+      return safeSource;
+    }),
     crawlMetrics: includeRejected ? options.crawlMetrics : undefined,
     crawlState: includeRejected ? options.crawlState : undefined,
     items: outputItems.map((item) => {
@@ -302,6 +323,12 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
         link: item.link,
         guid: item.guid || item.link,
         pubDate: item.pubDate?.toISOString() || null,
+        // Audit-only retention metadata for stories whose publisher supplied
+        // no usable date. It must persist across runs without pretending to be
+        // a publication date in the public feed.
+        firstSeenAt: includeRejected && !parseDate(item.pubDate)
+          ? parseDate(item.firstSeenAt)?.toISOString() || undefined
+          : undefined,
         matchedTerms,
         // Recomputed rather than echoed, so an item classified under an older
         // rule is corrected in place instead of staying misfiled forever.

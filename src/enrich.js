@@ -19,7 +19,11 @@ import {
   TOPIC_TERMS,
 } from "./matching.js";
 import {
+  articlePageContradictsExpectedIdentity,
+  articlePageHasArticleEvidence,
   articlePageMatchesTitle,
+  articleUrlQueriesMatch,
+  articleUrlsMatch,
   extractArticleComments,
   extractArticlePreview,
   htmlToArticleText,
@@ -232,6 +236,21 @@ function fallbackMatchForItem(item) {
   };
 }
 
+function cachedRejectionNeedsRejudge(item, cached, freshMatchedTerms) {
+  if (cached?.relevant !== false) {
+    return false;
+  }
+  const cachedTerms = new Set(
+    canonicalizeMatchedTerms(cached.matchedTerms || []),
+  );
+  const hasNewTerm = freshMatchedTerms.some((term) => !cachedTerms.has(term));
+  const cachedTitle = cleanText(cached.title || "").toLowerCase();
+  const currentTitle = cleanText(item.title || "").toLowerCase();
+  const titleChanged = Boolean(cachedTitle && currentTitle) &&
+    cachedTitle !== currentTitle;
+  return hasNewTerm || titleChanged;
+}
+
 function itemFromArticleCache(
   item,
   resolvedLink,
@@ -389,19 +408,7 @@ export function selectPreviewBackfillItems(
 }
 
 function articleUrlMateriallyChanged(originalUrl, finalUrl) {
-  try {
-    const original = new URL(originalUrl);
-    const final = new URL(finalUrl);
-    const originalHost = original.hostname.replace(/^www\./i, "").toLowerCase();
-    const finalHost = final.hostname.replace(/^www\./i, "").toLowerCase();
-    const normalizePath = (pathname) => pathname.replace(/\/+$/, "") || "/";
-    return (
-      originalHost !== finalHost ||
-      normalizePath(original.pathname) !== normalizePath(final.pathname)
-    );
-  } catch {
-    return originalUrl !== finalUrl;
-  }
+  return !articleUrlsMatch(originalUrl, finalUrl);
 }
 
 export async function enrichAndFilterItems(items, cache = new Map(), options = {}) {
@@ -458,16 +465,32 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
         ...(freshArticleCache?.matchedTerms || []),
       ],
     );
+    const articleFetchNeeded =
+      shouldFetchArticle(item, feedBrandMatches, topicMatches) ||
+      previewRequested;
 
     if (matchedCacheEntry) {
       bumpMetric(metrics, "matchedCacheHits");
       const cached = matchedCacheEntry;
-      let matchedTerms = canonicalizeMatchedTerms([
-        ...(cached.matchedTerms || []),
+      const freshMatchedTerms = canonicalizeMatchedTerms([
         ...feedBrandMatches,
         ...topicMatches,
       ]);
-      let matchSource = cached.matchSource || "";
+      const rejudgeCachedRejection = cachedRejectionNeedsRejudge(
+        item,
+        cached,
+        freshMatchedTerms,
+      );
+      if (rejudgeCachedRejection) {
+        bumpMetric(metrics, "matchedCacheRejudges");
+      }
+      let matchedTerms = canonicalizeMatchedTerms([
+        ...(cached.matchedTerms || []),
+        ...freshMatchedTerms,
+      ]);
+      let matchSource = rejudgeCachedRejection
+        ? "text"
+        : cached.matchSource || "";
       if (matchedTerms.length === 0) {
         const fallback = fallbackMatchForItem(item);
         matchedTerms = fallback.matchedTerms;
@@ -479,20 +502,27 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
         matchedTerms,
         category: itemCategory({ ...item, link: resolvedLink, matchedTerms }),
         pubDate: item.pubDate || cached.pubDate || null,
-        snippet: cleanStorySnippet(cached.snippet, item.title),
-        previewText: normalizePreviewText(cached.previewText || ""),
-        previewChecked: cached.previewChecked === true,
-        summary: cached.summary || "",
-        reason: cached.reason || "",
-        relevant: cached.relevant,
-        sentiment: cached.sentiment,
-        sentimentReason: cached.sentimentReason,
+        snippet: rejudgeCachedRejection
+          ? cleanStorySnippet(item.description || "", item.title)
+          : cleanStorySnippet(cached.snippet, item.title),
+        previewText: rejudgeCachedRejection
+          ? ""
+          : normalizePreviewText(cached.previewText || ""),
+        previewChecked:
+          !rejudgeCachedRejection && cached.previewChecked === true,
+        summary: rejudgeCachedRejection ? "" : cached.summary || "",
+        reason: rejudgeCachedRejection ? "" : cached.reason || "",
+        relevant: rejudgeCachedRejection ? undefined : cached.relevant,
+        sentiment: rejudgeCachedRejection ? undefined : cached.sentiment,
+        sentimentReason: rejudgeCachedRejection
+          ? undefined
+          : cached.sentimentReason,
         comments: mergeComments(item.comments, cached.comments),
         articleError: cached.articleError,
         matchSource,
       };
       matchedCachedItem = cachedItem;
-      if (!previewRequested || cached.previewChecked === true) {
+      if (!previewRequested || cachedItem.previewChecked === true) {
         console.log(`Cache Hit: Skipping fetch/scrape for ${resolvedLink}`);
         if (cached.previewChecked === true) {
           bumpMetric(metrics, "previewCacheHits");
@@ -511,7 +541,11 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
         topicMatches,
       );
       if (!cachedItem) {
-        bumpMetric(metrics, "negativeCacheHits");
+        if (!articleFetchNeeded) {
+          bumpMetric(metrics, "articleFetchSkipped");
+        } else {
+          bumpMetric(metrics, "negativeCacheHits");
+        }
         return null;
       } else if (
         !previewRequested ||
@@ -541,8 +575,7 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
 
     const scanMode = item.articleScanMode || (item.scanArticle === false ? "feedOnly" : "smart");
     trackScanMode(metrics, scanMode);
-    const fetchArticle =
-      shouldFetchArticle(item, feedBrandMatches, topicMatches) || previewRequested;
+    const fetchArticle = articleFetchNeeded;
     const collectPreview =
       fetchArticle && isLikelyPaywalled({ ...item, link: resolvedLink });
     if (fetchArticle) {
@@ -609,11 +642,25 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
           requestedArticleUrl,
           articleUrl,
         );
-        const redirectIdentityMatches = !urlChanged || articlePageMatchesTitle(
+        const semanticQueryChanged = !articleUrlQueriesMatch(
+          requestedArticleUrl,
+          articleUrl,
+        );
+        const titleIdentityMatches = articlePageMatchesTitle(
           html,
           item.title,
           { requireEvidence: true },
         );
+        const identityContradicted = articlePageContradictsExpectedIdentity(
+          html,
+          articleUrl,
+        );
+        const redirectIdentityMatches =
+          !identityContradicted &&
+          !semanticQueryChanged &&
+          (titleIdentityMatches ||
+            (!urlChanged &&
+              articlePageHasArticleEvidence(html, articleUrl)));
         if (redirectIdentityMatches) {
           resolvedLink = articleUrl;
           articleText = htmlToArticleText(html, articleUrl);
@@ -662,21 +709,23 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
       feedBrandMatches.length === 0 &&
       articleBrandMatches.length === 0
     ) {
-      writeArticleCache(
-        articleCache,
-        articleCacheKeys(originalLink, resolvedLink),
-        item,
-        resolvedLink,
-        {
-          matchedTerms: [],
-          snippet: "",
-          comments: mergeComments(item.comments, articleComments),
-          articleError,
-          matchSource: "",
-          articleHeaders: item.articleHeaders,
-        },
-        now,
-      );
+      if (fetchArticle) {
+        writeArticleCache(
+          articleCache,
+          articleCacheKeys(originalLink, resolvedLink),
+          item,
+          resolvedLink,
+          {
+            matchedTerms: [],
+            snippet: "",
+            comments: mergeComments(item.comments, articleComments),
+            articleError,
+            matchSource: "",
+            articleHeaders: item.articleHeaders,
+          },
+          now,
+        );
+      }
       return null;
     }
 
@@ -708,21 +757,23 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
       // exists to recover. Provenance stands in for the term match.
       const fallback = fallbackMatchForItem(item);
       if (fallback.matchedTerms.length === 0) {
-        writeArticleCache(
-          articleCache,
-          articleCacheKeys(originalLink, resolvedLink),
-          item,
-          resolvedLink,
-          {
-            matchedTerms: [],
-            snippet: "",
-            comments: mergeComments(item.comments, articleComments),
-            articleError,
-            matchSource: "",
-            articleHeaders: item.articleHeaders,
-          },
-          now,
-        );
+        if (fetchArticle) {
+          writeArticleCache(
+            articleCache,
+            articleCacheKeys(originalLink, resolvedLink),
+            item,
+            resolvedLink,
+            {
+              matchedTerms: [],
+              snippet: "",
+              comments: mergeComments(item.comments, articleComments),
+              articleError,
+              matchSource: "",
+              articleHeaders: item.articleHeaders,
+            },
+            now,
+          );
+        }
         return null;
       }
       finalMatchedTerms = fallback.matchedTerms;
@@ -741,23 +792,25 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
       inheritedCache?.comments,
       articleComments,
     );
-    writeArticleCache(
-      articleCache,
-      articleCacheKeys(originalLink, resolvedLink),
-      item,
-      resolvedLink,
-      {
-        matchedTerms: finalMatchedTerms,
-        snippet,
-        previewText,
-        previewChecked,
-        comments,
-        articleError,
-        matchSource,
-        articleHeaders: item.articleHeaders,
-      },
-      now,
-    );
+    if (fetchArticle) {
+      writeArticleCache(
+        articleCache,
+        articleCacheKeys(originalLink, resolvedLink),
+        item,
+        resolvedLink,
+        {
+          matchedTerms: finalMatchedTerms,
+          snippet,
+          previewText,
+          previewChecked,
+          comments,
+          articleError,
+          matchSource,
+          articleHeaders: item.articleHeaders,
+        },
+        now,
+      );
+    }
 
     return {
       ...item,

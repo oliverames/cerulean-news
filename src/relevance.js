@@ -47,7 +47,10 @@ const NON_NEW_ENGLAND_STATE_PATTERN =
 const AMBIGUOUS_VT_PLACE_PATTERN = /\b(?:washington|georgia|florida)\b/gi;
 
 const LOCAL_INCIDENT_PATTERN =
-  /\b(?:shooting|shooter|stabbing|homicide|murder|assault|crash|collision|accident|wreck|police|sheriff|trooper|suspect|victims?|injur(?:y|ed|ies)|killed|dead|fatal|airlifted|transported)\b/i;
+  /\b(?:arrest(?:ed|s)?|shooting|shooter|stabbing|homicide|murder|assault|crash|collision|accident|wreck|police|sheriff|trooper|suspect|victims?|injur(?:y|ed|ies)|killed|dead|fatal|airlifted|transported)\b/i;
+
+const NONREGIONAL_SYNDICATION_PATH_PATTERN =
+  /(?:^|\/)(?:ap|national|world)(?:\/|$)/i;
 
 const ISOLATED_OUTBREAK_PATTERN =
   /\b(?:measles|mumps|whooping\s+cough|pertussis|outbreak|exposure|avian\s+flu|bird\s+flu)\b/i;
@@ -144,6 +147,58 @@ export function isAssociationItem(item) {
   return BCBSA_HOST_PATTERN.test(itemLink(item));
 }
 
+const ASSOCIATION_PROVIDER_PDF_PATH_PATTERN = /^\/media\/pdf\//i;
+const ASSOCIATION_PROVIDER_FILENAME_PATTERN = /(?:providers?|provider-list)\.pdf$/i;
+const ASSOCIATION_STATIC_LIST_TITLE_PATTERN = /\bstatic\s+list\b/i;
+const ASSOCIATION_NEWS_INDEX_PATH_PATTERN = /^\/about-us\/association-news\/?$/i;
+const TIKTOK_HOST_PATTERN = /(?:^|\.)tiktok\.com$/i;
+const TIKTOK_DISCOVERY_PATH_PATTERN = /^\/discover(?:\/|$)/i;
+const BLUECROSSVT_MEMBER_TOOLS_PATH_PATTERN =
+  /^\/members\/member-tools-and-resources\/?$/i;
+const EMBEDDED_DATA_MARKUP_PATTERN = /^data:[^,]{0,100},\s*<[^>]+>/i;
+
+function hasEmbeddedDataMarkupDestination(item) {
+  try {
+    const url = new URL(itemLink(item));
+    return [...url.searchParams.values()].some((value) =>
+      EMBEDDED_DATA_MARKUP_PATTERN.test(value.trim()),
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isAssociationProviderDirectoryItem(item) {
+  const pathname = itemPathname(item);
+  return (
+    itemHost(item) === "bcbs.com" &&
+    ASSOCIATION_PROVIDER_PDF_PATH_PATTERN.test(pathname) &&
+    (ASSOCIATION_PROVIDER_FILENAME_PATTERN.test(pathname) ||
+      ASSOCIATION_STATIC_LIST_TITLE_PATTERN.test(cleanText(item.title || "")))
+  );
+}
+
+function isAssociationNewsIndexItem(item) {
+  return (
+    itemHost(item) === "bcbs.com" &&
+    ASSOCIATION_NEWS_INDEX_PATH_PATTERN.test(itemPathname(item))
+  );
+}
+
+function isSocialDiscoveryPageItem(item) {
+  return (
+    TIKTOK_HOST_PATTERN.test(itemHost(item)) &&
+    TIKTOK_DISCOVERY_PATH_PATTERN.test(itemPathname(item))
+  );
+}
+
+function isBlueCrossVtMemberResourceItem(item) {
+  return (
+    itemHost(item) === "bluecrossvt.org" &&
+    BLUECROSSVT_MEMBER_TOOLS_PATH_PATTERN.test(itemPathname(item))
+  );
+}
+
 // Google News search feeds carry the search's name, not the publisher's, so
 // 84% of brand items would otherwise report an outlet of "Google News Search".
 // The publisher is recoverable from the resolved link host.
@@ -179,10 +234,19 @@ const OUTLET_NAMES = new Map([
   ["bcbs.com", "BCBS Association"],
 ]);
 
+const TRACKER_OUTLET_ALIASES = new Map([
+  ["vt digger", "VTDigger"],
+  ["vermontbiz", "Vermont Business Magazine"],
+  ["vermon business magazine", "Vermont Business Magazine"],
+]);
+
 export function itemOutletName(item) {
   // The tracker records the outlet by hand, which beats any host lookup.
   if (item.trackerOutlet) {
-    return item.trackerOutlet;
+    const trackerOutlet = cleanText(item.trackerOutlet);
+    return (
+      TRACKER_OUTLET_ALIASES.get(trackerOutlet.toLowerCase()) || trackerOutlet
+    );
   }
 
   const host = itemHost(item);
@@ -403,6 +467,7 @@ function hasRegionalSignal(item, text) {
 
   return (
     VERMONT_SOURCE_NAMES.has(item.sourceName) &&
+    !NONREGIONAL_SYNDICATION_PATH_PATTERN.test(itemPathname(item)) &&
     !NON_NEW_ENGLAND_STATE_PATTERN.test(
       text.replace(AMBIGUOUS_VT_PLACE_PATTERN, " "),
     )
@@ -421,6 +486,14 @@ function hasOnlyLowPriorityTopicTerms(matchedTerms = []) {
 }
 
 export function applyDeterministicRelevance(item) {
+  if (hasEmbeddedDataMarkupDestination(item)) {
+    return {
+      ...item,
+      relevant: false,
+      reason: "Injected data payload, not a news article destination.",
+    };
+  }
+
   const matchedTerms = canonicalizeMatchedTerms(item.matchedTerms || []);
   const category = item.category || categorizeTerms(matchedTerms);
   const observedEvidence = cleanText(
@@ -468,6 +541,38 @@ export function applyDeterministicRelevance(item) {
     };
   }
 
+  if (isAssociationProviderDirectoryItem(item)) {
+    return {
+      ...item,
+      relevant: false,
+      reason: "Association provider directory, not news coverage.",
+    };
+  }
+
+  if (isAssociationNewsIndexItem(item)) {
+    return {
+      ...item,
+      relevant: false,
+      reason: "Association news index, not an article.",
+    };
+  }
+
+  if (isSocialDiscoveryPageItem(item)) {
+    return {
+      ...item,
+      relevant: false,
+      reason: "Social search page, not news coverage.",
+    };
+  }
+
+  if (isBlueCrossVtMemberResourceItem(item)) {
+    return {
+      ...item,
+      relevant: false,
+      reason: "Member resource page, not a news or blog post.",
+    };
+  }
+
   if (isBlueCrossVtOwnedItem(item)) {
     return item.relevant === false ? { ...item, relevant: true } : item;
   }
@@ -492,6 +597,18 @@ export function applyDeterministicRelevance(item) {
   const hasRegional = hasRegionalSignal(item, evidence);
   const hasPolicy = hasNationalPolicySignal(contentEvidence, matchedTerms);
   const hasPolicyText = hasPolicyTextSignal(contentEvidence);
+
+  if (
+    !hasPolicy &&
+    hasOnlyLowPriorityTopicTerms(matchedTerms) &&
+    LOCAL_INCIDENT_PATTERN.test(cleanText(item.title || ""))
+  ) {
+    return {
+      ...item,
+      relevant: false,
+      reason: "Crime or crash brief with only an incidental provider mention.",
+    };
+  }
 
   if (
     BROAD_NATIONAL_SOURCE_NAMES.has(item.sourceName) &&

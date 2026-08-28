@@ -19,6 +19,7 @@ import {
 import { summarizeItems } from "./summaries.js";
 import {
   applyFailureStreaks,
+  configuredWebhookTargets,
   selectFailureAlerts,
   triggerWebhooks,
 } from "./alerts.js";
@@ -114,6 +115,7 @@ export async function generateFeed({
     cache,
     archivedItems,
     previousFailureStreaks,
+    previousFailureAlertState,
     crawlState,
   } = await measurePhase(crawlMetrics, "load", () =>
     loadPreviousState(auditJsonOutputPath, jsonOutputPath),
@@ -141,13 +143,20 @@ export async function generateFeed({
   const sourceResults = applyFailureStreaks(
     collected.sourceResults,
     previousFailureStreaks,
+    previousFailureAlertState,
   );
 
   // Start alerts early so their network wait overlaps the expensive feed work,
   // but join them before returning so callers know the run's side effects are
   // complete. Individual endpoint failures remain best-effort and are logged.
+  const webhookTargets = configuredWebhookTargets();
   const webhookPromise = triggerWebhooks(
-    selectFailureAlerts(sourceResults),
+    selectFailureAlerts(
+      sourceResults,
+      undefined,
+      webhookTargets.map((target) => target.id),
+    ),
+    webhookTargets,
   ).catch((error) => console.error("Webhook trigger error:", error));
 
   const currentMatched = await measurePhase(crawlMetrics, "enrich", () =>
@@ -165,6 +174,9 @@ export async function generateFeed({
   await measurePhase(crawlMetrics, "summarize", () =>
     summarizeItems(matchedItems),
   );
+  // Successful endpoint-specific alert state is written with the source
+  // results. Failed endpoints remain pending and retry on the next run.
+  await webhookPromise;
   finishCrawlMetrics(crawlMetrics, runStartedMs);
   const rss = buildRss(matchedItems, { now });
   const jsonSummary = buildJsonSummary(matchedItems, sourceResults, now);
@@ -183,8 +195,6 @@ export async function generateFeed({
     jsonOutputPath,
     auditJsonOutputPath,
   );
-  await webhookPromise;
-
   return {
     rssOutputPath,
     jsonOutputPath,
@@ -253,6 +263,10 @@ export {
   TOPIC_TERMS,
 } from "./matching.js";
 export {
+  articlePageContradictsExpectedIdentity,
+  articlePageHasArticleEvidence,
+  articleUrlQueriesMatch,
+  articleUrlsMatch,
   extractArticleComments,
   extractArticlePreview,
   htmlToArticleText,
@@ -298,6 +312,7 @@ export {
 } from "./archive.js";
 export {
   buildSummaryPrompt,
+  geminiGenerate,
   matchStorylines,
   orderItemsForRun,
   selectPendingSummaryItems,
@@ -309,7 +324,10 @@ export {
 } from "./summaries.js";
 export {
   applyFailureStreaks,
+  buildFailureAlertMessages,
+  configuredWebhookTargets,
   selectFailureAlerts,
   triggerWebhooks,
+  webhookTargetId,
 } from "./alerts.js";
 export { buildJsonSummary, buildRss } from "./outputs.js";
