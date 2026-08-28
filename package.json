@@ -1,6 +1,6 @@
 {
   "name": "vt-news-rss-bcbs",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "description": "Generate an RSS feed for Blue Cross VT mentions in Vermont news outlets.",
