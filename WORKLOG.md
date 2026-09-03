@@ -1,3 +1,42 @@
+## 2026-09-03 - Google Analytics tag and the bluenews.online custom domain
+
+**What changed**: Created the Google Analytics account "Blue News", property
+"Blue News site" (News, US Eastern, USD), and web stream "Blue News (GitHub
+Pages)" with measurement ID `G-X1CZ0X5LMG`. The gtag.js snippet now sits at the
+top of `<head>` in `site/index.html` and `site/trends.html`, the only two pages.
+Pointed the site at `bluenews.online`: `site/CNAME`, the GitHub Pages custom
+domain setting, and the workflow's three `SITE_URL` values (so the RSS and JSON
+feed self-links move too). In the Cloudflare zone (registered and activated
+2026-09-03): four A and four AAAA records for the GitHub Pages anycast IPs plus a
+`www` CNAME to `oliverames.github.io`, all proxied; SSL mode Full; a dynamic
+redirect ruleset with `www` -> apex (301) and `/sentiment`, `/trends` ->
+`trends.html`, `/rss`, `/feed` -> `feed.rss`, `/json` -> `feed.json` (302).
+README now names the new address and shortcuts.
+
+**Decisions made**: Proxied records rather than DNS-only, because the path
+shortcuts need Cloudflare redirect rules and GitHub Pages cannot serve a
+clean `/rss` path. The old `oliverames.github.io/vt-news-rss-bcbs` URL keeps
+working because GitHub 301s it to the custom domain. Google's default
+data-sharing checkboxes were left as offered; the GDPR Data Processing Terms
+box was left unticked.
+
+**Verification**: 179 tests pass, `node --check` clean. With the Cloudflare edge
+IP pinned via `curl --resolve`, plain HTTP returns 200 from GitHub (the snippet reaches the live page with
+this deploy) and every redirect rule fires as written. Public DNS
+still returns NXDOMAIN for the domain because the `.online` registry has not
+yet published the delegation, so Cloudflare's Universal SSL certificate is
+`pending_validation` and HTTPS fails the handshake for now.
+
+**Left off at**: Pushed; the Actions seed step fetches
+`https://bluenews.online/feed-audit.json` and will fail safely (no deploy)
+until public DNS and the edge certificate are live. Re-run the workflow once
+`dig +short bluenews.online @1.1.1.1` answers, then enable "Enforce HTTPS" in
+the repo's Pages settings once GitHub has issued its own certificate.
+
+**Open questions**: Whether to switch the GA data stream's website URL from the
+github.io address to bluenews.online (cosmetic; collection keys off the
+measurement ID). NEW.
+
 ## 2026-08-27 - Finished the interrupted feed-quality pass; released 1.2.0
 
 **What changed**: A Codex session was killed mid-fix and left the tree failing 4
