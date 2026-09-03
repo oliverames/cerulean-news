@@ -11,7 +11,7 @@
 <p align="center">
   <code>99 default sources</code> &bull;
   <code>RSS + JSON Feed</code> &bull;
-  <code>hourly GitHub Pages refresh</code>
+  <code>Cloudflare Pages refresh every 3 hours</code>
 </p>
 
 <p align="center">
@@ -148,7 +148,7 @@ Each story can include:
 | Why it is here | Short relevance reason for a reader who wants to skim quickly |
 | Comments | Publicly parseable article or post comments, hidden by default |
 
-The browser does not recrawl sources. GitHub Actions does the collection and deploys the latest feed hourly; reloading the page loads the latest published feed.
+The browser does not recrawl sources. GitHub Actions does the collection and deploys the latest feed every three hours; reloading the page loads the latest published feed.
 
 ## Sentiment
 
@@ -265,7 +265,7 @@ Source cooldowns are automatic when a primary feed has a fallback. HTTP 403 prim
 
 ## Crawl Politeness
 
-`bluecrossvt.org` is the subject of this feed rather than an incidental source, and the hourly workflow polls two of its listing pages. `src/politeness.js` holds a per-host policy that keeps that load minimal:
+`bluecrossvt.org` is the subject of this feed rather than an incidental source, and the scheduled workflow polls two of its listing pages. `src/politeness.js` holds a per-host policy that keeps that load minimal:
 
 - **Their cache window, not ours.** Both listing pages send `Cache-Control: max-age=86400`, and that is honored in full: the generator stores the remaining lifetime (`max-age` minus `Age`) and skips the fetch entirely while it lasts, so each page is fetched once a day rather than 24 times. `RSS_CACHE_FRESHNESS_CAP_MS` is only a backstop against an origin advertising an absurd `max-age`. The tradeoff is deliberate: a new Blue Cross post can take up to a day to reach the reader.
 - **Revalidation that works.** These pages advertise a weak `ETag` the origin never validates against, and RFC 9110 makes `If-None-Match` suppress `If-Modified-Since` whenever both are sent, so the pair returned a full 119 KB body every hour. After one such response the generator records `preferLastModified` for that URL and sends `If-Modified-Since` alone, which returns `304` with an empty body.
@@ -305,7 +305,7 @@ The workflow is deliberately simple:
 5. Apply deterministic relevance rules.
 6. Add summaries when Gemini is configured.
 7. Write RSS, JSON Feed, and audit JSON.
-8. Publish `site/` to GitHub Pages.
+8. Publish `site/` to Cloudflare Pages (direct upload with wrangler).
 
 ## Development
 
@@ -327,7 +327,7 @@ RSS_ARTICLE_SCAN=false \
 npm run generate
 ```
 
-The publish workflow runs on pushes to `main`, manual dispatches, and an hourly schedule. Every run installs dependencies and runs the test suite. Scheduled and manual runs then generate the feed. Pushes that only change static reader or documentation files reuse the live feed seeded into `site/` and deploy the static artifact without crawling every source again.
+The publish workflow runs on pushes to `main`, manual dispatches, and a schedule of every three hours. Every run installs dependencies and runs the test suite. Scheduled and manual runs then generate the feed. Pushes that only change static reader or documentation files reuse the live feed seeded into `site/` and deploy the static artifact without crawling every source again.
 
 ## License
 
