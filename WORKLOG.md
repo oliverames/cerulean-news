@@ -38,9 +38,11 @@ exactly what a proxied Cloudflare record looks like. Decision: leave GitHub's
 "Enforce HTTPS" off and enforce at the edge instead. Cloudflare "Always Use
 HTTPS" is on, so http:// on either host 301s to https://bluenews.online.
 
-**Open questions**: Whether to switch the GA data stream's website URL from the
-github.io address to bluenews.online (cosmetic; collection keys off the
-measurement ID). NEW.
+**Open questions**: Test 10 ("publisher dates without a space before am or pm")
+still fails under UTC+12; carried from 2026-08-27. Still open. The GA stream
+URL question from earlier in the day is Resolved this session: the stream now
+points at https://bluenews.online with oliverames.github.io in its cross-domain
+list.
 
 ## 2026-08-27 - Finished the interrupted feed-quality pass; released 1.2.0
 

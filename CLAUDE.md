@@ -74,4 +74,10 @@ and set `RSS_ARTICLE_SCAN=false` for speed.
 - Re-scoring (`SUMMARY_RESCORE_SENTIMENT`) sweeps oldest-first, so repeated
   runs cover the archive. A normal run takes newest-first, which is right for
   items that have never been scored.
+- The public site is https://bluenews.online, a Cloudflare zone proxied to
+  GitHub Pages (since 2026-09-03). The `/sentiment`, `/rss`, `/json`, and
+  `www` shortcuts are Cloudflare redirect rules, not files in `site/`. The
+  workflow's `SITE_URL` must stay on that domain or the feed self-links regress.
+  GitHub's "Enforce HTTPS" cannot turn on behind the proxy; Cloudflare's
+  "Always Use HTTPS" does that job.
 - WORKLOG.md gets an entry per meaningful session, newest first.
