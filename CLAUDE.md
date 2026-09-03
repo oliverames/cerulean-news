@@ -3,9 +3,8 @@
 Personal project: a scheduled news monitor that publishes RSS/JSON feeds and a
 text-only reader page for Blue Cross VT mentions and Vermont health care news.
 GitHub Actions regenerates and deploys `site/` to Cloudflare Pages every
-three hours; the
-live `feed-audit.json` is the durable archive, summary cache, and source-health
-store (each run seeds from it before generating).
+three hours; the live `feed-audit.json` is the durable archive, summary cache,
+and source-health store (each run seeds from it before generating).
 
 ## Layout
 
