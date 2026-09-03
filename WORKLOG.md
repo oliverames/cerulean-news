@@ -32,8 +32,11 @@ and the re-run of the failed workflow deployed cleanly. Live checks at
 https://bluenews.online: both pages carry the tag, the RSS `<link>` and
 `atom:link` and the JSON `home_page_url`/`feed_url` point at the new domain,
 `feed.rss` passes `xmllint`, the shortcuts redirect, and the old github.io URL
-301s. GitHub's own certificate for the domain did not exist yet, so "Enforce
-HTTPS" in the Pages settings is still off; Cloudflare terminates TLS meanwhile.
+301s. GitHub never issued its own certificate, and its docs explain why:
+provisioning fails when the records do not point at GitHub Pages IPs, which is
+exactly what a proxied Cloudflare record looks like. Decision: leave GitHub's
+"Enforce HTTPS" off and enforce at the edge instead. Cloudflare "Always Use
+HTTPS" is on, so http:// on either host 301s to https://bluenews.online.
 
 **Open questions**: Whether to switch the GA data stream's website URL from the
 github.io address to bluenews.online (cosmetic; collection keys off the
