@@ -375,6 +375,12 @@
 
       .affiliation strong { color: var(--bar-1); }
 
+      .copyright {
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
       .site-notes {
         display: grid;
         grid-template-columns: max-content 1fr;
@@ -388,7 +394,13 @@
       footer a { color: var(--muted); }
 
       @media (max-width: 520px) {
-        .site-notes { display: block; }
+        .copyright {
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .site-notes { display: block; }
         .site-notes dt { display: inline; }
         .site-notes dt::after { content: ": "; }
         .site-notes dd { display: inline; }
@@ -673,6 +685,10 @@
           <dt>Stories</dt>
           <dd><a href="./">Back to the reader</a>, or take the <a href="feed.rss">RSS</a> or <a href="feed.json">JSON</a> feed.</dd>
         </dl>
+        <p class="copyright">&copy; <span id="copyright-year">2026</span> Ames Consulting, LLC</p>
+        <script>
+          document.getElementById("copyright-year").textContent = String(new Date().getFullYear());
+        </script>
       </footer>
     </div>
 
@@ -1788,8 +1804,8 @@
             : null;
           datelineEl.textContent =
             generated && !Number.isNaN(generated.getTime())
-              ? generated.toLocaleString(undefined, {
-                  month: "long",
+              ? generated.toLocaleString("en-US", {
+                  month: "short",
                   day: "numeric",
                   year: "numeric",
                   hour: "numeric",

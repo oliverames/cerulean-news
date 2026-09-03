@@ -442,6 +442,12 @@
 
       .affiliation strong { color: var(--bar-1); }
 
+      .copyright {
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
       .site-notes {
         display: grid;
         grid-template-columns: max-content 1fr;
@@ -462,7 +468,13 @@
       footer a { color: var(--muted); }
 
       @media (max-width: 520px) {
-        .site-notes {
+        .copyright {
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .site-notes {
           display: block;
         }
 
@@ -700,6 +712,10 @@
           <dt>Feeds</dt>
           <dd><a href="feed.rss">RSS</a> or <a href="feed.json">JSON</a>. Summaries are AI-generated.</dd>
         </dl>
+        <p class="copyright">&copy; <span id="copyright-year">2026</span> Ames Consulting, LLC</p>
+        <script>
+          document.getElementById("copyright-year").textContent = String(new Date().getFullYear());
+        </script>
       </footer>
     </div>
 
@@ -1321,8 +1337,7 @@
           const generated = Number.isNaN(generatedDate.valueOf())
             ? ""
             : generatedDate.toLocaleString("en-US", {
-                weekday: "long",
-                month: "long",
+                month: "short",
                 day: "numeric",
                 year: "numeric",
                 hour: "numeric",
@@ -1330,7 +1345,7 @@
               });
           datelineEl.textContent = generated
             ? `Updated ${generated}`
-            : "Updated hourly";
+            : "Updated every three hours";
           renderAll();
         } catch (error) {
           datelineEl.textContent = "";
