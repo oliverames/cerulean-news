@@ -11,11 +11,37 @@
     </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Cerulean News</title>
-    <meta
-      name="description"
-      content="Independent, text-only browser for news mentions of Blue Cross and Blue Shield of Vermont across Vermont outlets. Not affiliated with Blue Cross and Blue Shield of Vermont."
-    >
+    <title>Cerulean News: Vermont health care and health insurance news</title>
+    <meta name="description" content="A free, text-only monitor of Vermont health care news: press coverage that names Blue Cross and Blue Shield of Vermont, plus Vermont hospital, insurer, Medicaid, Medicare, and rate review stories, with RSS and JSON feeds. Independent and not affiliated with any insurer.">
+    <meta name="keywords" content="Vermont health care news, Vermont health insurance news, Blue Cross and Blue Shield of Vermont news, BCBSVT coverage, Green Mountain Care Board, Vermont hospital budgets, health insurance rate review Vermont, UVM Health news, MVP Health Care Vermont, Vermont Medicaid, Medicare Advantage Vermont, Vermont Health Connect, OneCare Vermont, Vermont news RSS feed">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://cerulean.news/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cerulean News">
+    <meta property="og:title" content="Cerulean News: Vermont health care and health insurance news">
+    <meta property="og:description" content="A free, text-only monitor of Vermont health care news: press coverage that names Blue Cross and Blue Shield of Vermont, plus Vermont hospital, insurer, Medicaid, Medicare, and rate review stories, with RSS and JSON feeds. Independent and not affiliated with any insurer.">
+    <meta property="og:url" content="https://cerulean.news/">
+    <meta property="og:image" content="https://cerulean.news/icon-512.png">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Cerulean News: Vermont health care and health insurance news">
+    <meta name="twitter:description" content="A free, text-only monitor of Vermont health care news: press coverage that names Blue Cross and Blue Shield of Vermont, plus Vermont hospital, insurer, Medicaid, Medicare, and rate review stories, with RSS and JSON feeds. Independent and not affiliated with any insurer.">
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Cerulean News: Vermont health care and health insurance news",
+        "url": "https://cerulean.news/",
+        "description": "A free, text-only monitor of Vermont health care news: press coverage that names Blue Cross and Blue Shield of Vermont, plus Vermont hospital, insurer, Medicaid, Medicare, and rate review stories, with RSS and JSON feeds. Independent and not affiliated with any insurer.",
+        "isAccessibleForFree": true,
+        "publisher": { "@type": "Organization", "name": "Ames Consulting, LLC" },
+        "about": [
+          "Vermont health care",
+          "Vermont health insurance",
+          "Blue Cross and Blue Shield of Vermont press coverage",
+          "Green Mountain Care Board"
+        ]
+      }
+    </script>
     <link rel="icon" href="favicon.ico" sizes="any">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
@@ -430,6 +456,22 @@
         );
       }
 
+      .about {
+        margin: 0 0 18px;
+        padding: 0 0 14px;
+        border-bottom: 1px solid var(--rule);
+        color: var(--fg);
+        font-size: 15px;
+        line-height: 1.5;
+      }
+
+      .about h2 {
+        margin: 0 0 8px;
+        font-size: 17px;
+      }
+
+      .about p { margin: 0 0 10px; }
+
       .affiliation {
         margin: 0 0 14px;
         padding: 10px 12px;
@@ -696,6 +738,46 @@
       </main>
 
       <footer>
+        <section class="about" aria-labelledby="about-title">
+          <h2 id="about-title">About this site</h2>
+          <p>
+            Cerulean News is an automated reader for Vermont health care news.
+            Every few hours it collects headlines from Vermont newspapers,
+            broadcasters, and public radio, from a handful of national health
+            policy outlets, and from Google News searches, then keeps the
+            stories that match two sets of terms.
+          </p>
+          <p>
+            <strong>Insurer mentions.</strong> Stories that name Vermont&rsquo;s
+            largest health insurer in any of its usual forms: Blue Cross and
+            Blue Shield of Vermont, Blue Cross VT, BCBSVT, BCBS of Vermont,
+            Vermont Blue Advantage, or the phrase &ldquo;Vermont&rsquo;s largest
+            health insurer.&rdquo; A bare &ldquo;Blue Cross&rdquo; counts only
+            when the story is also about Vermont. These are kept indefinitely
+            and scored for sentiment.
+          </p>
+          <p>
+            <strong>Vermont health care topics.</strong> Stories about the
+            Green Mountain Care Board, Vermont Health Connect, OneCare Vermont,
+            the state health agencies, UVM Health and other Vermont hospitals
+            and providers, MVP Health Care, Medicaid, Medicare and Medicare
+            Advantage, the Affordable Care Act marketplace, premiums and rate
+            review, prior authorization and claims, prescription drugs and
+            pharmacy, primary care, mental health, rural health, hospital and
+            nurse labor, medical costs and billing, telehealth, public health
+            and vaccines, maternity care, opioids and addiction, senior and
+            long-term care, dental care, certificate of need, and universal
+            health care. National stories are included only when they have a
+            payer, coverage, or policy angle that reaches Vermont.
+          </p>
+          <p>
+            Summaries and sentiment scores are AI-generated and meant as a
+            first pass, not a substitute for reading the story. The site does
+            not request anything from the insurer&rsquo;s own website. Take the
+            <a href="feed.rss">RSS</a> or <a href="feed.json">JSON</a> feed to
+            follow along in a reader.
+          </p>
+        </section>
         <p class="affiliation">
           <strong>Not affiliated.</strong> Cerulean News is an independent personal
           project. It is not affiliated with, endorsed by, or operated by Blue

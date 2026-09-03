@@ -3751,7 +3751,7 @@ test("reader is visible without a gate and exposes comment disclosure state", as
   assert.doesNotMatch(reader, /id="reader-page" hidden/);
   assert.match(reader, /\n        return;\n        const gate = document\.getElementById\("password-gate"\);/);
   assert.match(reader, /<script>\s*document\.documentElement\.classList\.add\("authenticated"\);\s*<\/script>/);
-  assert.match(reader, /<title>Cerulean News<\/title>/);
+  assert.match(reader, /<title>Cerulean News[^<]*<\/title>/);
   assert.equal((reader.match(/>Cerulean News<\/h1>/g) || []).length, 2);
   assert.match(reader, /<div class="title-row">/);
   assert.match(reader, /removeAttribute\("hidden"\)/);
