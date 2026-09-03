@@ -20,18 +20,20 @@ working because GitHub 301s it to the custom domain. Google's default
 data-sharing checkboxes were left as offered; the GDPR Data Processing Terms
 box was left unticked.
 
-**Verification**: 179 tests pass, `node --check` clean. With the Cloudflare edge
-IP pinned via `curl --resolve`, plain HTTP returns 200 from GitHub (the snippet reaches the live page with
-this deploy) and every redirect rule fires as written. Public DNS
-still returns NXDOMAIN for the domain because the `.online` registry has not
-yet published the delegation, so Cloudflare's Universal SSL certificate is
-`pending_validation` and HTTPS fails the handshake for now.
+**Verification**: 179 tests pass, `node --check` clean. Before public DNS
+existed, the chain was tested with the Cloudflare edge IP pinned via
+`curl --resolve`: plain HTTP returned 200 from GitHub and every redirect rule
+fired as written, while Cloudflare's Universal SSL sat in `pending_validation`
+until the `.online` registry published the delegation.
 
-**Left off at**: Pushed; the Actions seed step fetches
-`https://bluenews.online/feed-audit.json` and will fail safely (no deploy)
-until public DNS and the edge certificate are live. Re-run the workflow once
-`dig +short bluenews.online @1.1.1.1` answers, then enable "Enforce HTTPS" in
-the repo's Pages settings once GitHub has issued its own certificate.
+**Left off at**: The `.online` delegation went public about 45 seconds after
+the first poll, Cloudflare issued the edge certificate about two minutes later,
+and the re-run of the failed workflow deployed cleanly. Live checks at
+https://bluenews.online: both pages carry the tag, the RSS `<link>` and
+`atom:link` and the JSON `home_page_url`/`feed_url` point at the new domain,
+`feed.rss` passes `xmllint`, the shortcuts redirect, and the old github.io URL
+301s. GitHub's own certificate for the domain did not exist yet, so "Enforce
+HTTPS" in the Pages settings is still off; Cloudflare terminates TLS meanwhile.
 
 **Open questions**: Whether to switch the GA data stream's website URL from the
 github.io address to bluenews.online (cosmetic; collection keys off the
