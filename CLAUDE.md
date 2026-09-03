@@ -84,7 +84,11 @@ and set `RSS_ARTICLE_SCAN=false` for speed.
   `/sentiment`, `/rss`, `/json`, and `www` shortcuts are Cloudflare redirect
   rules, not files in `site/`. The workflow's `SITE_URL` must stay on that
   domain or the feed self-links regress. Pages serves `trends.html` at
-  `/trends` and 308-redirects the `.html` form.
+  `/trends` and 308-redirects the `.html` form, so a redirect rule must never
+  send `/trends` back to `trends.html` (that looped on 2026-09-03); `/sentiment`
+  targets `/trends`.
+- The reader has no password gate since 2026-09-03; the gate is commented out
+  in both pages, not deleted.
 - The repo is private and GitHub Free meters Actions minutes on private
   repos, so the schedule is every 3 hours. Do not move it back to hourly
   without checking the month's minutes.

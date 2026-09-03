@@ -62,6 +62,17 @@ before the registry published the delegation (negative TTL 3600 s from the
 **Left open**: pre-rewrite commits remain fetchable on GitHub by SHA until
 GitHub's garbage collection or a support request purges them.
 
+**Evening addendum**: the password gate is commented out on both pages (page
+containers no longer hidden or inert, the gate script returns before touching
+the DOM, the head script marks the document authenticated so the scroll lock
+never applies, and the trends page sets its ready flag on the same early
+return). While checking that in the browser, `/trends` turned out to loop:
+the Cloudflare rule sent `/trends` to `trends.html` and Pages 308s
+`trends.html` back to `/trends`. The rule now targets `/trends` and no longer
+matches `/trends` itself; `/sentiment`, `trends.html`, `/trends/`, and the
+old-domain path all end at `/trends` with a 200. The reader loads with no
+gate, no console errors, and all stories visible.
+
 ## 2026-09-03 - Legal-exposure pass: private repo, Cloudflare Pages, disclaimer, new icons
 
 **Why**: A review of what Blue Cross VT's legal department could object to
