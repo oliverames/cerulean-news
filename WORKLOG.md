@@ -1,3 +1,53 @@
+## 2026-09-03 - Legal-exposure pass: private repo, Cloudflare Pages, disclaimer, new icons
+
+**Why**: A review of what Blue Cross VT's legal department could object to
+found two strong grounds. The public repo carried the communications team's
+media tracker (`data/media-tracker-seed.json`, with Kristina's hand scores),
+the coverage audit docs, and README text describing the team's workflow. And
+the site presented as a Blue Cross property: the name, a Blue Cross brand blue
+theme colour, the registered cross-and-shield marks as every icon, and no
+statement of independence. The reader password also sat in public history.
+
+**What changed**: Added an affiliation statement to the reader and trends
+footers, the page meta description, and the RSS and JSON feed headers. Moved
+hosting from GitHub Pages to the Cloudflare Pages project `bluenews` (direct
+upload from the workflow with `wrangler pages deploy`, secrets
+`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`), replaced the eight
+GitHub Pages A/AAAA records with proxied CNAMEs to `bluenews-7g0.pages.dev`,
+removed `site/CNAME` and the Pages permissions, and made the repo private.
+Slowed the schedule to every three hours, rotated the password with a new
+localStorage key so every browser re-enters it, and replaced all six icons
+with a solid square in the reader accent blue `#0033a0`, which is now also the
+theme colour. README and CLAUDE.md follow the new hosting.
+
+**Decisions made**: Cloudflare Pages over a GitHub Pro upgrade because the
+zone, redirect rules, and a Pages deploy token already existed, so the move
+cost nothing and took under an hour. Three-hour cadence because GitHub Free
+meters private repos at 2,000 Actions minutes a month and 29 recent runs
+averaged 380 seconds, about 4,550 minutes a month hourly; every three hours is
+about 1,500. The tracker seed and audit docs stay in the repo now that it is
+private rather than being rewritten out of history. The `www` custom domain
+on the Pages project stays "pending" because the zone's `www` redirect rule
+answers before Cloudflare's validation request; it does no harm.
+
+**Verification**: `npm test` 179 pass, `node --check` clean, workflow YAML
+parses. A live-seeded manual deploy to the pages.dev URL served every file
+including the 20.6 MB `feed-audit.json` (under the 25 MiB Pages limit) before
+DNS moved. After the swap, every path answered through Cloudflare: `/` 200,
+`/feed-audit.json` 200, `/sentiment`, `/rss`, `/json` 302 to their targets,
+`http://` and `www` 301 to the apex, `trends.html` 308 to `/trends`. Actions
+run 33793380459 (commit `b5497e4`) was the first to deploy through wrangler
+and succeeded; run 33794123700 (`c3eff1a`) deployed the icons through the
+static-only path. The live page carries the new password constant and storage
+key. Repo visibility reads PRIVATE and the old oliverames.github.io address
+now 404s. One misstep on the way: a bad pathspec in a combined `git add`
+staged nothing, so commit `9d2e379` shipped only the CNAME deletion and one
+more run went to GitHub Pages before `b5497e4` carried the workflow change.
+
+**Left open**: the old password and the tracker seed remain in git history,
+which is private now but not scrubbed. If legal ever asks for the seed to be
+gone, that is a history rewrite plus a fresh export from the spreadsheet.
+
 ## 2026-09-03 - Google Analytics tag and the bluenews.online custom domain
 
 **What changed**: Created the Google Analytics account "Blue News", property
