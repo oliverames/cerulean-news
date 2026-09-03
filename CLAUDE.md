@@ -78,7 +78,7 @@ and set `RSS_ARTICLE_SCAN=false` for speed.
 - Re-scoring (`SUMMARY_RESCORE_SENTIMENT`) sweeps oldest-first, so repeated
   runs cover the archive. A normal run takes newest-first, which is right for
   items that have never been scored.
-- The public site is https://bluenews.online, a Cloudflare Pages project
+- The public site is https://cerulean.news, a Cloudflare Pages project
   named `bluenews` (direct upload from the workflow, since 2026-09-03; it
   replaced GitHub Pages the same day so the repo could go private). The
   `/sentiment`, `/rss`, `/json`, and `www` shortcuts are Cloudflare redirect

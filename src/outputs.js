@@ -230,7 +230,7 @@ ${categories}
 <rss version="2.0"
   xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Blue News</title>
+    <title>Cerulean News</title>
     <link>${escapeXml(siteUrl)}</link>
     <description>Mentions of BCBSVT, Blue Cross VT, and Blue Cross and Blue Shield of Vermont from Vermont news outlets. Independent personal project, not affiliated with Blue Cross and Blue Shield of Vermont.</description>
     <language>en-us</language>
@@ -252,7 +252,7 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
 
   return {
     version: "https://jsonfeed.org/version/1.1",
-    title: "Blue News",
+    title: "Cerulean News",
     description:
       "Mentions of Blue Cross and Blue Shield of Vermont from Vermont news outlets. Independent personal project, not affiliated with Blue Cross and Blue Shield of Vermont.",
     home_page_url: SITE_URL || "",

@@ -1,4 +1,4 @@
-name: Publish Blue News
+name: Publish Cerulean News
 
 on:
   push:
@@ -100,7 +100,7 @@ jobs:
       # only summarized once (keeps Gemini usage far under free-tier quotas).
       - name: Seed archive from live feed
         env:
-          SITE_URL: https://bluenews.online
+          SITE_URL: https://cerulean.news
         run: |
           set -euo pipefail
           mkdir -p site
@@ -150,7 +150,7 @@ jobs:
       - name: Generate feed
         if: steps.mode.outputs.full == 'true'
         env:
-          SITE_URL: https://bluenews.online
+          SITE_URL: https://cerulean.news
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -180,7 +180,7 @@ jobs:
       - name: Reuse live feed for static deploy
         if: steps.mode.outputs.full != 'true'
         env:
-          SITE_URL: https://bluenews.online
+          SITE_URL: https://cerulean.news
         run: |
           set -euo pipefail
 
@@ -207,7 +207,7 @@ jobs:
 
       # The site moved from GitHub Pages to Cloudflare Pages on 2026-09-03 so
       # the repo could go private (GitHub Free only serves Pages from a public
-      # repo). Direct upload from the runner; the custom domain bluenews.online
+      # repo). Direct upload from the runner; the custom domain cerulean.news
       # is attached to the "bluenews" project in the Cloudflare dashboard.
       - name: Deploy to Cloudflare Pages
         env:

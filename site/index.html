@@ -11,7 +11,7 @@
     </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Blue News</title>
+    <title>Cerulean News</title>
     <meta
       name="description"
       content="Independent, text-only browser for news mentions of Blue Cross and Blue Shield of Vermont across Vermont outlets. Not affiliated with Blue Cross and Blue Shield of Vermont."
@@ -21,8 +21,8 @@
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="manifest" href="site.webmanifest">
-    <link rel="alternate" type="application/rss+xml" title="Blue News" href="feed.rss">
-    <link rel="alternate" type="application/feed+json" title="Blue News JSON Feed" href="feed.json">
+    <link rel="alternate" type="application/rss+xml" title="Cerulean News" href="feed.rss">
+    <link rel="alternate" type="application/feed+json" title="Cerulean News JSON Feed" href="feed.json">
     <meta name="theme-color" content="#0033a0">
     <!-- Early auth check - runs before body parses to prevent any flash of the password gate -->
     <script>
@@ -603,7 +603,7 @@
         <div class="tricolor" aria-hidden="true">
           <span class="c1"></span><span class="c2"></span><span class="c3"></span>
         </div>
-        <h1 id="password-gate-title">Blue News</h1>
+        <h1 id="password-gate-title">Cerulean News</h1>
         <p id="password-gate-description">
           This page is password protected. Enter the password to continue.
         </p>
@@ -646,13 +646,17 @@
 
       <main aria-labelledby="reader-title">
         <div class="title-row">
-          <h1 id="reader-title" tabindex="-1">Blue News</h1>
+          <h1 id="reader-title" tabindex="-1">Cerulean News</h1>
           <p class="dateline" id="dateline">Loading&hellip;</p>
         </div>
         <div class="tricolor" aria-hidden="true">
           <span class="c1"></span><span class="c2"></span><span class="c3"></span>
         </div>
 
+        <!-- Section filter, switched off 2026-09-03. The markup stays because the
+             script still computes the default selection from it (all news
+             categories on, owned and social posts off). Re-enable by restoring
+             the sectionsEl.hidden line in renderSections(). -->
         <nav class="sections" id="sections" aria-label="Filter by section" hidden>
           <span class="label">Sections:</span>
           <span id="section-links"></span>
@@ -676,17 +680,15 @@
       <footer>
         <dl class="site-notes">
           <dt>Updates</dt>
-          <dd>Collected from Vermont news outlets and Google News. Refreshed hourly; reload to load the latest published feed.</dd>
+          <dd>Collected from Vermont news outlets and Google News. Refreshed every three hours; reload to load the latest published feed.</dd>
           <dt>Archive</dt>
-          <dd>Direct Blue Cross VT mentions are backfilled to Jan. 1, 2026 and kept indefinitely. Other stories are kept for three months.</dd>
-          <dt>Sections</dt>
-          <dd>BlueCrossVT.org posts are available as a section but hidden from All by default.</dd>
+          <dd>Insurer coverage is backfilled to Jan. 1, 2026 and kept indefinitely. Other stories are kept for three months. Insurer press releases and social posts are excluded.</dd>
           <dt>Sentiment</dt>
-          <dd>Scored only for press coverage naming Blue Cross VT. <a href="trends.html">See volume, sentiment, and themes over time</a>.</dd>
+          <dd>Scored only for press coverage that names the insurer. <a href="trends.html">See volume, sentiment, and themes over time</a>.</dd>
           <dt>Feeds</dt>
           <dd><a href="feed.rss">RSS</a> or <a href="feed.json">JSON</a>. Summaries are AI-generated.</dd>
           <dt>Affiliation</dt>
-          <dd>Blue News is an independent personal project. It is not affiliated with, endorsed by, or operated by Blue Cross and Blue Shield of Vermont or the Blue Cross Blue Shield Association.</dd>
+          <dd>Cerulean News is an independent personal project. It is not affiliated with, endorsed by, or operated by Blue Cross and Blue Shield of Vermont or the Blue Cross Blue Shield Association.</dd>
         </dl>
       </footer>
     </div>
@@ -1041,7 +1043,8 @@
         for (const option of options) {
           sectionLinksEl.appendChild(sectionOption(option, selected));
         }
-        sectionsEl.hidden = false;
+        // Filter UI is switched off; the default selection above still applies.
+        // sectionsEl.hidden = false;
       }
 
       function renderPager(container, totalItems, page, pageCount) {

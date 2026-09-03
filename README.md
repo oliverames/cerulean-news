@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="site/readme-icon.svg" width="80" height="80" alt="Blue News">
+  <img src="site/readme-icon.svg" width="80" height="80" alt="Cerulean News">
 </p>
 
-<h1 align="center">Blue News</h1>
+<h1 align="center">Cerulean News</h1>
 
 <p align="center">
   <strong>A text-first news monitor for Blue Cross VT mentions and Vermont health care coverage.</strong>
@@ -19,14 +19,14 @@
     <img src="https://img.shields.io/github/actions/workflow/status/oliverames/vt-news-rss-bcbs/publish-feed.yml?branch=main&style=flat-square&label=publish&color=f5a542" alt="Publish workflow">
   </a>
   <img src="https://img.shields.io/badge/license-not_specified-f5a542?style=flat-square" alt="License not specified">
-  <a href="https://bluenews.online/">
+  <a href="https://cerulean.news/">
     <img src="https://img.shields.io/badge/live-reader-f5a542?style=flat-square" alt="Live reader">
   </a>
 </p>
 
 ---
 
-Blue News collects public news items that matter to a Vermont health care communications team: direct Blue Cross VT mentions first, Vermont health care coverage second, then regional and national policy stories when they have a clear payer, coverage, or system angle. It publishes a plain reader, RSS feed, JSON Feed, and audit feed from a scheduled GitHub Actions workflow.
+Cerulean News collects public news items that matter to a Vermont health care communications team: direct Blue Cross VT mentions first, Vermont health care coverage second, then regional and national policy stories when they have a clear payer, coverage, or system angle. It publishes a plain reader, RSS feed, JSON Feed, and audit feed from a scheduled GitHub Actions workflow.
 
 The project is intentionally text-heavy. It follows the spirit of `text.npr.org`: fast, readable, useful, and clear about what was collected.
 
@@ -54,7 +54,7 @@ The generator writes:
 | Audit JSON | `site/feed-audit.json` | Rejected items, source status, summary cache, and archive state |
 | Reader | `site/index.html` | Text-only browser with search, sections, and paging |
 
-The live reader is published at [bluenews.online](https://bluenews.online/), with shortcuts at [/sentiment](https://bluenews.online/sentiment), [/rss](https://bluenews.online/rss), and [/json](https://bluenews.online/json). The old oliverames.github.io/vt-news-rss-bcbs address redirects there.
+The live reader is published at [cerulean.news](https://cerulean.news/), with shortcuts at [/sentiment](https://cerulean.news/sentiment), [/rss](https://cerulean.news/rss), and [/json](https://cerulean.news/json). The old oliverames.github.io/vt-news-rss-bcbs address redirects there.
 
 ## What It Watches
 
