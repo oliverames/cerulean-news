@@ -28,7 +28,7 @@
     <script>
       // Feature detection for localStorage (handles private browsing)
       try {
-        if (localStorage.getItem("bcbsNewsAuth") === "true") {
+        if (localStorage.getItem("blueNewsAuth") === "true") {
           document.documentElement.classList.add("authenticated");
         }
       } catch (e) {
@@ -705,8 +705,8 @@
         const errorEl = document.getElementById("password-error");
         const readerPage = document.getElementById("reader-page");
         const readerTitle = document.getElementById("reader-title");
-        const correctPassword = "REDACTED-OLD-PASSWORD";
-        const STORAGE_KEY = "bcbsNewsAuth";
+        const correctPassword = "kukui-webworm-gradus";
+        const STORAGE_KEY = "blueNewsAuth";
 
         function revealReader({ focusHeading = false } = {}) {
           readerPage.removeAttribute("hidden");

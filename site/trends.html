@@ -25,7 +25,7 @@
     <!-- Early auth check - runs before body parses to prevent any flash of the password gate -->
     <script>
       try {
-        if (localStorage.getItem("bcbsNewsAuth") === "true") {
+        if (localStorage.getItem("blueNewsAuth") === "true") {
           document.documentElement.classList.add("authenticated");
         }
       } catch (e) {
@@ -679,8 +679,8 @@
         const errorEl = document.getElementById("password-error");
         const page = document.getElementById("trends-page");
         const heading = document.getElementById("trends-title");
-        const correctPassword = "REDACTED-OLD-PASSWORD";
-        const STORAGE_KEY = "bcbsNewsAuth";
+        const correctPassword = "kukui-webworm-gradus";
+        const STORAGE_KEY = "blueNewsAuth";
 
         function reveal({ focusHeading = false } = {}) {
           page.removeAttribute("hidden");
