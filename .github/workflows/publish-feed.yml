@@ -128,6 +128,25 @@ jobs:
           seed "$SITE_URL/feed-audit.json" "live audit feed" \
             || { echo "::error::Durable live audit unavailable; refusing to replace it with a public or stale seed"; exit 1; }
 
+      # The media tracker seed is the communications team's hand-kept clip
+      # log and is not committed (it was scrubbed from history 2026-09-03).
+      # It lives in the MEDIA_TRACKER_SEED_B64 secret as gzip + base64 and is
+      # materialized here for the "Media Tracker Backfill" source.
+      - name: Materialize media tracker seed
+        if: steps.mode.outputs.full == 'true'
+        env:
+          MEDIA_TRACKER_SEED_B64: ${{ secrets.MEDIA_TRACKER_SEED_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "$MEDIA_TRACKER_SEED_B64" ]; then
+            echo "::error::MEDIA_TRACKER_SEED_B64 secret is missing"
+            exit 1
+          fi
+          mkdir -p data
+          printf '%s' "$MEDIA_TRACKER_SEED_B64" | base64 -d | gunzip > data/media-tracker-seed.json
+          jq -e '.articles | length > 100' data/media-tracker-seed.json > /dev/null
+          echo "Seed has $(jq '.articles | length' data/media-tracker-seed.json) articles"
+
       - name: Generate feed
         if: steps.mode.outputs.full == 'true'
         env:

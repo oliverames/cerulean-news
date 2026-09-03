@@ -52,6 +52,10 @@ and set `RSS_ARTICLE_SCAN=false` for speed.
 
 ## Gotchas
 
+- `data/media-tracker-seed.json` is gitignored and was scrubbed from history on
+  2026-09-03. Actions rebuilds it from the `MEDIA_TRACKER_SEED_B64` secret. For a
+  local full run, decode that secret or re-export from the tracker spreadsheet
+  (see project memory). Without the file the backfill source fails and alerts.
 - The audit JSON is the persistence layer: anything written into its `sources`
   array or item fields survives across runs via the workflow's seed step.
   Rejected items stay in the audit but are excluded from public feeds.

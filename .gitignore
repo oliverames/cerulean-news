@@ -4,3 +4,5 @@ node_modules/
 .env.*
 !.env.example
 npm-debug.log*
+# Hand-kept clip log; lives in the MEDIA_TRACKER_SEED_B64 secret, never in git
+data/media-tracker-seed.json
