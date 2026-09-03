@@ -29,8 +29,16 @@ const HOST_POLICIES = [
     throttleDelayMs: BLUE_CROSS_DELAY_MS,
     honorCacheControl: true,
     cacheFreshnessCapMs: CACHE_FRESHNESS_CAP_MS,
+    // Since 2026-09-03 the site does not request anything from this host:
+    // not the listing pages, and not an article page reached through a
+    // Google News result. fetchText refuses before opening a connection.
+    noCrawl: true,
   },
 ];
+
+export function isNoCrawlUrl(url) {
+  return politenessPolicyFor(url)?.noCrawl === true;
+}
 
 export function politenessPolicyFor(url) {
   let hostname = "";

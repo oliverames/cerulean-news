@@ -294,6 +294,9 @@ function withCauseDetail(error) {
 export async function fetchText(url, accept, options = {}) {
   let lastError = null;
   const policy = politenessPolicyFor(url);
+  if (policy?.noCrawl) {
+    throw new Error(`Crawling ${new URL(url).hostname} is disabled by policy`);
+  }
   const now = options.now || new Date();
   // A zero cap disables freshness deferral for non-policy origins; policy
   // hosts keep their own nonzero caps from politeness.js.

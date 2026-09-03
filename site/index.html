@@ -437,6 +437,18 @@
         );
       }
 
+      .affiliation {
+        margin: 0 0 14px;
+        padding: 10px 12px;
+        border: 2px solid var(--bar-1);
+        border-radius: 4px;
+        color: var(--fg);
+        font-size: 15px;
+        line-height: 1.45;
+      }
+
+      .affiliation strong { color: var(--bar-1); }
+
       .site-notes {
         display: grid;
         grid-template-columns: max-content 1fr;
@@ -678,6 +690,12 @@
       </main>
 
       <footer>
+        <p class="affiliation">
+          <strong>Not affiliated.</strong> Cerulean News is an independent personal
+          project. It is not affiliated with, endorsed by, or operated by Blue
+          Cross and Blue Shield of Vermont or the Blue Cross Blue Shield
+          Association.
+        </p>
         <dl class="site-notes">
           <dt>Updates</dt>
           <dd>Collected from Vermont news outlets and Google News. Refreshed every three hours; reload to load the latest published feed.</dd>
@@ -687,8 +705,6 @@
           <dd>Scored only for press coverage that names the insurer. <a href="trends.html">See volume, sentiment, and themes over time</a>.</dd>
           <dt>Feeds</dt>
           <dd><a href="feed.rss">RSS</a> or <a href="feed.json">JSON</a>. Summaries are AI-generated.</dd>
-          <dt>Affiliation</dt>
-          <dd>Cerulean News is an independent personal project. It is not affiliated with, endorsed by, or operated by Blue Cross and Blue Shield of Vermont or the Blue Cross Blue Shield Association.</dd>
         </dl>
       </footer>
     </div>
@@ -721,7 +737,7 @@
 
         function storageAvailable() {
           try {
-            const testKey = "__bcbs_test__";
+            const testKey = "__storage_test__";
             localStorage.setItem(testKey, "1");
             localStorage.removeItem(testKey);
             return true;

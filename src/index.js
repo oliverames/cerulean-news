@@ -291,7 +291,7 @@ export {
   readResponseTextWithLimit,
   throttleRequest,
 } from "./fetching.js";
-export { freshUntilFromHeaders, politenessPolicyFor } from "./politeness.js";
+export { freshUntilFromHeaders, isNoCrawlUrl, politenessPolicyFor } from "./politeness.js";
 export { isObituaryItem } from "./filters.js";
 export { enrichAndFilterItems, selectPreviewBackfillItems } from "./enrich.js";
 export {

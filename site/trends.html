@@ -14,7 +14,7 @@
     <title>Cerulean News: Coverage Trends</title>
     <meta
       name="description"
-      content="Volume, sentiment, and themes of Blue Cross and Blue Shield of Vermont press coverage over time."
+      content="Volume, sentiment, and themes of Vermont health insurer press coverage over time. Independent, not affiliated with any insurer."
     >
     <link rel="icon" href="favicon.ico" sizes="any">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
@@ -369,6 +369,18 @@
         );
       }
 
+      .affiliation {
+        margin: 0 0 14px;
+        padding: 10px 12px;
+        border: 2px solid var(--bar-1);
+        border-radius: 4px;
+        color: var(--fg);
+        font-size: 15px;
+        line-height: 1.45;
+      }
+
+      .affiliation strong { color: var(--bar-1); }
+
       .site-notes {
         display: grid;
         grid-template-columns: max-content 1fr;
@@ -531,7 +543,7 @@
           <figure>
             <figcaption>Coverage volume by month</figcaption>
             <p class="figure-note">
-              Press coverage naming Blue Cross VT. Counts every item in the
+              Press coverage naming the insurer. Counts every item in the
               coverage set, including any still waiting to be scored.
             </p>
             <div class="chart-wrap">
@@ -591,7 +603,7 @@
           <figure>
             <figcaption>What we get covered for</figcaption>
             <p class="figure-note">
-              Themes matched in coverage naming us, most frequent first. One
+              Themes matched in coverage naming the insurer, most frequent first. One
               story can carry several themes, so these do not sum to the total.
             </p>
             <div class="chart-wrap">
@@ -628,14 +640,20 @@
       </main>
 
       <footer>
+        <p class="affiliation">
+          <strong>Not affiliated.</strong> Cerulean News is an independent personal
+          project. It is not affiliated with, endorsed by, or operated by Blue
+          Cross and Blue Shield of Vermont or the Blue Cross Blue Shield
+          Association.
+        </p>
         <dl class="site-notes">
           <dt>Scope</dt>
           <dd>
-            Everything here counts press coverage that names Blue Cross VT.
-            Excluded: Vermont health care stories that never mention us, our own
-            BlueCrossVT.org posts, national bcbs.com association pages,
+            Everything here counts press coverage that names the insurer.
+            Excluded: Vermont health care stories that never mention the insurer,
+            the insurer&rsquo;s own site, national association pages,
             recruitment listings, Facebook and short-video items, and stories
-            about a different Blues plan that merely say &ldquo;Blue Cross&rdquo;.
+            about a different plan that merely shares part of the name.
           </dd>
           <dt>Volume</dt>
           <dd>
@@ -651,16 +669,14 @@
           </dd>
           <dt>Scale</dt>
           <dd>
-            Five points, matching the communications team&rsquo;s media tracker:
+            Five points:
             positive, neutral to positive, neutral, neutral to negative, negative.
-            Tone is judged toward Blue Cross VT, not toward the story overall.
+            Tone is judged toward the insurer, not toward the story overall.
           </dd>
           <dt>Method</dt>
-          <dd>Scores are AI-generated and reviewed against the tracker&rsquo;s rubric. Treat them as a first pass, not a substitute for reading the clip.</dd>
+          <dd>Scores are AI-generated. Treat them as a first pass, not a substitute for reading the clip.</dd>
           <dt>Stories</dt>
           <dd><a href="./">Back to the reader</a>, or take the <a href="feed.rss">RSS</a> or <a href="feed.json">JSON</a> feed.</dd>
-          <dt>Affiliation</dt>
-          <dd>Cerulean News is an independent personal project. It is not affiliated with, endorsed by, or operated by Blue Cross and Blue Shield of Vermont or the Blue Cross Blue Shield Association.</dd>
         </dl>
       </footer>
     </div>
@@ -693,7 +709,7 @@
 
         function storageAvailable() {
           try {
-            const testKey = "__bcbs_test__";
+            const testKey = "__storage_test__";
             localStorage.setItem(testKey, "1");
             localStorage.removeItem(testKey);
             return true;
@@ -737,7 +753,7 @@
           });
         }
 
-        window.__bcbsAuthed = alreadyAuthed;
+        window.__readerAuthed = alreadyAuthed;
       })();
     </script>
 
@@ -1496,7 +1512,7 @@
 
         const total = [...counts.values()].reduce((sum, count) => sum + count, 0);
         document.getElementById("volume-chart-desc").textContent =
-          `Bar chart of ${total} stories naming Blue Cross VT per month, peaking at ${peak}.` +
+          `Bar chart of ${total} stories naming the insurer per month, peaking at ${peak}.` +
           (trimmed ? " The axis starts at the current coverage run." : "");
       }
 
@@ -1592,7 +1608,7 @@
         });
 
         document.getElementById("topic-chart-desc").textContent =
-          `Bar chart of the ${rows.length} most frequent themes in coverage naming us; ${rows[0].term} leads with ${peak} stories.`;
+          `Bar chart of the ${rows.length} most frequent themes in coverage naming the insurer; ${rows[0].term} leads with ${peak} stories.`;
       }
 
       function renderTiles(items, buckets, coverage = items) {
@@ -1626,8 +1642,8 @@
             value: String(coverage.length),
             caption:
               pending > 0
-                ? `Stories naming us (${pending} awaiting a score)`
-                : "Stories naming us in range",
+                ? `Stories naming the insurer (${pending} awaiting a score)`
+                : "Stories naming the insurer in range",
           },
           {
             value: total > 0 ? `${Math.round((favourable / total) * 100)}%` : "n/a",
@@ -1785,7 +1801,7 @@
 
           if (coverageItems.length === 0) {
             statusEl.textContent =
-              "No coverage naming Blue Cross VT is in the feed yet.";
+              "No coverage naming the insurer is in the feed yet.";
             return;
           }
 
@@ -1819,7 +1835,7 @@
         load();
       }
 
-      if (window.__bcbsAuthed) {
+      if (window.__readerAuthed) {
         start();
       }
     </script>

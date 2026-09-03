@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <code>99 default sources</code> &bull;
+  <code>97 default sources</code> &bull;
   <code>RSS + JSON Feed</code> &bull;
   <code>Cloudflare Pages refresh every 3 hours</code>
 </p>
@@ -63,7 +63,7 @@ The default source list combines Vermont outlets, official Blue Cross and health
 | Category | Coverage | Notes |
 | --- | --- | --- |
 | Vermont news outlets | WCAX, VTDigger, Vermont Public, Seven Days, MyNBC5, MyChamplainValley, Burlington Free Press, The Rake Vermont, Poultney Journal, Magic 96.7, The Vermont Cynic, Addison Independent, Valley News, Caledonian-Record, The Chronicle/Barton Chronicle, The Commons, The Bridge, Community News Service, Waterbury Roundabout, and more | RSS, Atom, first-party sitemaps, outlet search feeds, or site-scoped Google News depending on what each outlet exposes; blocked primary feeds can fall back to site-scoped Google News |
-| Official pages | BlueCrossVT Newsroom, BlueCrossVT Be Well VT Blog, UVM Health Newsroom, BCBSA Association News | Public listing pages are parsed because normal RSS feeds are not available |
+| Official pages | UVM Health Newsroom, BCBSA Association News | Public listing pages are parsed because normal RSS feeds are not available. The site does not request anything from bluecrossvt.org (policy in `src/politeness.js`) |
 | Curated backfill | A hand-kept clip log, read from `data/media-tracker-seed.json` | 186 clips. The file is not committed: the workflow materializes it from the `MEDIA_TRACKER_SEED_B64` secret (gzip + base64), and a local run needs a copy on disk. Re-emitted every run so the archive self-heals. Most of the list predates this crawler or sits behind outlets that block us, so no crawl can recover it |
 | Search feeds | Blue Cross VT brand searches (site-, phrase-, Boolean-, and full-name-scoped), Vermont health search, Kristina source search, health insurance search, trade search, national policy search, outlet fallbacks | Google News degrades long OR queries, so each brand search is split into small homogeneous chunks; search feeds are capped and bounded to avoid turning the reader into generic health news |
 | National health feeds | ABC Health, CBS Health, CNN Health, STAT, Fierce Healthcare, Healthcare Dive, KFF Health News, The Hill, NPR Health | Broad national items are filtered unless they have a payer, policy, coverage, or regional angle |

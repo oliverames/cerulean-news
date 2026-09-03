@@ -124,22 +124,10 @@ export const DEFAULT_SOURCES = [
     maxItems: 15,
     minimumParsedItems: 1,
   },
-  {
-    name: "BlueCrossVT Newsroom",
-    homepage: "https://www.bluecrossvt.org/health-community/news",
-    listingUrl: "https://www.bluecrossvt.org/health-community/news",
-    searchFallbackTerms: ["bluecrossvt.org"],
-    scanArticle: false,
-    minimumParsedItems: 1,
-  },
-  {
-    name: "BlueCrossVT Be Well VT Blog",
-    homepage: "https://www.bluecrossvt.org/health-community/blog/listing",
-    listingUrl: "https://www.bluecrossvt.org/health-community/blog/listing",
-    searchFallbackTerms: ["bluecrossvt.org"],
-    scanArticle: false,
-    minimumParsedItems: 1,
-  },
+  // The two bluecrossvt.org listing pages (Newsroom, Be Well VT Blog) were
+  // removed on 2026-09-03: the site no longer crawls bluecrossvt.org at all
+  // (see politeness.js noCrawl). Coverage of the insurer still arrives
+  // through the Google News searches and the outlet feeds.
   {
     name: "BCBSA Association News",
     homepage: "https://www.bcbs.com/about-us/association-news",

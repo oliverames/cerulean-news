@@ -98,9 +98,13 @@ jobs:
       # The live feed-audit.json is the durable archive and summary cache.
       # Seed it before generating so stories persist across runs and items are
       # only summarized once (keeps Gemini usage far under free-tier quotas).
+      # LIVE_SITE_URL is the Pages project's own hostname, which resolves no
+      # matter what state the custom domain is in. SITE_URL (the public name
+      # used for feed self-links) is deliberately not used here: a DNS change
+      # on the custom domain must not stop the archive from seeding.
       - name: Seed archive from live feed
         env:
-          SITE_URL: https://cerulean.news
+          LIVE_SITE_URL: https://bluenews-7g0.pages.dev
         run: |
           set -euo pipefail
           mkdir -p site
@@ -125,7 +129,7 @@ jobs:
             return 1
           }
 
-          seed "$SITE_URL/feed-audit.json" "live audit feed" \
+          seed "$LIVE_SITE_URL/feed-audit.json" "live audit feed" \
             || { echo "::error::Durable live audit unavailable; refusing to replace it with a public or stale seed"; exit 1; }
 
       # The media tracker seed is the communications team's hand-kept clip
@@ -139,8 +143,11 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$MEDIA_TRACKER_SEED_B64" ]; then
-            echo "::error::MEDIA_TRACKER_SEED_B64 secret is missing"
-            exit 1
+            # Warn rather than fail: without the file the backfill source
+            # fails and alerts on its own, and the rest of the run still
+            # deploys. Archived tracker items persist in the live audit.
+            echo "::warning::MEDIA_TRACKER_SEED_B64 secret is missing; skipping the backfill seed"
+            exit 0
           fi
           mkdir -p data
           printf '%s' "$MEDIA_TRACKER_SEED_B64" | base64 -d | gunzip > data/media-tracker-seed.json
@@ -180,14 +187,14 @@ jobs:
       - name: Reuse live feed for static deploy
         if: steps.mode.outputs.full != 'true'
         env:
-          SITE_URL: https://cerulean.news
+          LIVE_SITE_URL: https://bluenews-7g0.pages.dev
         run: |
           set -euo pipefail
 
           fetch_live() {
             local name="$1" check="$2"
             if curl -fsSL --compressed --retry 3 --retry-delay 5 --max-time 60 \
-                 "$SITE_URL/$name" -o "/tmp/$name"; then
+                 "$LIVE_SITE_URL/$name" -o "/tmp/$name"; then
               if [ "$check" = "json" ]; then
                 jq -e '.items | type == "array"' "/tmp/$name" > /dev/null
               else

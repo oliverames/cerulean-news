@@ -191,7 +191,7 @@ test("findMentionTerms ignores unrelated text", () => {
   assert.deepEqual(findMentionTerms("New England's largest insurer reported earnings."), []);
 });
 
-test("default sources cover recurring Kristina export outlets", () => {
+test("default sources cover recurring clip-log outlets", () => {
   const sourceText = decodeURIComponent(
     DEFAULT_SOURCES.map((source) =>
       [
@@ -207,7 +207,7 @@ test("default sources cover recurring Kristina export outlets", () => {
         .join(" "),
     ).join(" "),
   ).replaceAll("+", " ");
-  assert.equal(DEFAULT_SOURCES.length, 99);
+  assert.equal(DEFAULT_SOURCES.length, 97);
 
   const expectedHosts = [
     "bcbs.com",
@@ -450,8 +450,6 @@ test("the Times Argus UVM fallback stays specialized and source-bounded", () => 
 test("first-party listing sources fail closed when their parsers return nothing", () => {
   const listingSources = [
     "UVM Health Newsroom",
-    "BlueCrossVT Newsroom",
-    "BlueCrossVT Be Well VT Blog",
     "BCBSA Association News",
   ].map((name) => DEFAULT_SOURCES.find((source) => source.name === name));
 
@@ -4753,8 +4751,6 @@ test("every curated source is either a registered Vermont outlet or an explicit 
     "Media Tracker Backfill",
     // Brand-owned listings classify as brand regardless of region.
     "BCBSA Association News",
-    "BlueCrossVT Newsroom",
-    "BlueCrossVT Be Well VT Blog",
   ]);
 
   const uncovered = DEFAULT_SOURCES.map((source) => source.name).filter(
