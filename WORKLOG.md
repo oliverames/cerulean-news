@@ -49,13 +49,18 @@ the new title and the affiliation box, `/feed-audit.json` 200 (20.5 MB),
 and the RSS self-link reads `https://cerulean.news`. bluenews.online now
 301s to the same path on cerulean.news.
 
-**Left open**: the `MEDIA_TRACKER_SEED_B64` secret still has to be set by hand
-(the automated `gh secret set` was blocked by the session's permission
-classifier); until then each full run warns and the backfill source fails
-and alerts. Pre-rewrite commits remain fetchable on GitHub by SHA until
-GitHub's garbage collection or a support request purges them. The GA4 stream
-URL and name still say bluenews.online. `www.cerulean.news` was not yet
-serving TLS when checked.
+**Closed later the same afternoon**: the `MEDIA_TRACKER_SEED_B64` secret is
+set (a second `gh secret set` went through), and manual run 33798932403
+materialized 186 articles and fetched all of them from the backfill source.
+The Universal SSL certificate for cerulean.news went active at 19:33 UTC and
+`www` now 301s to the apex over TLS. The GA4 account, property, and web
+stream are renamed to Cerulean News with URL https://cerulean.news. The Mac's
+"Safari Can't Find the Server" was the home router caching NXDOMAIN from
+before the registry published the delegation (negative TTL 3600 s from the
+.news SOA); public resolvers were correct throughout.
+
+**Left open**: pre-rewrite commits remain fetchable on GitHub by SHA until
+GitHub's garbage collection or a support request purges them.
 
 ## 2026-09-03 - Legal-exposure pass: private repo, Cloudflare Pages, disclaimer, new icons
 
