@@ -1,3 +1,62 @@
+## 2026-09-03 - History scrub, Cerulean News rebrand, bluecrossvt.org crawl stop
+
+**What changed**: Rewrote git history with `git filter-repo` to drop
+`data/media-tracker-seed.json` from every commit and replace the old reader
+password with `REDACTED-OLD-PASSWORD`, then force-pushed `main`. The seed now
+lives outside git: the workflow materializes it from the
+`MEDIA_TRACKER_SEED_B64` repo secret (gzip + base64, 25.6 KB) before a full
+generation, the path is gitignored, and a missing secret warns rather than
+failing the deploy. Renamed the site from Blue News to Cerulean News at
+https://cerulean.news (registered through Cloudflare Registrar at 19:10 UTC):
+zone `fbeba584302dd105a25112b80e914fdc`, proxied CNAMEs for apex and `www` to
+`bluenews-7g0.pages.dev`, Always Use HTTPS on, the same four redirect rules as
+before, and both hostnames attached to the existing `bluenews` Pages project.
+The old zone's ruleset is now a single 301 to `https://cerulean.news` plus
+path and query. Stopped crawling bluecrossvt.org: the Newsroom and Be Well
+listing sources are gone (97 default sources), and a `noCrawl` host policy in
+`src/politeness.js` makes `fetchText` refuse the host before connecting, so
+an article page reached through Google News is never fetched either. The
+trends page prose no longer names the insurer, the clip log, or its keeper,
+and the `__bcbs*` script globals were renamed; the scoring code is unchanged.
+Both pages now carry a bordered "Not affiliated" box above the footer notes,
+the reader footer no longer names the insurer outside that box, and the
+section filter UI is switched off (default selection unchanged: all news
+categories on, owned and social posts off). The workflow seeds and reuses the
+live feed from the pages.dev hostname rather than the public domain, so a
+custom-domain DNS change cannot stop a run.
+
+**Decisions made**: Kept the Pages project name `bluenews`, because renaming a
+project is not supported and the name is only visible in the pages.dev URL.
+Kept the localStorage key from the morning's rotation rather than forcing a
+third re-entry. Blocked the host in `fetchText` rather than only removing the
+sources, because Google News results still resolve to bluecrossvt.org links
+and article scanning would otherwise fetch them. Left `docs/2026-08-27-media-
+tracker-coverage.md`, README, and WORKLOG history alone: the ask named the
+seed and the password, and those files describe method rather than data.
+
+**Verification**: After the rewrite, `git log --all` shows zero commits
+touching the seed path and zero containing the old password; the working
+tree kept the untracked seed. A `--mirror` backup of the pre-rewrite remote is
+at `~/Developer/Projects/vt-news-rss-bcbs-backup-2026-09-03.git` with a copy
+of the seed beside it. `npm test` 179 pass after every step. Run 33796005142
+(`711ca09`) seeded from pages.dev, warned on the missing seed secret, and
+deployed; its audit lists 97 sources with one failure (the backfill source,
+ENOENT) and no policy refusals, and 185 of the 186 seed articles are still in
+the archive under their crawl-time match sources. cerulean.news answered
+through the Cloudflare edge before the local resolver caught up: `/` 200 with
+the new title and the affiliation box, `/feed-audit.json` 200 (20.5 MB),
+`/sentiment`, `/rss`, `/json` 302 to their targets, `http://` 301 to https,
+and the RSS self-link reads `https://cerulean.news`. bluenews.online now
+301s to the same path on cerulean.news.
+
+**Left open**: the `MEDIA_TRACKER_SEED_B64` secret still has to be set by hand
+(the automated `gh secret set` was blocked by the session's permission
+classifier); until then each full run warns and the backfill source fails
+and alerts. Pre-rewrite commits remain fetchable on GitHub by SHA until
+GitHub's garbage collection or a support request purges them. The GA4 stream
+URL and name still say bluenews.online. `www.cerulean.news` was not yet
+serving TLS when checked.
+
 ## 2026-09-03 - Legal-exposure pass: private repo, Cloudflare Pages, disclaimer, new icons
 
 **Why**: A review of what Blue Cross VT's legal department could object to
