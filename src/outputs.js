@@ -232,7 +232,7 @@ ${categories}
   <channel>
     <title>Blue News</title>
     <link>${escapeXml(siteUrl)}</link>
-    <description>Mentions of BCBSVT, Blue Cross VT, and Blue Cross and Blue Shield of Vermont from Vermont news outlets.</description>
+    <description>Mentions of BCBSVT, Blue Cross VT, and Blue Cross and Blue Shield of Vermont from Vermont news outlets. Independent personal project, not affiliated with Blue Cross and Blue Shield of Vermont.</description>
     <language>en-us</language>
     <lastBuildDate>${escapeXml(formatPubDate(now))}</lastBuildDate>
     <ttl>60</ttl>
@@ -253,6 +253,8 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
   return {
     version: "https://jsonfeed.org/version/1.1",
     title: "Blue News",
+    description:
+      "Mentions of Blue Cross and Blue Shield of Vermont from Vermont news outlets. Independent personal project, not affiliated with Blue Cross and Blue Shield of Vermont.",
     home_page_url: SITE_URL || "",
     feed_url: options.feedUrl ?? JSON_FEED_URL ?? "",
     generatedAt: now.toISOString(),
