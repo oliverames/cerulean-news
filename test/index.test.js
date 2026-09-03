@@ -3738,13 +3738,19 @@ test("roundup previews publish only when they match the selected brief", () => {
   assert.match(alignedTopic.items[0].previewText, /Vermont hospice/);
 });
 
-test("reader keeps gated content inert and exposes comment disclosure state", async () => {
+test("reader is visible without a gate and exposes comment disclosure state", async () => {
   const reader = await readFile(
     path.resolve(process.cwd(), "site", "index.html"),
     "utf8",
   );
 
-  assert.match(reader, /id="reader-page" hidden inert aria-hidden="true"/);
+  // The password gate is commented out (2026-09-03): the page container is
+  // not hidden, the gate script returns before touching the DOM, and the
+  // early <head> script marks the document authenticated unconditionally.
+  assert.match(reader, /<div class="page" id="reader-page">/);
+  assert.doesNotMatch(reader, /id="reader-page" hidden/);
+  assert.match(reader, /\n        return;\n        const gate = document\.getElementById\("password-gate"\);/);
+  assert.match(reader, /<script>\s*document\.documentElement\.classList\.add\("authenticated"\);\s*<\/script>/);
   assert.match(reader, /<title>Cerulean News<\/title>/);
   assert.equal((reader.match(/>Cerulean News<\/h1>/g) || []).length, 2);
   assert.match(reader, /<div class="title-row">/);

@@ -134,7 +134,7 @@ The relevance gate then removes common false positives:
 
 The reader is a static HTML page that loads `feed.json` in the browser. It shows the newest 25 stories first, supports simple search, uses plain checkbox sections for multi-select filtering, and keeps comments hidden behind a per-story button.
 
-The reader page opens behind a client-side password gate. Visitors enter the shared password once; the reader then stays unlocked in that browser through `localStorage`. This is a presentation gate to keep the page from being casually browsed, not real access control: the password lives in the page source, and the underlying `feed.rss`, `feed.json`, and `feed-audit.json` files stay publicly fetchable by direct URL.
+The reader page has no access control. A client-side password gate existed until 2026-09-03 and is commented out in both pages rather than deleted; it was only ever a presentation gate, since the feed files were always fetchable by direct URL.
 
 Each story can include:
 
@@ -208,8 +208,7 @@ coming out wrong for the same subject.
 `site/trends.html` charts the coverage set over time: volume by month, net
 sentiment by month, sentiment mix by month, net sentiment by outlet, and the
 themes we get covered for. It has a range and outlet filter, hover detail on
-every mark, and a table view of the same numbers, and sits behind the same
-password gate as the reader. Sentiment uses a diverging colour ramp with a
+every mark, and a table view of the same numbers. Sentiment uses a diverging colour ramp with a
 neutral midpoint; volume and themes are magnitude, so they use a single hue.
 
 Because Google News search feeds name the query rather than the publisher,

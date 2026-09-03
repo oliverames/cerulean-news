@@ -22,15 +22,9 @@
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="manifest" href="site.webmanifest">
     <meta name="theme-color" content="#0033a0">
-    <!-- Early auth check - runs before body parses to prevent any flash of the password gate -->
+    <!-- Password gate disabled 2026-09-03. To re-enable: restore the early auth check, uncomment the gate markup, put hidden/inert/aria-hidden back on the page container, and delete the early return in the gate script. -->
     <script>
-      try {
-        if (localStorage.getItem("blueNewsAuth") === "true") {
-          document.documentElement.classList.add("authenticated");
-        }
-      } catch (e) {
-        // localStorage not available (private browsing mode)
-      }
+      document.documentElement.classList.add("authenticated");
     </script>
     <style>
       :root {
@@ -466,7 +460,7 @@
     </style>
   </head>
   <body>
-    <!-- Password gate - presentation gate only, not real security -->
+    <!-- Password gate commented out 2026-09-03 (see note in <head>).
     <div
       class="password-gate"
       id="password-gate"
@@ -499,8 +493,9 @@
         </form>
       </div>
     </div>
+    -->
 
-    <div class="page" id="trends-page" hidden inert aria-hidden="true">
+    <div class="page" id="trends-page">
       <div class="topbar">
         <a class="button" href="./">Back to stories</a>
         <a class="button" href="feed.rss">RSS Feed</a>
@@ -689,6 +684,9 @@
       // Mirrors the gate on index.html and shares its storage key.
       // ==========================================================
       (function () {
+        // Gate disabled 2026-09-03; the page is visible without a password.
+        window.__readerAuthed = true;
+        return;
         const gate = document.getElementById("password-gate");
         const form = document.getElementById("password-form");
         const input = document.getElementById("password-input");

@@ -24,16 +24,9 @@
     <link rel="alternate" type="application/rss+xml" title="Cerulean News" href="feed.rss">
     <link rel="alternate" type="application/feed+json" title="Cerulean News JSON Feed" href="feed.json">
     <meta name="theme-color" content="#0033a0">
-    <!-- Early auth check - runs before body parses to prevent any flash of the password gate -->
+    <!-- Password gate disabled 2026-09-03. To re-enable: restore the early auth check, uncomment the gate markup, put hidden/inert/aria-hidden back on the page container, and delete the early return in the gate script. -->
     <script>
-      // Feature detection for localStorage (handles private browsing)
-      try {
-        if (localStorage.getItem("blueNewsAuth") === "true") {
-          document.documentElement.classList.add("authenticated");
-        }
-      } catch (e) {
-        // localStorage not available (private browsing mode)
-      }
+      document.documentElement.classList.add("authenticated");
     </script>
     <style>
       :root {
@@ -602,7 +595,7 @@
     </style>
   </head>
   <body>
-    <!-- Password gate - presentation gate only, not real security -->
+    <!-- Password gate commented out 2026-09-03 (see note in <head>).
     <div
       class="password-gate"
       id="password-gate"
@@ -638,8 +631,9 @@
         </form>
       </div>
     </div>
+    -->
 
-    <div class="page" id="reader-page" hidden inert aria-hidden="true">
+    <div class="page" id="reader-page">
       <div class="topbar">
         <a class="button" href="trends.html">Trends</a>
         <a class="button" href="feed.rss">RSS Feed</a>
@@ -717,6 +711,8 @@
       // For actual access control, use server-side authentication.
       // ==========================================================
       (function () {
+        // Gate disabled 2026-09-03; the page is visible without a password.
+        return;
         const gate = document.getElementById("password-gate");
         const form = document.getElementById("password-form");
         const input = document.getElementById("password-input");
