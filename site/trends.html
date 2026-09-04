@@ -1021,8 +1021,21 @@
       // so charts run to the same right margin as the reader. Callers keep
       // their per-month minimum, so a long range still scrolls sideways.
       function columnPlotWidth(svg, pad) {
+        // The report is still hidden on the first render, so the chart wrap
+        // measures 0 then; fall back to the page column's content width.
         const wrap = svg.closest(".chart-wrap");
-        const available = (wrap ? wrap.clientWidth : 0) - pad.left - pad.right;
+        let columnWidth = wrap ? wrap.clientWidth : 0;
+        if (!columnWidth) {
+          const page = svg.closest(".page");
+          if (page) {
+            const style = getComputedStyle(page);
+            columnWidth =
+              page.clientWidth -
+              parseFloat(style.paddingLeft) -
+              parseFloat(style.paddingRight);
+          }
+        }
+        const available = columnWidth - pad.left - pad.right;
         return Math.max(0, Math.floor(available));
       }
 
