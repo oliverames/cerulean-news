@@ -1017,6 +1017,15 @@
         };
       }
 
+      // Plot width that fills the page column (minus the chart's own padding),
+      // so charts run to the same right margin as the reader. Callers keep
+      // their per-month minimum, so a long range still scrolls sideways.
+      function columnPlotWidth(svg, pad) {
+        const wrap = svg.closest(".chart-wrap");
+        const available = (wrap ? wrap.clientWidth : 0) - pad.left - pad.right;
+        return Math.max(0, Math.floor(available));
+      }
+
       function swatchRow(color, label, value) {
         return `<dt><span class="swatch" style="background:${color}"></span>${label}</dt><dd>${value}</dd>`;
       }
@@ -1034,6 +1043,7 @@
         const stepWidth = 56;
         const plotWidth = Math.max(
           320,
+          columnPlotWidth(svg, pad),
           Math.max(1, buckets.length - 1) * stepWidth,
         );
         const plotHeight = 150;
@@ -1197,7 +1207,7 @@
         const pad = { top: 10, right: 16, bottom: 26, left: 34 };
         const slot = 46;
         const barWidth = 26;
-        const plotWidth = Math.max(320, buckets.length * slot);
+        const plotWidth = Math.max(320, columnPlotWidth(svg, pad), buckets.length * slot);
         const plotHeight = 150;
         const width = plotWidth + pad.left + pad.right;
         const height = plotHeight + pad.top + pad.bottom;
@@ -1331,7 +1341,7 @@
         const pad = { top: 8, right: 46, bottom: 22, left: 168 };
         const rowHeight = 24;
         const barHeight = 13;
-        const plotWidth = 260;
+        const plotWidth = Math.max(260, columnPlotWidth(svg, pad));
         const height = rows.length * rowHeight + pad.top + pad.bottom;
         const width = plotWidth + pad.left + pad.right;
 
@@ -1469,7 +1479,7 @@
         const pad = { top: 14, right: 16, bottom: 26, left: 34 };
         const slot = 46;
         const barWidth = 26;
-        const plotWidth = Math.max(320, months.length * slot);
+        const plotWidth = Math.max(320, columnPlotWidth(svg, pad), months.length * slot);
         const plotHeight = 130;
         const width = plotWidth + pad.left + pad.right;
         const height = plotHeight + pad.top + pad.bottom;
@@ -1607,7 +1617,7 @@
         const pad = { top: 6, right: 44, bottom: 8, left: 168 };
         const rowHeight = 24;
         const barHeight = 13;
-        const plotWidth = 240;
+        const plotWidth = Math.max(240, columnPlotWidth(svg, pad));
         const width = plotWidth + pad.left + pad.right;
         const height = rows.length * rowHeight + pad.top + pad.bottom;
         const peak = rows[0].count;
@@ -1884,6 +1894,11 @@
         started = true;
         rangeSelect.addEventListener("change", render);
         outletSelect.addEventListener("change", render);
+        let resizeTimer = null;
+        window.addEventListener("resize", () => {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(render, 150);
+        });
         load();
       }
 
