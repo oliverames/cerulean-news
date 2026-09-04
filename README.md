@@ -52,7 +52,7 @@ The generator writes:
 | RSS | `site/feed.rss` | Subscriber-friendly RSS 2.0 feed |
 | JSON Feed | `site/feed.json` | Public reader data and machine-readable feed |
 | Audit JSON | `site/feed-audit.json` | Rejected items, source status, summary cache, and archive state |
-| Reader | `site/index.html` | Text-only browser with search, sections, and paging |
+| Reader | `site/index.html` | Text-only browser with search and paging |
 
 The live reader is published at [cerulean.news](https://cerulean.news/), with shortcuts at [/sentiment](https://cerulean.news/sentiment), [/rss](https://cerulean.news/rss), and [/json](https://cerulean.news/json). The old oliverames.github.io/vt-news-rss-bcbs address redirects there.
 
@@ -132,7 +132,7 @@ The relevance gate then removes common false positives:
 
 ## Reader Experience
 
-The reader is a static HTML page that loads `feed.json` in the browser. It shows the newest 25 stories first, supports simple search, uses plain checkbox sections for multi-select filtering, and keeps comments hidden behind a per-story button.
+The reader is a static HTML page that loads `feed.json` in the browser. It shows the newest 25 stories first, supports simple search, and keeps comments hidden behind a per-story button. The section filter UI is switched off (since 2026-09-03; the markup and script remain), so the reader always shows the default selection: every news category, with the insurer's own posts and social items excluded.
 
 The reader page has no access control. A client-side password gate existed until 2026-09-03 and is commented out in both pages rather than deleted; it was only ever a presentation gate, since the feed files were always fetchable by direct URL.
 

@@ -1,3 +1,46 @@
+## 2026-09-04 - Footer, search metadata, MIT license, and trends layout
+
+**What changed**: The dateline on both pages dropped the weekday and uses a
+short month ("Updated Sep 4, 2026, 4:24 PM"); both footers end with an Ames
+Consulting, LLC copyright whose year is filled by script. Both pages carry a
+descriptive title, meta description and keywords, canonical link, Open Graph
+and Twitter cards, and a JSON-LD block; the reader's meta description and
+About text frame the site as one that looks for Vermont health care news and
+news about regional health insurers based in Vermont. The About text lives as
+the first row of the footer notes list, under the affiliation box. The source
+is released under the MIT License (`LICENSE`, package.json, README badge), and
+both footers say the source is available by email since the repository stays
+private. On the trends page the container width matches the reader (560px),
+the outlet select fills the filter row and truncates long names with an
+ellipsis, and each chart sizes its plot to the page column so the charts run
+to the same right margin as the reader. README no longer describes the
+section filter as live.
+
+**Decisions made**: Kept the MIT license with a private repository and a
+source-on-request footer line, which was Oliver's call for the letter to
+legal. Sized chart plots in the render code rather than stretching the SVGs
+with CSS, because tooltips are placed in chart units and would have drifted.
+Kept each chart's per-month minimum width so a long range still scrolls. On
+the first render `#report` is hidden and the chart wrap measures zero, so
+`columnPlotWidth` falls back to the page column's content width.
+
+**Verification**: `npm test` 179 pass and `node --check` clean on every source
+module after each change; every push deployed through Cloudflare Pages
+(latest run for `9fbcd46`). The in-app Browser pane reports a zero viewport
+and zero `clientWidth` for this site, so the chart widths were confirmed in
+real Chrome: every chart SVG measures 560px, equal to its wrap, with no
+console errors. The outlet select was checked at desktop and phone widths.
+
+**Left off at**: Site work complete for the day. Commits `acb3d31` through
+`9fbcd46`.
+
+**Open questions**: Still open from 2026-09-03: pre-rewrite commits remain
+fetchable on GitHub by SHA until garbage collection or a support request.
+Also open: the GA4 cross-domain list still names bluenews.online and
+oliverames.github.io, harmless since both redirect.
+
+---
+
 ## 2026-09-03 - History scrub, Cerulean News rebrand, bluecrossvt.org crawl stop
 
 **What changed**: Rewrote git history with `git filter-repo` to drop
