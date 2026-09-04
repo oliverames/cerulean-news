@@ -184,6 +184,17 @@
 
       .filters .label { font-weight: 700; }
 
+      /* The outlet list holds long names; cap the closed control so the row
+         stays on one line and let the native menu show the full names. */
+      #outlet-select {
+        flex: 0 1 220px;
+        min-width: 0;
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
       .filters select {
         padding: 3px 6px;
         border: 1px solid var(--fg);
