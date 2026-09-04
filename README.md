@@ -18,7 +18,7 @@
   <a href="https://github.com/oliverames/vt-news-rss-bcbs/actions/workflows/publish-feed.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/oliverames/vt-news-rss-bcbs/publish-feed.yml?branch=main&style=flat-square&label=publish&color=f5a542" alt="Publish workflow">
   </a>
-  <img src="https://img.shields.io/badge/license-not_specified-f5a542?style=flat-square" alt="License not specified">
+  <img src="https://img.shields.io/badge/license-MIT-f5a542?style=flat-square" alt="MIT license">
   <a href="https://cerulean.news/">
     <img src="https://img.shields.io/badge/live-reader-f5a542?style=flat-square" alt="Live reader">
   </a>
