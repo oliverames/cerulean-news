@@ -49,10 +49,6 @@
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="manifest" href="site.webmanifest">
     <meta name="theme-color" content="#0033a0">
-    <!-- Password gate disabled 2026-09-03. To re-enable: restore the early auth check, uncomment the gate markup, put hidden/inert/aria-hidden back on the page container, and delete the early return in the gate script. -->
-    <script>
-      document.documentElement.classList.add("authenticated");
-    </script>
     <style>
       :root {
         --fg: #111;
@@ -445,105 +441,9 @@
         .site-notes dd::after { content: ""; display: block; margin-bottom: 6px; }
       }
 
-      html:not(.authenticated),
-      html:not(.authenticated) body { overflow: hidden; height: 100%; }
-
-      .password-gate {
-        position: fixed;
-        inset: 0;
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 24px 16px;
-        background: #fff;
-      }
-
-      html.authenticated .password-gate { display: none !important; }
-      .password-gate.instant-hidden { display: none !important; }
-
-      .password-card { width: 100%; max-width: 360px; text-align: center; }
-      .password-card .tricolor { margin: 0 0 20px; }
-      .password-card h1 { margin: 0 0 6px; font-size: 1.35rem; font-weight: 700; }
-
-      .password-card p {
-        margin: 0 0 18px;
-        color: var(--muted);
-        font-size: 0.9rem;
-        line-height: 1.45;
-      }
-
-      .password-form { display: flex; flex-direction: column; gap: 10px; text-align: left; }
-
-      .password-form input[type="password"] {
-        box-sizing: border-box;
-        width: 100%;
-        padding: 8px 10px;
-        border: 1px solid var(--fg);
-        background: #fff;
-        color: var(--fg);
-        font: inherit;
-      }
-
-      .password-form button {
-        appearance: none;
-        padding: 8px 12px;
-        border: 1px solid var(--fg);
-        background: var(--bar-1);
-        color: #fff;
-        font: inherit;
-        font-weight: 700;
-        cursor: pointer;
-      }
-
-      .password-form button:hover { background: var(--bar-1-hover); }
-
-      .password-error {
-        min-height: 1.2em;
-        margin: 2px 0 0;
-        color: #b00020;
-        font-size: 0.84rem;
-        visibility: hidden;
-      }
-
-      .password-error.visible { visibility: visible; }
     </style>
   </head>
   <body>
-    <!-- Password gate commented out 2026-09-03 (see note in <head>).
-    <div
-      class="password-gate"
-      id="password-gate"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="password-gate-title"
-    >
-      <div class="password-card">
-        <div class="tricolor" aria-hidden="true">
-          <span class="c1"></span><span class="c2"></span><span class="c3"></span>
-        </div>
-        <h1 id="password-gate-title">Cerulean News</h1>
-        <p>This page is password protected. Enter the password to continue.</p>
-        <form class="password-form" id="password-form" autocomplete="off">
-          <label class="visually-hidden" for="password-input">Password</label>
-          <input
-            type="password"
-            id="password-input"
-            name="password"
-            placeholder="Enter password"
-            autocomplete="off"
-            autocapitalize="off"
-            autocorrect="off"
-            spellcheck="false"
-            aria-describedby="password-error"
-            aria-invalid="false"
-          >
-          <button type="submit">Enter</button>
-          <p class="password-error" id="password-error" role="alert">Incorrect password</p>
-        </form>
-      </div>
-    </div>
-    -->
 
     <div class="page" id="trends-page">
       <div class="topbar">
@@ -729,85 +629,6 @@
         </script>
       </footer>
     </div>
-
-    <script>
-      // ==========================================================
-      // PASSWORD GATE
-      // NOTE: This is a PRESENTATION GATE only, not real security.
-      // The password is visible in the page source by design.
-      // Mirrors the gate on index.html and shares its storage key.
-      // ==========================================================
-      (function () {
-        // Gate disabled 2026-09-03; the page is visible without a password.
-        window.__readerAuthed = true;
-        return;
-        const gate = document.getElementById("password-gate");
-        const form = document.getElementById("password-form");
-        const input = document.getElementById("password-input");
-        const errorEl = document.getElementById("password-error");
-        const page = document.getElementById("trends-page");
-        const heading = document.getElementById("trends-title");
-        const correctPassword = "kukui-webworm-gradus";
-        const STORAGE_KEY = "blueNewsAuth";
-
-        function reveal({ focusHeading = false } = {}) {
-          page.removeAttribute("hidden");
-          page.removeAttribute("inert");
-          page.removeAttribute("aria-hidden");
-          if (focusHeading) {
-            heading.focus({ preventScroll: true });
-          }
-        }
-
-        function storageAvailable() {
-          try {
-            const testKey = "__storage_test__";
-            localStorage.setItem(testKey, "1");
-            localStorage.removeItem(testKey);
-            return true;
-          } catch (e) {
-            return false;
-          }
-        }
-
-        const alreadyAuthed =
-          storageAvailable() && localStorage.getItem(STORAGE_KEY) === "true";
-
-        function unlock() {
-          gate.classList.add("instant-hidden");
-          document.documentElement.classList.add("authenticated");
-          if (storageAvailable()) {
-            localStorage.setItem(STORAGE_KEY, "true");
-          }
-        }
-
-        if (alreadyAuthed) {
-          unlock();
-          reveal();
-        } else {
-          form.addEventListener("submit", (event) => {
-            event.preventDefault();
-            const entered = (input.value || "").trim().toLowerCase();
-            if (entered === correctPassword) {
-              unlock();
-              reveal({ focusHeading: true });
-              start();
-            } else {
-              errorEl.classList.add("visible");
-              input.setAttribute("aria-invalid", "true");
-              input.select();
-            }
-          });
-
-          input.addEventListener("input", () => {
-            errorEl.classList.remove("visible");
-            input.setAttribute("aria-invalid", "false");
-          });
-        }
-
-        window.__readerAuthed = alreadyAuthed;
-      })();
-    </script>
 
     <script>
       // ==========================================================
@@ -1915,9 +1736,7 @@
         load();
       }
 
-      if (window.__readerAuthed) {
-        start();
-      }
+      start();
     </script>
   </body>
 </html>
