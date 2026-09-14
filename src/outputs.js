@@ -236,7 +236,7 @@ ${categories}
     <language>en-us</language>
     <lastBuildDate>${escapeXml(formatPubDate(now))}</lastBuildDate>
     <ttl>60</ttl>
-    <generator>vt-news-rss-bcbs</generator>${atomLink}
+    <generator>cerulean-news</generator>${atomLink}
 ${itemXml}
   </channel>
 </rss>

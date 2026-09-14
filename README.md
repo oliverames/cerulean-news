@@ -15,8 +15,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/oliverames/vt-news-rss-bcbs/actions/workflows/publish-feed.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/oliverames/vt-news-rss-bcbs/publish-feed.yml?branch=main&style=flat-square&label=publish&color=f5a542" alt="Publish workflow">
+  <a href="https://github.com/oliverames/cerulean-news/actions/workflows/publish-feed.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/oliverames/cerulean-news/publish-feed.yml?branch=main&style=flat-square&label=publish&color=f5a542" alt="Publish workflow">
   </a>
   <img src="https://img.shields.io/badge/license-MIT-f5a542?style=flat-square" alt="MIT license">
   <a href="https://cerulean.news/">
@@ -316,12 +316,12 @@ for file in src/*.js; do node --check "$file"; done
 For a local run that does not touch committed outputs, write to a temporary directory:
 
 ```bash
-mkdir -p /tmp/vt-news-rss-bcbs
-cp site/feed-audit.json /tmp/vt-news-rss-bcbs/feed-audit.json
+mkdir -p /tmp/cerulean-news
+cp site/feed-audit.json /tmp/cerulean-news/feed-audit.json
 
-RSS_OUTPUT_PATH=/tmp/vt-news-rss-bcbs/feed.rss \
-JSON_OUTPUT_PATH=/tmp/vt-news-rss-bcbs/feed.json \
-AUDIT_JSON_OUTPUT_PATH=/tmp/vt-news-rss-bcbs/feed-audit.json \
+RSS_OUTPUT_PATH=/tmp/cerulean-news/feed.rss \
+JSON_OUTPUT_PATH=/tmp/cerulean-news/feed.json \
+AUDIT_JSON_OUTPUT_PATH=/tmp/cerulean-news/feed-audit.json \
 RSS_ARTICLE_SCAN=false \
 npm run generate
 ```
