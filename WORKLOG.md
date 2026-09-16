@@ -68,7 +68,31 @@ otherwise have discarded when it reseeded from the frozen 5 September copy.
 The Worker, R2 bucket, KV namespace and relay stay parked as a fallback; the
 Worker cron keeps the archive advancing until Actions is green again, at which
 point the archive is republished to Pages one last time and the cron is
-disabled so the two do not both crawl every source every three hours.
+disabled so the two do not both crawl every source every four hours.
+
+**Allowance audit**: the earlier figure of ~3,981 billed units for September was
+wrong; redlink-lite's macOS minutes had been read as Linux. The real total is
+5,695 against a 2,000 allowance, and 5,306 of it was macOS minutes from two
+repos (apple-core 3,592, redlink-lite 1,714). Exactly one scheduled workflow
+exists across all 23 private repos, and it is this one, so nothing else was
+draining the budget quietly. Seven Xcode and macOS build workflows were disabled
+with `gh workflow disable` (reversible, no code changed): redlink-lite/tests.yml,
+scanflow/ci.yml, scanflow/release.yml, skylight-bridge-ios/ci.yml,
+amesdashboard/ci.yml, cloud-force/ci.yml, lookout-vermont/deploy-to-testflight.yml.
+All seven were sitting blocked on the billing error and would have fired the
+moment Pro activated. Publishing dropped to every four hours in the same pass.
+Projected private usage is now ~1,760 units a month against Pro's 3,000.
+
+**Left off at**: waiting on GitHub Pro. When Actions runs green, republish the
+archive from R2 to Pages so anything the Worker collected meanwhile carries over,
+then disable the Worker cron. `xcode-27` appears as a `runs-on` label in three
+repos with no registered runner matching it anywhere on the account, which is
+unexplained and should be established before that label is reused.
+
+**Open questions**: whether the six projects whose builds were disabled get
+self-hosted runners on the MacBook Pro and home-server, or stay manual.
+`ames-plugins-local/marketplace-validation.yml` is still on `macos-latest`; it
+uses no Xcode and cost nothing in September, but it bills at 10x if it fires.
 
 ## 2026-09-04 - Footer, search metadata, MIT license, and trends layout
 
