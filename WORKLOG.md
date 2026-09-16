@@ -41,14 +41,34 @@ archived items that dropped were all dated 5-16 June and rolled off the
 incomplete TLS chain needed `NODE_EXTRA_CA_CERTS` under Actions, fetches
 cleanly from Cloudflare's edge, so that workaround is not needed there.
 
-**Blocked**: Google News returns HTTP 503 with its "Sorry..." page to every
+**Google News**: Google returns HTTP 503 with its "Sorry..." page to every
 request from a Worker, while the same URLs return 200 from a laptop. Tested
 with the default agent, a browser user-agent, and a different Google News
 endpoint; it is IP reputation, not headers. That is 39 of 97 sources, 28% of
 published items, and 39 Vermont outlets that have no other route into the
-feed. The cutover is on hold until those fetches have an egress Google
-accepts. The Actions workflow is deliberately left in place as the rollback
-path, and cerulean.news still serves from Cloudflare Pages.
+feed. Resolved by relaying those fetches through a container on home-server
+(`~/docker/cerulean-fetch-relay`, `https://fetch.amesvt.com` over the amesvt
+tunnel, GET only, news.google.com only, bearer token). Relaying the feeds was
+not enough on its own: the URL decoder makes two further calls to
+news.google.com from inside the library with no way to redirect them, which
+cost 8.3 minutes of enrichment for a single article fetch, so the decode runs
+on the relay too. After that, 96 of 97 sources healthy and a run in 151s.
+
+**Outcome**: the Worker is not what the site will run on. Cutting apple-core's
+macOS CI took projected private-repo usage from ~3,981 billed units to ~2,160,
+which still exceeds the 2,000 GitHub Free allows, so waiting for the monthly
+reset would have failed again mid-October. GitHub Pro at $4/month raises the
+allowance to 3,000, which fits with headroom and avoids the Worker path's
+dependency on a machine at home being awake. Oliver chose Actions plus Pro.
+
+The Worker's archive was published to the Pages project on 2026-09-16, which
+ended the eleven-day freeze and, more importantly, preserved 235 items (163
+publishable, covering 6-16 September) that the Actions workflow would
+otherwise have discarded when it reseeded from the frozen 5 September copy.
+The Worker, R2 bucket, KV namespace and relay stay parked as a fallback; the
+Worker cron keeps the archive advancing until Actions is green again, at which
+point the archive is republished to Pages one last time and the cron is
+disabled so the two do not both crawl every source every three hours.
 
 ## 2026-09-04 - Footer, search metadata, MIT license, and trends layout
 
