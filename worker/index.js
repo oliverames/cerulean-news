@@ -1,10 +1,12 @@
 // Cloudflare Worker entry point: runs the feed generator on a cron trigger and
 // serves the site.
 //
-// This replaced the GitHub Actions publish workflow, which stopped running on
-// 2026-09-05 when the account's private-repo Actions minutes were exhausted
-// and left the site frozen for eleven days. The generator itself is unchanged;
-// only its storage and its trigger moved.
+// This is the parked fallback, not the live build. It was written when the
+// GitHub Actions publish workflow was cut off on 2026-09-05 for exhausted
+// private-repo minutes, which froze the site for eleven days. The site went
+// back to Actions once the macOS builds that had drained the allowance were
+// moved off it; this stays deployable for the next time billing bites. The
+// generator itself is unchanged, only its storage and its trigger.
 import { setFileSystem } from "../src/fsx.js";
 import { generateFeed, setCoverageContext } from "../src/index.js";
 import {
@@ -91,7 +93,7 @@ async function serveFromR2(env, key, request) {
   object.writeHttpMetadata(headers);
   headers.set("content-type", contentTypeFor(normalizeKey(key)));
   headers.set("etag", object.httpEtag);
-  // The generator runs every three hours; a short cache keeps the reader fast
+  // The generator runs every four hours; a short cache keeps the reader fast
   // without letting a stale feed linger past the next run.
   headers.set("cache-control", "public, max-age=300, stale-while-revalidate=3600");
 

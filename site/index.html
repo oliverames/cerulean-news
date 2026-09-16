@@ -585,7 +585,7 @@
           <dt>About</dt>
           <dd>Cerulean News looks for Vermont health care news and news about regional health insurers based in Vermont. Every few hours it collects headlines from Vermont newspapers, broadcasters, and public radio, from a handful of national health policy outlets, and from Google News searches, then keeps the stories that match its Vermont health care and insurer terms. It never requests anything from the insurer&rsquo;s own website.</dd>
           <dt>Updates</dt>
-          <dd>Collected from Vermont news outlets and Google News. Refreshed every three hours; reload to load the latest published feed.</dd>
+          <dd>Collected from Vermont news outlets and Google News. Refreshed every four hours; reload to load the latest published feed.</dd>
           <dt>Archive</dt>
           <dd>Insurer coverage is backfilled to Jan. 1, 2026 and kept indefinitely. Other stories are kept for three months. Insurer press releases and social posts are excluded.</dd>
           <dt>Sentiment</dt>
@@ -1134,7 +1134,7 @@
               });
           datelineEl.textContent = generated
             ? `Updated ${generated}`
-            : "Updated every three hours";
+            : "Updated every four hours";
           renderAll();
         } catch (error) {
           datelineEl.textContent = "";

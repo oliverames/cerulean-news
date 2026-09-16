@@ -11,7 +11,7 @@
 <p align="center">
   <code>97 default sources</code> &bull;
   <code>RSS + JSON Feed</code> &bull;
-  <code>Cloudflare Pages refresh every 3 hours</code>
+  <code>Cloudflare Pages refresh every 4 hours</code>
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 
 ---
 
-Cerulean News collects public news items that matter to a Vermont health care communications team: direct Blue Cross VT mentions first, Vermont health care coverage second, then regional and national policy stories when they have a clear payer, coverage, or system angle. It publishes a plain reader, RSS feed, JSON Feed, and audit feed from a scheduled Cloudflare Worker.
+Cerulean News collects public news items that matter to a Vermont health care communications team: direct Blue Cross VT mentions first, Vermont health care coverage second, then regional and national policy stories when they have a clear payer, coverage, or system angle. It publishes a plain reader, RSS feed, JSON Feed, and audit feed from a scheduled GitHub Actions workflow.
 
 The project is intentionally text-heavy. It follows the spirit of `text.npr.org`: fast, readable, useful, and clear about what was collected.
 
@@ -148,7 +148,7 @@ Each story can include:
 | Why it is here | Short relevance reason for a reader who wants to skim quickly |
 | Comments | Publicly parseable article or post comments, hidden by default |
 
-The browser does not recrawl sources. A Cloudflare Worker does the collection and republishes the feed every three hours; reloading the page loads the latest published feed.
+The browser does not recrawl sources. GitHub Actions does the collection and deploys the latest feed every four hours; reloading the page loads the latest published feed.
 
 ## Sentiment
 
@@ -290,9 +290,14 @@ src/summaries.js   Gemini prompt, batching, parsing, summary cache behavior
 src/alerts.js      Failure streaks and optional webhook alerts
 src/outputs.js     RSS, JSON Feed, audit JSON, file writes
 src/utils.js       Shared text, date, URL, and concurrency helpers
+src/fsx.js         Indirection over file reads and writes, so the generator can
+                   run somewhere without a filesystem
+src/egress.js      Routes hosts that refuse the runtime's IP range through a relay
 site/index.html    Static text reader
 site/trends.html   Sentiment-over-time charts
 test/index.test.js Node test suite
+worker/            Parked Cloudflare Worker build (see below)
+proxy/             Fetch relay the Worker build needs (see proxy/README.md)
 ```
 
 The workflow is deliberately simple:
@@ -305,6 +310,33 @@ The workflow is deliberately simple:
 6. Add summaries when Gemini is configured.
 7. Write RSS, JSON Feed, and audit JSON.
 8. Publish `site/` to Cloudflare Pages (direct upload with wrangler).
+
+## The parked Cloudflare Worker
+
+`worker/` and `proxy/` are a complete second way to run this, kept deployable
+but not in use. They exist because GitHub Actions was cut off account-wide on
+2026-09-05 when private-repo minutes ran out, and the site sat frozen for
+eleven days before anyone noticed: a billing block fails as a red tick, not as
+an outage.
+
+The site went back to Actions once the macOS builds that had actually drained
+the allowance were moved off it. The Worker stays for the next time billing
+bites.
+
+Two things are worth knowing before reaching for it:
+
+- **Cloudflare cannot reach Google News.** It answers a Worker with HTTP 503
+  and its "Sorry..." page while returning 200 from a residential connection,
+  whatever headers you send. That is 39 of 97 sources and 39 Vermont outlets
+  with no other route in, so the Worker build relays those fetches, and the
+  Google News link decode, through `proxy/` on another host.
+- **The article cache cannot live in the audit JSON there.** Loading it whole
+  costs about 80 MB of a 128 MB isolate, so the Worker keeps it in KV and loads
+  only the working set.
+
+Both are inert here: `src/egress.js` does nothing unless `FETCH_PROXY_URL` is
+set, and the article cache stays in the audit JSON unless a store is injected.
+The Node CLI and the test suite behave exactly as they always did.
 
 ## Development
 
@@ -326,7 +358,7 @@ RSS_ARTICLE_SCAN=false \
 npm run generate
 ```
 
-The publish workflow runs on pushes to `main`, manual dispatches, and a schedule of every three hours. Every run installs dependencies and runs the test suite. Scheduled and manual runs then generate the feed. Pushes that only change static reader or documentation files reuse the live feed seeded into `site/` and deploy the static artifact without crawling every source again.
+The publish workflow runs on pushes to `main`, manual dispatches, and a schedule of every four hours. Every run installs dependencies and runs the test suite. Scheduled and manual runs then generate the feed. Pushes that only change static reader or documentation files reuse the live feed seeded into `site/` and deploy the static artifact without crawling every source again.
 
 ## License
 
