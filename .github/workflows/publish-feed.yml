@@ -19,10 +19,13 @@ on:
         type: string
         default: ""
   schedule:
-    # Every 3 hours. The repo is private, and hourly runs at ~6 minutes each
-    # would exceed the 2,000 Actions minutes a month GitHub Free allows on
-    # private repos. Use the "Run workflow" button for an immediate refresh.
-    - cron: "17 */3 * * *"
+    # Every 4 hours: 6 runs a day at ~6.3 minutes is about 1,134 billed units a
+    # month. This is the only scheduled workflow in any private repo, and it is
+    # most of the private-repo allowance on its own, so the cadence is the main
+    # lever on the bill. It dropped from 3 hours on 2026-09-16 after Actions was
+    # cut off for eleven days. Use the "Run workflow" button for an immediate
+    # refresh rather than tightening this.
+    - cron: "17 */4 * * *"
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true

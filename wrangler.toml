@@ -3,12 +3,14 @@ main = "worker/index.js"
 compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Every three hours, matching the cadence the GitHub Actions workflow ran at.
+# Every four hours, matching the Actions workflow. The Worker is the parked
+# fallback; keeping the cadence aligned means a switch either way changes
+# nothing a reader would notice.
 # A cron interval of an hour or more raises the CPU ceiling for the invocation
 # from 30 seconds to 15 minutes; a healthy run spends about four minutes, and
 # nearly all of that is network wait rather than CPU.
 [triggers]
-crons = ["17 */3 * * *"]
+crons = ["17 */4 * * *"]
 
 [observability]
 enabled = true
