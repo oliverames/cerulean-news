@@ -1,0 +1,23 @@
+# Fetch relay for cerulean.news. See proxy/README.md.
+#
+# Published to the host's loopback only: the Cloudflare tunnel connector runs
+# on the host and reaches it at 127.0.0.1:8790, and nothing on the LAN can.
+services:
+  cerulean-fetch-relay:
+    build: .
+    container_name: cerulean-fetch-relay
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8790:8790"
+    environment:
+      # Must match FETCH_PROXY_TOKEN on the Worker. Supplied from the host
+      # environment or an .env file beside this one; never committed.
+      PROXY_TOKEN: "${PROXY_TOKEN:?PROXY_TOKEN is required}"
+      ALLOW_HOSTS: "news.google.com"
+      MAX_BYTES: "8388608"
+      UPSTREAM_TIMEOUT_MS: "30000"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

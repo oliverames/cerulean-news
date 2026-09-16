@@ -1,6 +1,7 @@
 // HTTP fetching with retries, size caps, per-domain politeness, and the
 // per-source collection pipeline.
 import { readText } from "./fsx.js";
+import { finalUrlFrom, proxiedRequest } from "./egress.js";
 import {
   mapWithConcurrency,
   parseDate,
@@ -326,8 +327,11 @@ export async function fetchText(url, accept, options = {}) {
         ...conditionalRequestHeaders(options.conditionalHeaders),
       };
 
-      const response = await fetch(url, {
-        headers,
+      // Hosts that refuse this runtime's IP range are relayed; everything
+      // else keeps its direct request unchanged.
+      const request = proxiedRequest(url, headers);
+      const response = await fetch(request.url, {
+        headers: request.headers,
         redirect: "follow",
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
@@ -335,7 +339,7 @@ export async function fetchText(url, accept, options = {}) {
       if (response.status === 304) {
         return {
           text: "",
-          url: response.url || url,
+          url: finalUrlFrom(response, url, request.proxied),
           notModified: true,
           ...responseHeaderState(response),
           freshUntil: freshUntilFor(response.headers),
@@ -359,7 +363,7 @@ export async function fetchText(url, accept, options = {}) {
 
       return {
         text: await readResponseTextWithLimit(response),
-        url: response.url,
+        url: finalUrlFrom(response, url, request.proxied),
         ...responseHeaderState(response),
         preferLastModified:
           options.conditionalHeaders?.preferLastModified === true ||

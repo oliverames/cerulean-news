@@ -338,3 +338,100 @@ test("no budget means no deadline", async () => {
     }
   }
 });
+
+// --- egress relay -----------------------------------------------------------
+// Google News refuses Cloudflare's IP range, so those fetches are relayed
+// through a host it will talk to. Everything else must stay direct.
+
+async function withEnv(vars, run) {
+  const previous = {};
+  for (const [key, value] of Object.entries(vars)) {
+    previous[key] = process.env[key];
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+  try {
+    return await run();
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
+}
+
+test("no relay configured means every fetch stays direct", async () => {
+  const { shouldProxy, proxiedRequest } = await import("../src/egress.js");
+  await withEnv({ FETCH_PROXY_URL: undefined }, () => {
+    assert.equal(shouldProxy("https://news.google.com/rss/search?q=x"), false);
+    const request = proxiedRequest("https://news.google.com/rss", { accept: "*/*" });
+    assert.equal(request.url, "https://news.google.com/rss");
+    assert.equal(request.proxied, false);
+  });
+});
+
+test("only allowlisted hosts are relayed", async () => {
+  const { shouldProxy } = await import("../src/egress.js");
+  await withEnv(
+    { FETCH_PROXY_URL: "https://relay.example/fetch", FETCH_PROXY_HOSTS: undefined },
+    () => {
+      assert.equal(shouldProxy("https://news.google.com/rss/search?q=x"), true);
+      // Suffix match on a dot boundary, so a lookalike domain must not match.
+      assert.equal(shouldProxy("https://news.google.com.evil.test/"), false);
+      assert.equal(shouldProxy("https://vtdigger.org/feed/"), false);
+      assert.equal(shouldProxy("not a url"), false);
+    },
+  );
+});
+
+test("a relayed request carries the target url and the bearer token", async () => {
+  const { proxiedRequest } = await import("../src/egress.js");
+  await withEnv(
+    {
+      FETCH_PROXY_URL: "https://relay.example/fetch",
+      FETCH_PROXY_TOKEN: "s3cret",
+    },
+    () => {
+      const target = "https://news.google.com/rss/search?q=a+b&hl=en-US";
+      const request = proxiedRequest(target, { accept: "application/rss+xml" });
+      assert.equal(request.proxied, true);
+      assert.equal(
+        request.url,
+        `https://relay.example/fetch?url=${encodeURIComponent(target)}`,
+      );
+      assert.equal(request.headers.authorization, "Bearer s3cret");
+      // Caching headers must survive the rewrite or every relayed fetch
+      // would come back unconditional.
+      assert.equal(request.headers.accept, "application/rss+xml");
+    },
+  );
+});
+
+test("a relayed response reports the upstream url, not the relay's", async () => {
+  const { finalUrlFrom } = await import("../src/egress.js");
+  const upstream = "https://news.google.com/rss/search?q=x";
+  const relayResponse = {
+    url: "https://relay.example/fetch?url=...",
+    headers: { get: (name) => (name === "x-final-url" ? upstream : null) },
+  };
+  // Without this the article URL would read as the relay, and
+  // articleUrlsMatch would treat every relayed item as having moved.
+  assert.equal(finalUrlFrom(relayResponse, upstream, true), upstream);
+
+  const directResponse = { url: "https://vtdigger.org/feed/", headers: { get: () => null } };
+  assert.equal(
+    finalUrlFrom(directResponse, "https://vtdigger.org/feed/", false),
+    "https://vtdigger.org/feed/",
+  );
+  // A relay that forgets the header falls back to what was requested.
+  assert.equal(
+    finalUrlFrom({ headers: { get: () => null } }, upstream, true),
+    upstream,
+  );
+});
