@@ -13,6 +13,18 @@ So the Worker relays only those fetches through home-server, and fetches
 everything else directly. `src/egress.js` decides; it is inert unless
 `FETCH_PROXY_URL` is set, so the Node CLI and the tests are unaffected.
 
+## Two jobs
+
+- `GET /?url=...` fetches an allowlisted URL and returns it, passing through
+  `etag`, `last-modified` and `content-type` so the generator's conditional
+  requests keep working, plus `x-final-url` so the caller sees where the
+  request actually landed rather than the relay's own URL.
+- `GET /decode?url=...` resolves a Google News article link to the publisher's
+  URL. Those links are opaque base64 that only Google can resolve, and the
+  decoder library makes two further calls to news.google.com with no way to
+  redirect them. Running the decode here was worth more than the feeds alone:
+  with it, a run went from 10.4 minutes to 2.5.
+
 ## What it is not
 
 Not a general proxy. It only accepts `GET`, only `http`/`https`, only hosts on

@@ -29,6 +29,7 @@ import {
   htmlToArticleText,
 } from "./parsers.js";
 import { fetchText, throttleRequest } from "./fetching.js";
+import { decodeViaRelay, shouldProxy } from "./egress.js";
 import { isLikelyPaywalled, itemCategory } from "./relevance.js";
 
 const googleDecoder = new GoogleDecoder();
@@ -443,8 +444,14 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
   const now = options.now || new Date();
   const fetchArticleText = options.fetchText || fetchText;
   const throttleArticleRequest = options.throttleRequest || throttleRequest;
+  // The bundled decoder makes its own calls to news.google.com. Where a relay
+  // is configured those are refused (the Worker), so the decode is delegated
+  // to the relay; without one the library runs in-process as before.
   const decodeGoogleNewsUrl =
-    options.decodeGoogleNewsUrl || ((url) => googleDecoder.decode(url));
+    options.decodeGoogleNewsUrl ||
+    (shouldProxy("https://news.google.com/rss/articles/x")
+      ? decodeViaRelay
+      : (url) => googleDecoder.decode(url));
   if (metrics.enrichment) {
     metrics.enrichment.itemsSeen = items.length;
   }

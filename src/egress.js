@@ -66,3 +66,36 @@ export function finalUrlFrom(response, requestedUrl, proxied) {
   }
   return response?.url || requestedUrl;
 }
+
+// Google News article links are opaque base64 that only Google can resolve,
+// and the decoder library makes its own two calls to news.google.com with no
+// way to redirect them. Those calls are refused from a Worker exactly like the
+// feeds are, so when a relay is configured the decode happens there instead.
+// Returns the same shape the library does, so the caller cannot tell them
+// apart, and a failure degrades to "not decoded" rather than throwing.
+export async function decodeViaRelay(sourceUrl) {
+  const base = proxyUrl();
+  if (!base) {
+    return { status: false, message: "No relay configured" };
+  }
+  const endpoint = new URL(base);
+  endpoint.pathname = "/decode";
+  endpoint.searchParams.set("url", sourceUrl);
+  const headers = {};
+  const token = proxyToken();
+  if (token) {
+    headers.authorization = `Bearer ${token}`;
+  }
+  try {
+    const response = await fetch(endpoint.toString(), {
+      headers,
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!response.ok) {
+      return { status: false, message: `Relay returned ${response.status}` };
+    }
+    return await response.json();
+  } catch (error) {
+    return { status: false, message: error.message };
+  }
+}

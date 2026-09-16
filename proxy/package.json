@@ -1,0 +1,9 @@
+{
+  "name": "cerulean-fetch-relay",
+  "private": true,
+  "type": "module",
+  "description": "Relays the fetches Google refuses from Cloudflare's IP range.",
+  "dependencies": {
+    "google-news-url-decoder": "^1.2.2"
+  }
+}

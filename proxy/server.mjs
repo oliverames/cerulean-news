@@ -8,6 +8,15 @@
 // It is deliberately not a general proxy. Only hosts on ALLOW_HOSTS are
 // fetched, only GET, only http(s), and every request needs the bearer token.
 import http from "node:http";
+import { createRequire } from "node:module";
+
+// Google News article links are opaque base64 that only Google can resolve,
+// and resolving them needs two more calls to news.google.com. Those are
+// blocked from a Worker exactly like the feeds are, and the decoder library
+// offers no way to redirect its own fetches, so the decode runs here.
+const require = createRequire(import.meta.url);
+const { GoogleDecoder } = require("google-news-url-decoder");
+const decoder = new GoogleDecoder();
 
 const PORT = Number(process.env.PORT || 8790);
 const TOKEN = (process.env.PROXY_TOKEN || "").trim();
@@ -80,6 +89,36 @@ const server = http.createServer(async (req, res) => {
   // Length check first: timingSafeEqual throws on a length mismatch.
   if (presented.length !== TOKEN.length || presented !== TOKEN) {
     unauthorized(res, "Forbidden");
+    return;
+  }
+
+  if (requestUrl.pathname === "/decode") {
+    const source = requestUrl.searchParams.get("url") || "";
+    let parsedSource;
+    try {
+      parsedSource = new URL(source);
+    } catch {
+      res.writeHead(400, { "content-type": "text/plain" });
+      res.end("Bad url\n");
+      return;
+    }
+    if (!hostAllowed(parsedSource.hostname)) {
+      unauthorized(res, "Host not allowed");
+      return;
+    }
+    try {
+      const decoded = await decoder.decode(source);
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify(decoded));
+      console.log(
+        `decode ${decoded?.status ? "ok" : "miss"} ${Date.now() - started}ms`,
+      );
+    } catch (error) {
+      // A failed decode is not fatal: the caller keeps the original link.
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ status: false, message: error.message }));
+      console.warn(`decode error ${error.message}`);
+    }
     return;
   }
 

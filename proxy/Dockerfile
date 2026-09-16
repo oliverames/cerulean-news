@@ -1,11 +1,13 @@
-# Minimal relay image. No dependencies: the server is one file using only
-# Node builtins, so there is nothing to install and nothing to audit.
+# Relay image. The only dependency is the Google News URL decoder, which has
+# to run here because its two calls to news.google.com are blocked from a
+# Worker exactly like the feeds are.
 FROM node:22-alpine
 
 WORKDIR /app
+COPY package.json ./
+RUN npm install --omit=dev --no-audit --no-fund
 COPY server.mjs ./
 
-# Drop privileges; the image's own unprivileged user is enough.
 USER node
 
 ENV PORT=8790
