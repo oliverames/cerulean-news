@@ -1,3 +1,55 @@
+## 2026-09-16 - Build moved from GitHub Actions to a Cloudflare Worker
+
+**Why**: The publish workflow last succeeded 2026-09-05 15:19 UTC. Every run
+since failed in under ten seconds with "The job was not started because recent
+account payments have failed or your spending limit needs to be increased".
+The block is account-wide and hits private repositories only, which is why the
+public repos kept building. September private usage was about 3,981 billed
+units against the 2,000 the Free plan allows, and roughly 90% of that was
+`apple-core`'s macOS CI (334 macOS minutes bill at 10x). Cerulean News was
+collateral: it went private on 2026-09-03, which moved it onto the metered
+allowance two days before the allowance ran out. The site sat frozen for
+eleven days at 1,743 items, newest 2026-09-05 14:06 UTC.
+
+**What changed**: The generator is unchanged. Its storage and trigger moved.
+
+- `src/fsx.js` is a new indirection over the four file reads and writes the
+  generator makes. Node behaviour is the default, so the CLI and the tests are
+  untouched; the Worker swaps in R2-backed equivalents and keeps the existing
+  paths as object keys.
+- The article cache moved out of the audit JSON into KV, one entry per article
+  URL, keyed by SHA-256 because Google News links exceed KV's 512-byte key
+  limit. Holding the whole cache cost about 80 MB of a 128 MB isolate; the run
+  now loads only the entries it can touch, roughly 1,400 of 9,600, and writes
+  back only what changed. `previewBackfillCandidates` was split out of
+  `selectPreviewBackfillItems` so the prefetch and the selection cannot drift.
+- `RSS_ENRICH_BUDGET_MS` caps article fetching within a run. A scheduled
+  invocation is killed at fifteen minutes and a cold cache runs far longer than
+  a warm one, so past the budget fetches are deferred rather than recorded:
+  every `writeArticleCache` is guarded by `fetchArticle`, so a deferred item
+  leaves no entry and a later run picks it up. Default is unlimited.
+- `worker/index.js` runs the generator on the existing `17 */3 * * *` cadence
+  and serves the site. The generated feeds are served from R2 and routed with
+  `run_worker_first`, so the stale committed copies in `site/` can never
+  shadow them, which is the failure that rolled the reader back on 2026-08-27.
+
+**Verified**: 191 tests pass. A full run on Cloudflare completed in 319s
+(collect 307s, enrich 1.5s), well inside the fifteen-minute ceiling. The
+Worker serves the reader, feed.json and feed.rss correctly from R2. The 188
+archived items that dropped were all dated 5-16 June and rolled off the
+`ARCHIVE_MAX_AGE_DAYS` window; no newer item was lost. `www.bcbs.com`, whose
+incomplete TLS chain needed `NODE_EXTRA_CA_CERTS` under Actions, fetches
+cleanly from Cloudflare's edge, so that workaround is not needed there.
+
+**Blocked**: Google News returns HTTP 503 with its "Sorry..." page to every
+request from a Worker, while the same URLs return 200 from a laptop. Tested
+with the default agent, a browser user-agent, and a different Google News
+endpoint; it is IP reputation, not headers. That is 39 of 97 sources, 28% of
+published items, and 39 Vermont outlets that have no other route into the
+feed. The cutover is on hold until those fetches have an egress Google
+accepts. The Actions workflow is deliberately left in place as the rollback
+path, and cerulean.news still serves from Cloudflare Pages.
+
 ## 2026-09-04 - Footer, search metadata, MIT license, and trends layout
 
 **What changed**: The dateline on both pages dropped the weekday and uses a

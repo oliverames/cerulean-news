@@ -115,29 +115,40 @@ export function shouldScoreSentiment(item) {
 const COVERAGE_CONTEXT_PATH =
   process.env.COVERAGE_CONTEXT_PATH || "data/coverage-context.json";
 
+function normalizeCoverageContext(doc) {
+  const storylines = Array.isArray(doc?.storylines) ? doc.storylines : [];
+  return storylines
+    .map((entry) => ({
+      name: cleanText(entry?.name || ""),
+      note: cleanText(entry?.note || ""),
+      match: (Array.isArray(entry?.match) ? entry.match : [])
+        .map((term) => String(term || "").toLowerCase().trim())
+        .filter(Boolean),
+    }))
+    .filter((entry) => entry.name && entry.note && entry.match.length > 0);
+}
+
 function loadCoverageContext() {
   try {
     const raw = readFileSync(
       path.resolve(process.cwd(), COVERAGE_CONTEXT_PATH),
       "utf8",
     );
-    const doc = JSON.parse(raw);
-    const storylines = Array.isArray(doc?.storylines) ? doc.storylines : [];
-    return storylines
-      .map((entry) => ({
-        name: cleanText(entry?.name || ""),
-        note: cleanText(entry?.note || ""),
-        match: (Array.isArray(entry?.match) ? entry.match : [])
-          .map((term) => String(term || "").toLowerCase().trim())
-          .filter(Boolean),
-      }))
-      .filter((entry) => entry.name && entry.note && entry.match.length > 0);
+    return normalizeCoverageContext(JSON.parse(raw));
   } catch {
     return [];
   }
 }
 
-const COVERAGE_CONTEXT = loadCoverageContext();
+// Node reads the team's file at startup. A Worker has no filesystem, so the
+// read above degrades to "no storylines" there and the Worker calls
+// setCoverageContext() with the same document fetched from its own storage.
+let COVERAGE_CONTEXT = loadCoverageContext();
+
+export function setCoverageContext(doc) {
+  COVERAGE_CONTEXT = normalizeCoverageContext(doc);
+  return COVERAGE_CONTEXT;
+}
 
 export function matchStorylines(item, storylines = COVERAGE_CONTEXT) {
   const haystack = [item?.title, item?.summary, item?.snippet, item?.description]

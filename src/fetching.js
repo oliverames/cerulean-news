@@ -1,7 +1,6 @@
 // HTTP fetching with retries, size caps, per-domain politeness, and the
 // per-source collection pipeline.
-import path from "node:path";
-import { readFile } from "node:fs/promises";
+import { readText } from "./fsx.js";
 import {
   mapWithConcurrency,
   parseDate,
@@ -783,8 +782,11 @@ async function fetchItemsForSource(source, now, crawlState, metrics) {
       // Local, committed input rather than a fetch: no network, no throttle,
       // and no failure mode that should ever mark the source unhealthy.
       feedUrl = source.seedItemsPath;
-      const seedPath = path.resolve(process.cwd(), source.seedItemsPath);
-      const raw = await readFile(seedPath, "utf8");
+      // Left relative rather than resolved against the working directory:
+      // Node resolves a relative read against cwd anyway, while a Worker has
+      // no real cwd and path.resolve() there produced "/bundle/data/...",
+      // which does not match the object key the seed is stored under.
+      const raw = await readText(source.seedItemsPath);
       sourceItems = parseMediaTrackerSeedItems(raw, source);
       sourceItems = applySourceItemBounds(sourceItems, source, now);
     } else if (source.listingUrl) {

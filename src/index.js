@@ -8,6 +8,7 @@ import { buildSourcesFromEnv } from "./sources.js";
 import { collectFeedItems } from "./fetching.js";
 import {
   enrichAndFilterItems,
+  previewBackfillCandidates,
   selectPreviewBackfillItems,
 } from "./enrich.js";
 import { applyDeterministicRelevance } from "./relevance.js";
@@ -74,6 +75,7 @@ function createCrawlMetrics(sources, startedAt) {
       negativeCacheHits: 0,
       articleFetches: 0,
       articleFetchSkipped: 0,
+      articleFetchDeferred: 0,
       articleNotModified: 0,
       articleErrors: 0,
       previewFetches: 0,
@@ -107,6 +109,11 @@ export async function generateFeed({
   rssOutputPath = resolveRssOutputPath(),
   jsonOutputPath = resolveJsonOutputPath(rssOutputPath),
   auditJsonOutputPath = resolveAuditJsonOutputPath(rssOutputPath),
+  // Optional external home for the article cache. On Node the cache travels
+  // inside the audit JSON, which is fine at ~8 MB on a machine with real
+  // memory. A Worker isolate gets 128 MB total, so it passes a store that
+  // keeps the cache in KV and loads only the entries this run can touch.
+  articleCacheStore = null,
 } = {}) {
   const runStartedAt = new Date();
   const runStartedMs = Date.now();
@@ -124,6 +131,17 @@ export async function generateFeed({
     collectFeedItems(sources, now, crawlState, crawlMetrics),
   );
   const items = collected.items;
+  // Wave one: the backfill decision consults the cache for archived paywalled
+  // items, so those keys have to be resident before the selection runs.
+  if (articleCacheStore) {
+    const candidateLinks = previewBackfillCandidates(archivedItems, items)
+      .map((item) => item.link)
+      .filter(Boolean);
+    Object.assign(
+      crawlState.articleCache,
+      await articleCacheStore.prefetch(candidateLinks),
+    );
+  }
   const previewBackfillItems = selectPreviewBackfillItems(
     archivedItems,
     items,
@@ -138,6 +156,23 @@ export async function generateFeed({
     );
   }
   const enrichmentItems = [...items, ...previewBackfillItems];
+  // Wave two: every key enrichment can read or write. writeArticleCache
+  // stores each entry under both its original and resolved link, so loading
+  // by the links already on the items is enough to hit an existing entry
+  // even when the resolved URL is only discovered mid-run.
+  let loadedArticleCacheRefs = null;
+  if (articleCacheStore) {
+    const enrichmentLinks = enrichmentItems
+      .flatMap((item) => [item.link, item.url, item.resolvedUrl])
+      .filter(Boolean);
+    Object.assign(
+      crawlState.articleCache,
+      await articleCacheStore.prefetch(enrichmentLinks),
+    );
+    // Snapshot identities before enrichment mutates the cache, so the
+    // writeback can tell changed entries from untouched ones by reference.
+    loadedArticleCacheRefs = new Map(Object.entries(crawlState.articleCache));
+  }
   // Streaks ride along in the published sources array, so the audit JSON
   // doubles as the source-rot dashboard and the persistence layer.
   const sourceResults = applyFailureStreaks(
@@ -180,11 +215,17 @@ export async function generateFeed({
   finishCrawlMetrics(crawlMetrics, runStartedMs);
   const rss = buildRss(matchedItems, { now });
   const jsonSummary = buildJsonSummary(matchedItems, sourceResults, now);
+  // With an external store the cache is persisted separately and must not be
+  // duplicated into the audit JSON, which would put the 8 MB back that moving
+  // it out was meant to save.
+  const auditCrawlState = articleCacheStore
+    ? { ...crawlState, articleCache: {} }
+    : crawlState;
   const auditJsonSummary = buildJsonSummary(matchedItems, sourceResults, now, {
     includeRejected: true,
     feedUrl: "",
     crawlMetrics,
-    crawlState,
+    crawlState: auditCrawlState,
   });
 
   await writeOutput(
@@ -195,6 +236,12 @@ export async function generateFeed({
     jsonOutputPath,
     auditJsonOutputPath,
   );
+  if (articleCacheStore) {
+    await articleCacheStore.persist(
+      crawlState.articleCache,
+      loadedArticleCacheRefs,
+    );
+  }
   return {
     rssOutputPath,
     jsonOutputPath,
@@ -224,12 +271,26 @@ async function main() {
   console.log(`Wrote audit JSON to ${result.auditJsonOutputPath}`);
 }
 
-const currentFile = pathToFileURL(fileURLToPath(import.meta.url)).href;
-const invokedFile = process.argv[1]
-  ? pathToFileURL(path.resolve(process.argv[1])).href
-  : "";
+// True only when this module is the process entry point, as it is for
+// `npm run generate`. Bundled into a Worker there is no entry script and no
+// import.meta.url, and evaluating either would throw while the module is
+// still being loaded, which fails the deploy rather than the request.
+function invokedDirectly() {
+  try {
+    const entryScript = process.argv?.[1];
+    if (!entryScript || !import.meta.url) {
+      return false;
+    }
+    return (
+      pathToFileURL(fileURLToPath(import.meta.url)).href ===
+      pathToFileURL(path.resolve(entryScript)).href
+    );
+  } catch {
+    return false;
+  }
+}
 
-if (currentFile === invokedFile) {
+if (invokedDirectly()) {
   main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
@@ -293,7 +354,11 @@ export {
 } from "./fetching.js";
 export { freshUntilFromHeaders, isNoCrawlUrl, politenessPolicyFor } from "./politeness.js";
 export { isObituaryItem } from "./filters.js";
-export { enrichAndFilterItems, selectPreviewBackfillItems } from "./enrich.js";
+export {
+  enrichAndFilterItems,
+  previewBackfillCandidates,
+  selectPreviewBackfillItems,
+} from "./enrich.js";
 export {
   applyDeterministicRelevance,
   isAssociationItem,
@@ -316,6 +381,7 @@ export {
   matchStorylines,
   orderItemsForRun,
   selectPendingSummaryItems,
+  setCoverageContext,
   normalizeSentiment,
   parseSummaryResponse,
   SENTIMENT_VALUES,

@@ -1,0 +1,45 @@
+name = "cerulean-news"
+main = "worker/index.js"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Every three hours, matching the cadence the GitHub Actions workflow ran at.
+# A cron interval of an hour or more raises the CPU ceiling for the invocation
+# from 30 seconds to 15 minutes; a healthy run spends about four minutes, and
+# nearly all of that is network wait rather than CPU.
+[triggers]
+crons = ["17 */3 * * *"]
+
+[observability]
+enabled = true
+
+[assets]
+directory = "./site"
+binding = "ASSETS"
+# Static assets are matched before the Worker runs, so the generated files are
+# routed to the Worker explicitly. site/.assetsignore already keeps the stale
+# committed copies out of the bundle; this makes the outcome independent of
+# that, because serving a months-old feed.json from the bundle is the exact
+# failure that rolled the live reader back on 2026-08-27.
+run_worker_first = ["/feed.json", "/feed.rss", "/feed-audit.json", "/__run"]
+
+# Durable state: the archive, the published feeds, the media tracker seed and
+# the team's coverage-context file.
+[[r2_buckets]]
+binding = "STATE"
+bucket_name = "cerulean-news-state"
+
+# The article cache, one entry per article URL. It lived inside the audit JSON
+# under Actions; at ~9,600 entries that cost roughly 80 MB of a 128 MB isolate
+# to hold, so it moved out here and is loaded a working set at a time.
+[[kv_namespaces]]
+binding = "ARTICLE_CACHE"
+id = "54a09230a3dc47d799e33e4c659fa7f3"
+
+[vars]
+SITE_URL = "https://cerulean.news"
+# A scheduled invocation is killed at 15 minutes of wall time. Collection runs
+# first and takes about four, so article fetching is capped at seven to leave
+# room for summaries and the R2 writes. Deferred fetches are picked up by the
+# following run rather than lost.
+RSS_ENRICH_BUDGET_MS = "420000"

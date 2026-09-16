@@ -26,7 +26,7 @@
 
 ---
 
-Cerulean News collects public news items that matter to a Vermont health care communications team: direct Blue Cross VT mentions first, Vermont health care coverage second, then regional and national policy stories when they have a clear payer, coverage, or system angle. It publishes a plain reader, RSS feed, JSON Feed, and audit feed from a scheduled GitHub Actions workflow.
+Cerulean News collects public news items that matter to a Vermont health care communications team: direct Blue Cross VT mentions first, Vermont health care coverage second, then regional and national policy stories when they have a clear payer, coverage, or system angle. It publishes a plain reader, RSS feed, JSON Feed, and audit feed from a scheduled Cloudflare Worker.
 
 The project is intentionally text-heavy. It follows the spirit of `text.npr.org`: fast, readable, useful, and clear about what was collected.
 
@@ -148,7 +148,7 @@ Each story can include:
 | Why it is here | Short relevance reason for a reader who wants to skim quickly |
 | Comments | Publicly parseable article or post comments, hidden by default |
 
-The browser does not recrawl sources. GitHub Actions does the collection and deploys the latest feed every three hours; reloading the page loads the latest published feed.
+The browser does not recrawl sources. A Cloudflare Worker does the collection and republishes the feed every three hours; reloading the page loads the latest published feed.
 
 ## Sentiment
 

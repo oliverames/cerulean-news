@@ -1,6 +1,5 @@
 // Feed outputs: RSS XML, public JSON Feed, audit JSON, and file writing.
-import path from "node:path";
-import { mkdir, writeFile } from "node:fs/promises";
+import { writeText } from "./fsx.js";
 import {
   cleanStorySnippet,
   cleanText,
@@ -379,17 +378,12 @@ export async function writeOutput(
   jsonOutputPath,
   auditJsonOutputPath,
 ) {
-  // RSS, JSON, and audit paths are configured independently and may live in
-  // different directories; create each one before writing.
-  for (const outputPath of [rssOutputPath, jsonOutputPath, auditJsonOutputPath]) {
-    await mkdir(path.dirname(outputPath), { recursive: true });
-  }
-  await writeFile(rssOutputPath, rss, "utf8");
-  await writeFile(jsonOutputPath, `${JSON.stringify(jsonSummary, null, 2)}\n`);
+  await writeText(rssOutputPath, rss);
+  await writeText(jsonOutputPath, `${JSON.stringify(jsonSummary, null, 2)}\n`);
   // The audit JSON is the persistence layer, re-downloaded and re-uploaded
   // every hourly run; compact serialization cuts megabytes off each cycle.
   // Use jq to pretty-print when inspecting it by hand.
-  await writeFile(
+  await writeText(
     auditJsonOutputPath,
     `${JSON.stringify(auditJsonSummary)}\n`,
   );

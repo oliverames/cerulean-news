@@ -1,6 +1,6 @@
 // Durable archive: load the previous run's audit JSON, merge current items
 // with archived ones, and dedupe resolved links and titles.
-import { readFile } from "node:fs/promises";
+import { readText } from "./fsx.js";
 import {
   cleanStorySnippet,
   cleanText,
@@ -135,7 +135,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
 
   for (const jsonOutputPath of attemptedPaths) {
     try {
-      const raw = await readFile(jsonOutputPath, "utf8");
+      const raw = await readText(jsonOutputPath);
       const parsed = JSON.parse(raw);
       // A syntactically valid file is not necessarily a usable archive. If
       // the preferred audit path was truncated to an object with no items

@@ -34,6 +34,20 @@ import { isLikelyPaywalled, itemCategory } from "./relevance.js";
 const googleDecoder = new GoogleDecoder();
 
 const CONCURRENCY = parsePositiveInteger(process.env.RSS_CONCURRENCY, 6);
+// Wall-clock ceiling on article fetching within one run. Zero, the default,
+// means no ceiling, which is what the CLI and the old Actions job want.
+//
+// A Cloudflare scheduled invocation is killed at 15 minutes, and a cold
+// article cache makes the run far longer than a warm one: the per-domain
+// politeness delay is a second, so a few hundred uncached articles on one
+// domain is a few hundred seconds by itself. Without a ceiling the first run
+// after an outage would be cut off mid-flight, write nothing, and leave the
+// next run just as cold. Deferring article fetches instead lets the run finish
+// and publish; the items it skipped carry no cache entry, so a later run picks
+// them up and the archive converges over a few passes.
+function enrichBudgetMs() {
+  return parsePositiveInteger(process.env.RSS_ENRICH_BUDGET_MS, 0);
+}
 const NEGATIVE_CACHE_TTL_MS =
   parsePositiveInteger(process.env.RSS_NEGATIVE_CACHE_TTL_DAYS, 14) *
   24 *
@@ -321,13 +335,12 @@ function mergeComments(...commentLists) {
   return merged;
 }
 
-export function selectPreviewBackfillItems(
-  archivedItems,
-  currentItems,
-  limit = 25,
-  articleCache = {},
-  now = new Date(),
-) {
+// The cache-independent half of the backfill filter. Split out so a caller
+// that keeps the article cache outside the process (the Worker, which holds it
+// in KV) can learn exactly which keys this run needs before fetching any of
+// them. selectPreviewBackfillItems applies the remaining cached-error check on
+// top, so the two can never drift apart.
+export function previewBackfillCandidates(archivedItems, currentItems) {
   const currentLinks = new Set(
     currentItems.map((item) => item.link).filter(Boolean),
   );
@@ -371,25 +384,38 @@ export function selectPreviewBackfillItems(
   const currentStoryKeys = new Set(
     currentItems.map(storyKey).filter(Boolean),
   );
+
+  return archivedItems.filter(
+    (item) =>
+      item.relevant !== false &&
+      item.previewChecked !== true &&
+      !currentLinks.has(item.link) &&
+      !currentStoryKeys.has(storyKey(item)) &&
+      isLikelyPaywalled(item),
+  );
+}
+
+export function selectPreviewBackfillItems(
+  archivedItems,
+  currentItems,
+  limit = 25,
+  articleCache = {},
+  now = new Date(),
+) {
   const boundedLimit = Number.isFinite(Number(limit)) && Number(limit) > 0
     ? Math.floor(Number(limit))
     : 25;
 
-  return archivedItems
+  return previewBackfillCandidates(archivedItems, currentItems)
     .filter((item) => {
+      // A fresh cached error means the last preview fetch failed recently;
+      // retrying it this run would just burn the request again.
       const cached = articleCache[item.link];
       const cacheExpiresAt = parseDate(cached?.expiresAt);
       const hasFreshCachedError = Boolean(cached?.articleError) &&
         Boolean(cacheExpiresAt) &&
         cacheExpiresAt.valueOf() > now.valueOf();
-      return (
-        item.relevant !== false &&
-        item.previewChecked !== true &&
-        !currentLinks.has(item.link) &&
-        !currentStoryKeys.has(storyKey(item)) &&
-        !hasFreshCachedError &&
-        isLikelyPaywalled(item)
-      );
+      return !hasFreshCachedError;
     })
     .sort(
       (left, right) =>
@@ -423,6 +449,11 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
     metrics.enrichment.itemsSeen = items.length;
   }
   pruneExpiredArticleCache(articleCache, now);
+  // Fixed at the start of the phase so every item measures against the same
+  // deadline rather than drifting as the run proceeds.
+  const budgetMs = enrichBudgetMs();
+  const articleFetchDeadlineMs =
+    budgetMs > 0 ? Date.now() + budgetMs : Infinity;
 
   const results = await mapWithConcurrency(items, CONCURRENCY, async (item) => {
     let articleText = "";
@@ -575,7 +606,14 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
 
     const scanMode = item.articleScanMode || (item.scanArticle === false ? "feedOnly" : "smart");
     trackScanMode(metrics, scanMode);
-    const fetchArticle = articleFetchNeeded;
+    // Past the budget the fetch is deferred, not recorded: every
+    // writeArticleCache below is guarded by fetchArticle, so a deferred item
+    // leaves no cache entry behind and stays eligible on the next run.
+    const withinFetchBudget = Date.now() < articleFetchDeadlineMs;
+    const fetchArticle = articleFetchNeeded && withinFetchBudget;
+    if (articleFetchNeeded && !withinFetchBudget) {
+      bumpMetric(metrics, "articleFetchDeferred");
+    }
     const collectPreview =
       fetchArticle && isLikelyPaywalled({ ...item, link: resolvedLink });
     if (fetchArticle) {

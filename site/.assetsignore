@@ -1,0 +1,7 @@
+# Generated every run and stored in R2; the Worker serves them from there.
+# Uploading the committed copies would republish a stale feed the moment the
+# assets bundle shipped, which is exactly what broke the site on 2026-08-27.
+feed.json
+feed.rss
+feed-audit.json
+.nojekyll
