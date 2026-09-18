@@ -14,6 +14,8 @@ import {
   VERMONT_SOURCE_NAMES,
   cleanStorySnippet,
   buildSourcesFromEnv,
+  backfillWindowFromEnv,
+  applyBackfillWindow,
   buildSnippet,
   buildSummaryPrompt,
   buildFailureAlertMessages,
@@ -6464,4 +6466,59 @@ test("trends charts trim stale coverage and anchor sentiment tooltips", async ()
   assert.match(trends, /const segmentTop = cursor/);
   assert.match(trends, /pad\.top \+ segmentTop \+ segHeight \/ 2/);
   assert.doesNotMatch(trends, /pad\.top \+ cursor \+ segHeight \/ 2/);
+});
+
+test("backfillWindowFromEnv requires both bounds in order", () => {
+  assert.equal(backfillWindowFromEnv({}), null);
+  assert.equal(backfillWindowFromEnv({ BACKFILL_AFTER: "2026-09-05" }), null);
+  assert.equal(backfillWindowFromEnv({ BACKFILL_BEFORE: "2026-09-14" }), null);
+  assert.equal(
+    backfillWindowFromEnv({ BACKFILL_AFTER: "2026-09-14", BACKFILL_BEFORE: "2026-09-05" }),
+    null,
+  );
+  assert.equal(backfillWindowFromEnv({ BACKFILL_AFTER: "nonsense", BACKFILL_BEFORE: "2026-09-14" }), null);
+  assert.deepEqual(
+    backfillWindowFromEnv({ BACKFILL_AFTER: "2026-09-05", BACKFILL_BEFORE: "2026-09-14" }),
+    { after: "2026-09-05", before: "2026-09-14" },
+  );
+});
+
+test("applyBackfillWindow swaps the rolling window for explicit bounds", () => {
+  const sources = [
+    {
+      name: "Local outlet search",
+      isSearchFeed: true,
+      maxItemAgeDays: 30,
+      feedUrl:
+        "https://news.google.com/rss/search?q=site%3Aexample.com+%28hospital%29+when%3A30d&hl=en-US",
+    },
+  ];
+  const [out] = applyBackfillWindow(sources, {
+    after: "2026-09-05",
+    before: "2026-09-14",
+  });
+  const q = new URL(out.feedUrl).searchParams.get("q");
+  assert.match(q, /after:2026-09-05 before:2026-09-14/);
+  assert.doesNotMatch(q, /when:\d+d/);
+  // Site scoping and terms survive the rewrite.
+  assert.match(q, /site:example\.com/);
+  assert.match(q, /hospital/);
+  // The rolling minimum is cleared so it cannot discard the whole window.
+  assert.equal(out.maxItemAgeDays, undefined);
+  assert.equal(out.minPubDate, "2026-09-04T00:00:00Z");
+  assert.equal(out.maxPubDate, "2026-09-15T00:00:00Z");
+});
+
+test("applyBackfillWindow leaves non-search and non-Google sources untouched", () => {
+  const rss = { name: "Plain RSS", feedUrl: "https://example.com/feed.xml" };
+  const social = { name: "A Facebook page", facebookPageUrl: "https://facebook.com/x" };
+  const other = {
+    name: "Other search",
+    isSearchFeed: true,
+    feedUrl: "https://bing.com/news/search?q=when%3A30d",
+  };
+  const window = { after: "2026-09-05", before: "2026-09-14" };
+  assert.deepEqual(applyBackfillWindow([rss, social, other], window), [rss, social, other]);
+  // No window means no change at all.
+  assert.deepEqual(applyBackfillWindow([rss, social, other], null), [rss, social, other]);
 });

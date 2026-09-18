@@ -18,6 +18,14 @@ on:
         description: "Gemini requests this run (10 items each). Raise to sweep the archive in one pass."
         type: string
         default: ""
+      backfill_after:
+        description: "Backfill gap start, YYYY-MM-DD. With backfill_before, sweeps only those days."
+        type: string
+        default: ""
+      backfill_before:
+        description: "Backfill gap end, YYYY-MM-DD (exclusive). Both dates required, or neither."
+        type: string
+        default: ""
   schedule:
     # Every 4 hours: 6 runs a day at ~6.3 minutes is about 1,134 billed units a
     # month. This is the only scheduled workflow in any private repo, and it is
@@ -171,6 +179,13 @@ jobs:
           SUMMARY_REJUDGE_ALL: ${{ inputs.rejudge_all }}
           # Empty on scheduled runs, so the default cap applies there.
           SUMMARY_MAX_REQUESTS_PER_RUN: ${{ inputs.summary_max_requests }}
+          # A stall leaves days that no later run can reach: Google News search
+          # ranks by recency and each source keeps only its newest maxItems, so
+          # the stalled days are crowded out of every `when:30d` result for
+          # good. Setting both dates swaps that rolling window for explicit
+          # bounds and sweeps just the hole. Empty on scheduled runs.
+          BACKFILL_AFTER: ${{ inputs.backfill_after }}
+          BACKFILL_BEFORE: ${{ inputs.backfill_before }}
           # www.bcbs.com serves an incomplete TLS chain (leaf only, no
           # DigiCert intermediate). Browsers recover via AIA fetching but
           # Node deliberately does not, so every fetch failed with

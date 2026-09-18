@@ -911,9 +911,80 @@ function parseConfiguredUrlSources(value, buildSource) {
     .filter(Boolean);
 }
 
+// A stalled build leaves a hole in the archive that ordinary runs never fill.
+// Google News search returns a ranked set and each source keeps only its newest
+// `maxItems`, so once collection resumes the fresh stories crowd the stalled
+// days out of every `when:30d` result and those days stay thin for good: the
+// 2026-09-05 to 2026-09-13 outage left 1-to-21 items a day against a 43-to-94
+// baseline. BACKFILL_AFTER and BACKFILL_BEFORE (YYYY-MM-DD) swap the rolling
+// window for explicit bounds, so a one-off run sweeps only the missing days and
+// the per-source cap applies within them. Both must be set; scheduled runs
+// leave them unset and nothing changes.
+function parseBackfillDate(value) {
+  const trimmed = String(value || "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : "";
+}
+
+export function backfillWindowFromEnv(env = process.env) {
+  const after = parseBackfillDate(env.BACKFILL_AFTER);
+  const before = parseBackfillDate(env.BACKFILL_BEFORE);
+  // Half a window is a misconfiguration, not a narrower sweep: honouring one
+  // bound alone would silently re-crawl months and blow the per-source cap.
+  return after && before && after < before ? { after, before } : null;
+}
+
+export function applyBackfillWindow(sources, window) {
+  if (!window) {
+    return sources;
+  }
+  const bounded = `after:${window.after} before:${window.before}`;
+  return sources.map((source) => {
+    if (!source.isSearchFeed || !source.feedUrl) {
+      return source;
+    }
+    let url;
+    try {
+      url = new URL(source.feedUrl);
+    } catch {
+      return source;
+    }
+    if (url.hostname !== "news.google.com") {
+      return source;
+    }
+    const query = url.searchParams.get("q") || "";
+    // Replace in place so the rest of the query — site scoping, brand terms —
+    // is preserved; a query with no rolling window just gains the bounds.
+    url.searchParams.set(
+      "q",
+      /when:\d+d/.test(query)
+        ? query.replace(/when:\d+d/g, bounded)
+        : `${query} ${bounded}`.trim(),
+    );
+    return {
+      ...source,
+      feedUrl: url.toString(),
+      // The rolling minimum is measured from "now", so it would discard the
+      // whole window as soon as it is older than maxItemAgeDays. The explicit
+      // bounds replace it rather than stacking with it. A day of slack on each
+      // side keeps a timezone difference between Google's date handling and
+      // ours from trimming the edges of the sweep.
+      maxItemAgeDays: undefined,
+      minPubDate: `${shiftDay(window.after, -1)}T00:00:00Z`,
+      maxPubDate: `${shiftDay(window.before, 1)}T00:00:00Z`,
+    };
+  });
+}
+
+function shiftDay(date, days) {
+  const shifted = new Date(`${date}T00:00:00Z`);
+  shifted.setUTCDate(shifted.getUTCDate() + days);
+  return shifted.toISOString().slice(0, 10);
+}
+
 export function buildSourcesFromEnv(baseSources = DEFAULT_SOURCES) {
+  const backfill = backfillWindowFromEnv();
   if (!socialSourcesEnabled()) {
-    return [...baseSources];
+    return applyBackfillWindow([...baseSources], backfill);
   }
 
   const configuredPosts = parseConfiguredUrlSources(
@@ -938,7 +1009,11 @@ export function buildSourcesFromEnv(baseSources = DEFAULT_SOURCES) {
   );
 
   const defaultSocialSources = baseSources === DEFAULT_SOURCES ? SOCIAL_SOURCES : [];
-  return [...baseSources, ...defaultSocialSources, ...configuredPosts, ...configuredPages];
+  // Social sources carry no feedUrl, so the backfill pass leaves them alone.
+  return applyBackfillWindow(
+    [...baseSources, ...defaultSocialSources, ...configuredPosts, ...configuredPages],
+    backfill,
+  );
 }
 
 // Every hand-curated Vermont outlet in DEFAULT_SOURCES belongs here:

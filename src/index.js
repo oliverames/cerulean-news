@@ -310,6 +310,8 @@ export {
   BROAD_NATIONAL_SOURCE_NAMES,
   VERMONT_SOURCE_NAMES,
   buildSourcesFromEnv,
+  backfillWindowFromEnv,
+  applyBackfillWindow,
   isSocialSourceItem,
   socialSourcesEnabled,
 } from "./sources.js";
