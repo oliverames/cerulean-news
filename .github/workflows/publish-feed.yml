@@ -186,6 +186,14 @@ jobs:
           # bounds and sweeps just the hole. Empty on scheduled runs.
           BACKFILL_AFTER: ${{ inputs.backfill_after }}
           BACKFILL_BEFORE: ${{ inputs.backfill_before }}
+          # A backfill exists to re-ask the same sources a different question,
+          # so the per-source freshness cache is exactly wrong for it: the
+          # first working sweep reused 20 cached responses and queried only 76
+          # of 97 sources. Disable the cap for backfill runs only; scheduled
+          # runs keep it, since there it is what stops every run refetching
+          # feeds that have not changed.
+          RSS_CACHE_FRESHNESS_CAP_MS: ${{ (inputs.backfill_after != '' && inputs.backfill_before != '') && '0' || '' }}
+          RSS_GLOBAL_CACHE_FRESHNESS_CAP_MS: ${{ (inputs.backfill_after != '' && inputs.backfill_before != '') && '0' || '' }}
           # www.bcbs.com serves an incomplete TLS chain (leaf only, no
           # DigiCert intermediate). Browsers recover via AIA fetching but
           # Node deliberately does not, so every fetch failed with
