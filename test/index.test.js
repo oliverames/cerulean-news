@@ -6506,7 +6506,10 @@ test("applyBackfillWindow swaps the rolling window for explicit bounds", () => {
   // The rolling minimum is cleared so it cannot discard the whole window.
   assert.equal(out.maxItemAgeDays, undefined);
   assert.equal(out.minPubDate, "2026-09-04T00:00:00Z");
-  assert.equal(out.maxPubDate, "2026-09-15T00:00:00Z");
+  // No maxPubDate: isSourceWindowClosed skips any source whose maxPubDate has
+  // passed, which would make every backfill run a no-op.
+  assert.equal(out.maxPubDate, undefined);
+  assert.equal(isSourceWindowClosed(out, new Date("2026-09-18T00:00:00Z")), false);
 });
 
 test("applyBackfillWindow leaves non-search and non-Google sources untouched", () => {

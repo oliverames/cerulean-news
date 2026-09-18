@@ -965,12 +965,18 @@ export function applyBackfillWindow(sources, window) {
       feedUrl: url.toString(),
       // The rolling minimum is measured from "now", so it would discard the
       // whole window as soon as it is older than maxItemAgeDays. The explicit
-      // bounds replace it rather than stacking with it. A day of slack on each
-      // side keeps a timezone difference between Google's date handling and
-      // ours from trimming the edges of the sweep.
+      // bounds replace it rather than stacking with it. A day of slack below
+      // keeps a timezone difference between Google's date handling and ours
+      // from trimming the start of the sweep.
       maxItemAgeDays: undefined,
       minPubDate: `${shiftDay(window.after, -1)}T00:00:00Z`,
-      maxPubDate: `${shiftDay(window.before, 1)}T00:00:00Z`,
+      // Deliberately no maxPubDate. Google's `before:` already bounds the top
+      // end server-side, and a maxPubDate in the past makes
+      // isSourceWindowClosed skip the source entirely — that guard exists for
+      // permanently bounded historical sources, and it silently turned the
+      // first backfill run into 33 skips and no fetches. Anything newer than
+      // the window that slips through is already in the archive, where the
+      // merge dedupes it.
     };
   });
 }
