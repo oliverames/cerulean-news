@@ -970,6 +970,13 @@ export function applyBackfillWindow(sources, window) {
       // from trimming the start of the sweep.
       maxItemAgeDays: undefined,
       minPubDate: `${shiftDay(window.after, -1)}T00:00:00Z`,
+      // A backfill asks the same URL a different question, so a cached
+      // response is the wrong answer by construction. The freshness window is
+      // persisted in crawlState from earlier runs, so capping it by env is not
+      // enough to reach these sources: the flag makes the fetcher ignore a
+      // still-fresh cache entry. Cooldowns are deliberately left alone, since
+      // those mean the origin asked us to back off.
+      refetchIgnoringCache: true,
       // Deliberately no maxPubDate. Google's `before:` already bounds the top
       // end server-side, and a maxPubDate in the past makes
       // isSourceWindowClosed skip the source entirely — that guard exists for

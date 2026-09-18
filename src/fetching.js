@@ -548,7 +548,7 @@ async function fetchSourceText(
   now,
   options = {},
 ) {
-  if (cachedResponseStillFresh(sourceState, url, now)) {
+  if (!source?.refetchIgnoringCache && cachedResponseStillFresh(sourceState, url, now)) {
     bumpMetric(metrics, "collection", "cacheFreshSkips");
     console.log(`Skipped ${url}: server-declared cache still fresh`);
     return { text: "", url, notModified: true, cacheFresh: true };

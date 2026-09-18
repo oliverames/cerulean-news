@@ -6510,6 +6510,8 @@ test("applyBackfillWindow swaps the rolling window for explicit bounds", () => {
   // passed, which would make every backfill run a no-op.
   assert.equal(out.maxPubDate, undefined);
   assert.equal(isSourceWindowClosed(out, new Date("2026-09-18T00:00:00Z")), false);
+  // A cached response answers the old question, so the backfill must refetch.
+  assert.equal(out.refetchIgnoringCache, true);
 });
 
 test("applyBackfillWindow leaves non-search and non-Google sources untouched", () => {
