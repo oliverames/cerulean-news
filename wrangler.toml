@@ -3,14 +3,19 @@ main = "worker/index.js"
 compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Every four hours, matching the Actions workflow. The Worker is the parked
-# fallback; keeping the cadence aligned means a switch either way changes
-# nothing a reader would notice.
+# No cron. The Worker was the fallback while GitHub Actions was blocked by the
+# billing cut-off; Actions took publishing back on 2026-09-18 and the Worker's
+# archive was merged into the Pages copy that day, so leaving the cron on would
+# have both of them crawling every source every four hours and racing to
+# publish. The Worker, its R2 bucket, KV namespace and the fetch relay stay
+# deployed as a parked fallback: restoring the cadence is uncommenting the line
+# below and redeploying.
 # A cron interval of an hour or more raises the CPU ceiling for the invocation
 # from 30 seconds to 15 minutes; a healthy run spends about four minutes, and
 # nearly all of that is network wait rather than CPU.
 [triggers]
-crons = ["17 */4 * * *"]
+crons = []
+# crons = ["17 */4 * * *"]
 
 [observability]
 enabled = true
