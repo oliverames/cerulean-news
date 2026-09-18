@@ -1,3 +1,73 @@
+## 2026-09-18 - Actions publishing restored, Worker handed off, stall gap measured
+
+**Why**: GitHub Pro activated, which cleared the account-wide billing block that
+had failed every private-repo run since 2026-09-05. Publishing needed to move
+back to Actions, the Worker's archive needed to carry over before its cron was
+turned off, and the days the stall left thin needed filling if they could be.
+
+**Actions is green**: a dispatched run succeeded end to end in 8m56s and the
+four-hour schedule is live again. Nine runs today, all green. No workflow
+change was needed for the unblock itself; the block was purely billing.
+
+**Archive handoff**: the Worker's R2 copy and the Pages copy had each moved on,
+so neither was a superset. R2 held 70 items Pages lacked (54 from September, 42
+of them never relevance-judged, including the UVM Health layoffs and the Blue
+Cross VT food-insecurity story); Pages held 15 the Actions run had just
+collected, plus the only copy of the 140-entry articleCache, which the Worker
+keeps in KV instead. Merging Pages-as-base plus the 70 gave 4,460 items with no
+duplicate links, deployed to Pages so the next Actions run would seed from it.
+That run kept all 54 September items. The 36 it removed were 16 June items at
+the 92-day ARCHIVE_MAX_AGE_DAYS boundary and 20 cross-outlet duplicates; every
+story in the 20 survives under another outlet, so no coverage was lost.
+
+**Judging recovered more than crawling did**: the merge left 68 unjudged items,
+56 of them inside the stall window, and they sat at the head of the pending
+queue under the 100-item cap. One run cleared all 68 and turned up 41 relevant
+stories that had been sitting in the archive unscored: 8 September went 0 to 7
+relevant, 9 September 0 to 7, 10 September 0 to 13, 11 September 0 to 12.
+
+**Backfill**: Google News search ranks by recency and each search source keeps
+only its newest `maxItems`, so once collection resumes the stalled days are
+crowded out of every `when:30d` result permanently. BACKFILL_AFTER and
+BACKFILL_BEFORE swap the rolling window for explicit `after:`/`before:` bounds
+on all 33 Google search sources; the 60 non-Google sources are untouched.
+Two bugs surfaced in use and are fixed. Setting maxPubDate at the end of the
+window tripped isSourceWindowClosed, whose guard is meant for permanently
+bounded historical searches, so the first sweep skipped all 33 sources and
+added 2 items; Google's `before:` already bounds the top end, so maxPubDate is
+simply not set. And capping freshness by env was not enough, because
+cachedResponseStillFresh reads a freshUntil earlier runs persisted into
+crawlState, so backfilled sources now carry refetchIgnoringCache. Cooldowns are
+deliberately left alone: those are outlets returning 429.
+
+**Outcome of the backfill: close to nothing, and the reason matters.** With the
+mechanism fully correct, 86 of 97 sources queried and 976 items collected, the
+gap window gained 1 item. Measured against each day's own weekday baseline
+(weekends run 16-25 items, weekdays 43-94), 6-13 September is short by roughly
+250-300 items. Of a normal day's items, 46 to 56 of 77 to 84 arrive through
+direct RSS feeds, which only serve their current window and cannot be replayed;
+that share is unrecoverable by any mechanism. The Google-search share is
+reachable, and this sweep establishes that what it can still return for those
+days is already archived: the site-scoped fallback queries do return content
+from the window, but it is generic wire copy that the matcher correctly
+rejects. The gap is therefore closed as far as it can be, not left open.
+
+**Worker parked**: cron removed from wrangler.toml and redeployed, so the two
+publishers no longer both crawl every source. The Worker, R2 bucket, KV
+namespace and the fetch relay stay deployed; restoring the cadence is
+uncommenting one line.
+
+**Left off at**: the four-hour cadence is unchanged. At about 6.3 minutes a run
+that is roughly 1,134 minutes a month against Pro's 3,000, so three hours
+(about 1,512) would fit if it is wanted. September shows a small non-zero
+Actions storage charge, about $0.44 net against otherwise fully discounted
+usage, which is the kind of overage that can re-trip a zero spending limit.
+Nine runs in one hour left 18 Vermont outlets in 429 cooldown, one
+(bartonchronicle.com) on a 403 until 2026-09-19; they clear on their own.
+`xcode-27` as a `runs-on` label in three repos with no matching runner is still
+unexplained, and `ames-plugins-local/marketplace-validation.yml` is still on
+`macos-latest`.
+
 ## 2026-09-16 - Build moved from GitHub Actions to a Cloudflare Worker
 
 **Why**: The publish workflow last succeeded 2026-09-05 15:19 UTC. Every run
