@@ -115,6 +115,7 @@ export async function generateFeed({
   // memory. A Worker isolate gets 128 MB total, so it passes a store that
   // keeps the cache in KV and loads only the entries this run can touch.
   articleCacheStore = null,
+  jevOptions = {},
 } = {}) {
   const runStartedAt = new Date();
   const runStartedMs = Date.now();
@@ -207,14 +208,17 @@ export async function generateFeed({
       sortItemsByDate(mergeWithArchive(currentMatched, archivedItems, now)),
     ).map(applyDeterministicRelevance),
   );
-  // EXPERIMENTAL. Off unless JEV_RELEVANCE is set, and a no-op in shadow mode:
-  // the deterministic rules above have already had the last word on the items
-  // they reject. See src/jev-relevance.js for the decision policy.
-  const matchedItems = await measurePhase(crawlMetrics, "jevRelevance", () =>
-    applyJevRelevance(mergedItems),
-  );
   await measurePhase(crawlMetrics, "summarize", () =>
-    summarizeItems(matchedItems),
+    summarizeItems(mergedItems),
+  );
+  // Jev runs last so Gemini cannot overwrite a confident enforced evaluation.
+  // Shadow mode preserves reader output while recording calibration evidence.
+  const matchedItems = await measurePhase(crawlMetrics, "jevRelevance", () =>
+    applyJevRelevance(mergedItems, {
+      ...jevOptions,
+      cache: crawlState.jevCache,
+      metrics: (crawlMetrics.jev = {}),
+    }),
   );
   // Successful endpoint-specific alert state is written with the source
   // results. Failed endpoints remain pending and retry on the next run.

@@ -59,6 +59,15 @@ export const SENTIMENT_VALUES = [
   "negative",
 ];
 
+export const SENTIMENT_RULES = [
+  "1. Judge the tone TOWARD BCBSVT specifically, not the tone of the story overall. A story critical of hospital costs that quotes us favorably is positive for us.",
+  "2. Weight the headline heavily and separately from the body. A balanced story under a negative headline lands at neutral or neutral to negative, not positive.",
+  "3. Weight mention prominence. When BCBSVT is a footnote rather than the subject, pull the score toward neutral even if the topic is strongly negative.",
+  "4. A negative story topic drags the score down even when BCBSVT is not the target of the criticism.",
+  "5. Ordinary favourable presence IS positive, not neutral. Awards, sponsorships, event participation, community items, and being named among payers on a routine story all score positive when nothing adverse is said. Reserve neutral for coverage that is genuinely balanced or leans into cost and affordability pressure, and reserve the negative half of the scale for criticism, denial, cost blame, and adverse opinion.",
+  "Do not hedge toward neutral when the excerpt is thin. Score what the headline and the outlet's framing support; the tracker's own scored set is roughly two thirds positive.",
+];
+
 const SENTIMENT_LOOKUP = new Map(
   SENTIMENT_VALUES.map((value) => [value, value]),
 );
@@ -169,7 +178,7 @@ export function matchStorylines(item, storylines = COVERAGE_CONTEXT) {
 // that a model working from the rules alone scored ordinary favourable brand
 // presence (sponsorships, awards, being named among payers) as neutral, where
 // she scores it positive. Examples correct that far better than more prose.
-const TRACKER_EXAMPLES = [
+export const TRACKER_EXAMPLES = [
   {
     headline: "2026 Best of Business in Vermont recipients announced",
     outlet: "VermontBiz",
@@ -300,12 +309,7 @@ export function buildSummaryPrompt(batch) {
     '- "sentimentReason": under 20 words, why you chose that score. Omit when sentiment is null.',
     "",
     "Score sentiment EXACTLY as the communications team's media tracker scores it, by these five rules:",
-    "1. Judge the tone TOWARD BCBSVT specifically, not the tone of the story overall. A story critical of hospital costs that quotes us favorably is positive for us.",
-    "2. Weight the headline heavily and separately from the body. A balanced story under a negative headline lands at neutral or neutral to negative, not positive.",
-    "3. Weight mention prominence. When BCBSVT is a footnote rather than the subject, pull the score toward neutral even if the topic is strongly negative.",
-    "4. A negative story topic drags the score down even when BCBSVT is not the target of the criticism.",
-    "5. Ordinary favourable presence IS positive, not neutral. Awards, sponsorships, event participation, community items, and being named among payers on a routine story all score positive when nothing adverse is said. Reserve neutral for coverage that is genuinely balanced or leans into cost and affordability pressure, and reserve the negative half of the scale for criticism, denial, cost blame, and adverse opinion.",
-    "Do not hedge toward neutral when the excerpt is thin. Score what the headline and the outlet's framing support; the tracker's own scored set is roughly two thirds positive.",
+    ...SENTIMENT_RULES,
     "",
     "These worked examples are the tracker's own scoring. Match them:",
     "",

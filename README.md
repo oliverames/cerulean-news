@@ -192,7 +192,7 @@ how much coverage exists, not of a scoring backlog.
 Items in that coverage set carry `sentimentEligible: true` in the JSON feed,
 so the trends page can count a story the hour it arrives, before it is scored.
 
-Scores ride in the same batched Gemini request as the summary, so sentiment
+Gemini scores ride in the same batched request as the summary, so sentiment
 costs no extra API calls. They persist in `feed-audit.json` like summaries do,
 and an item is scored exactly once.
 
@@ -253,16 +253,29 @@ trends page groups by that rather than by `sourceName`.
 | `FACEBOOK_POST_URLS` | No | empty | Optional comma- or newline-separated `Name\|URL` public Facebook posts, used only when social sources are enabled |
 | `FACEBOOK_PAGE_URLS` | No | empty | Optional comma- or newline-separated `Name\|URL` public Facebook pages, used only when social sources are enabled |
 | `FACEBOOK_PAGE_MAX_POSTS` | No | `10` | Maximum post links to read from each configured Facebook page when social sources are enabled |
-| `JEV_RELEVANCE` | No | `off` | Experimental Jev relevance classifier: `off`, `shadow` (log what it would decide), or `enforce` (apply its confident verdicts) |
+| `JEV_RELEVANCE` | No | `off` locally, `shadow` in Actions | Jev evaluation: `off`, `shadow` (compare inclusion and sentiment), or `enforce` (apply confident verdicts) |
 | `JEV_RELEVANCE_RUBRIC_PATH` | No | `src/rubrics/relevance-v1.json` | Alternate rubric file, for trying a wording change without editing the versioned one |
-| `JEV_CLI_PATH` | No | `jev` | Path to the authenticated Jev CLI the classifier shells out to |
-| `JEV_RELEVANCE_MAX_ITEMS` | No | `25` | Maximum articles classified per run |
+| `TYPESAFE_API_KEY` | For live Jev calls | empty | TypeSafe credential, supplied from the Actions secret of the same name |
+| `JEV_CLI_PATH` | No | empty | Explicit authenticated CLI fallback when no TypeSafe API key is supplied |
+| `JEV_RELEVANCE_MAX_ITEMS` | No | `25` | Maximum new article evaluations per run; cached evaluations do not consume this cap |
 | `JEV_RELEVANCE_CONCURRENCY` | No | `2` | Jev requests in flight at once |
 | `JEV_RELEVANCE_TIMEOUT_MS` | No | `30000` | Timeout for a single Jev request |
 
-### Experimental: Jev relevance classifier
+### Jev article evaluation
 
-`src/jev-relevance.js` is an experimental second opinion on relevance, off unless `JEV_RELEVANCE` is set. Keyword matching stays the recall stage, and the deterministic editorial rules keep the last word: URL dedup, the item exclusions in `src/filters.js`, and everything in `applyDeterministicRelevance` run first, and an item they reject is never sent to the model. One request per article asks three questions over the article's title and excerpt only, never its full text: `include` and `local_angle` (noul) and `relevance` (score). Only `include` decides, with an uncertainty band: `>= 0.7` includes, `<= 0.3` excludes, and anything between keeps the keyword verdict. A missing rubric, a failed call, or a malformed answer falls back to the keyword verdict and logs. The question wording lives in `src/rubrics/relevance-v1.json` so a change to it is one diffable edit; the thresholds live in the module. Start in `shadow` mode, which logs each decision and changes nothing.
+The Actions publisher runs Jev in `shadow` mode. Jev evaluates article inclusion, local relevance, and sentiment toward Blue Cross VT after Gemini creates summaries and its baseline judgments. Shadow mode records the comparison and leaves the published decisions unchanged. Set the repository variable `JEV_RELEVANCE=off` to pause it. Enforcement remains deferred in [issue #8](https://github.com/oliverames/cerulean-news/issues/8) because the September 21 calibration found confident disagreements with the tracker labels. See the [review](docs/2026-09-21-jev-evaluation-review.md).
+
+`src/jev-relevance.js` calls the [official TypeSafe API](https://docs.typesafe.ai/api) with the `TYPESAFE_API_KEY` secret. It does not require a CLI installation on the runner. The credential's canonical home is 1Password. Local runs are off unless `JEV_RELEVANCE` is set. An explicitly configured `JEV_CLI_PATH` remains available as a fallback when no API key is supplied.
+
+Keyword matching still determines which articles enter the candidate archive. Deterministic exclusions, URL deduplication, and owned-content inclusion rules remain authoritative. Model-rejected candidates can be reconsidered, but articles never admitted by matching or removed by archive policy cannot be rescued. Hand-vetted tracker entries retain their inclusion decision while eligible press clips receive sentiment evaluation.
+
+One bounded request includes a title of at most 300 characters and an excerpt of at most 600 characters. Full article text and feed bodies are never sent. The versioned relevance rubric asks `include`, `local_angle`, and `relevance`. Only `include` gates inclusion: at least 0.7 includes, at most 0.3 excludes, and the band between keeps the current decision. Local angle and relevance score remain diagnostics.
+
+Eligible BCBSVT press coverage also receives a five-label sentiment question from `src/rubrics/sentiment-v1.json`. It shares Gemini's existing tracker rules, worked examples, and matching storyline notes. In enforce mode, sentiment requires a valid answer with confidence of at least 0.7. Other coverage is not scored. Jev returns a label rather than a written rationale, so an applied Jev score clears the previous model's rationale. Both inclusion and sentiment thresholds remain uncalibrated starting points.
+
+Successful evaluations are cached by the exact request, rubric versions, and model in the audit feed's `crawlState.jevCache`. Cached answers are reapplied after summaries, and the default 25-call cap advances to unevaluated articles. Changed input or rubric invalidates the matching cache entry. The cache retains typed signals only, and entries for departed candidates are pruned. Reader JSON and RSS do not contain the cache.
+
+`crawlMetrics.jev` and Actions logs report successful calls, failures, cached evaluations, remaining candidates, and inclusion/sentiment disagreements. Missing credentials, failed requests, or malformed answers preserve the existing decisions and remain observable. Failed evaluations retry on a future run. TypeSafe overload and rate-limit responses receive one bounded retry, respecting short `Retry-After` delays.
 
 Gemini rate limits vary by project, model, and usage tier. The summarizer batches stories, caches successful summaries in `feed-audit.json`, and caps requests per run. Each configured model gets up to three attempts for network failures, HTTP 408 or 429, and transient 5xx responses. The retry uses exponential backoff with jitter and honors `Retry-After` when present. A batch that still fails remains pending for the next scheduled run.
 

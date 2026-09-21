@@ -231,10 +231,10 @@ test("mode parsing defaults to off and rejects unknown values", () => {
   assert.equal(jevRelevanceMode({ JEV_RELEVANCE: "yes-please" }), JEV_MODE_OFF);
 });
 
-test("deterministic rejections and tracker entries are never sent to Jev", () => {
+test("deterministic rejections are skipped while tracker press can receive sentiment", () => {
   const items = [
     { title: "Kept", snippet: "Vermont health care" },
-    { title: "Obituary", relevant: false, reason: "Obituary." },
+    { title: "Registered Nurse job opening", link: "https://www.indeed.com/viewjob?jk=1", relevant: false },
     { title: "Tracker clip", fromMediaTracker: true },
     { title: "", description: "" },
   ];
@@ -243,7 +243,7 @@ test("deterministic rejections and tracker entries are never sent to Jev", () =>
 
   assert.deepEqual(
     candidates.map((item) => item.title),
-    ["Kept"],
+    ["Kept", "Tracker clip"],
   );
 });
 
@@ -311,9 +311,8 @@ test("enforce mode applies confident verdicts and leaves the band alone", async 
   assert.equal(result[0].jevRelevance.rubricVersion, "relevance-v1");
   // Uncertainty band: untouched, including the object identity.
   assert.equal(result[1], items[1]);
-  // A deterministic rejection is never re-judged, so it stays rejected.
-  assert.equal(result[2], items[2]);
-  assert.equal(result[2].relevant, false);
+  // A model rejection may be reconsidered; deterministic exclusions are tested separately.
+  assert.equal(result[2].relevant, true);
   assert.equal(result[3], items[3]);
 });
 

@@ -1,53 +1,19 @@
-// EXPERIMENTAL second-opinion relevance classifier backed by Jev (TypeSafe
-// System One). Off by default; see the decision policy below before enabling.
-//
-// Where it sits in the pipeline
-// -----------------------------
-// Keyword matching (matching.js) stays the cheap recall stage: it decides what
-// is even a candidate, and nothing here loosens it. The deterministic editorial
-// rules stay authoritative too - URL dedup (archive.js), the obituary and other
-// item exclusions (filters.js), and every rule in applyDeterministicRelevance
-// (relevance.js) run first, and an item they have already rejected is never
-// sent to the model. Jev only re-judges items the cheap stages kept.
-//
-// Decision policy
-// ---------------
-// One request per article asks three independent questions over the same state
-// (they run in parallel and cannot see one another's answers):
-//
-//   include      noul   should this article be in the feed?
-//   local_angle  noul   does it have a Vermont or local angle?
-//   relevance    score  how relevant is it, on the rubric's levels?
-//
-// Only `include` gates the verdict, through an uncertainty band:
-//
-//   include >= 0.7   include the item
-//   include <= 0.3   exclude the item
-//   in between       keep the keyword verdict (fail open to today's behavior)
-//
-// `local_angle` and `relevance` are recorded as diagnostics, not applied. They
-// exist so a shadow run produces the signals needed to calibrate a future
-// policy (for example a local-angle floor) against real items, rather than
-// having thresholds chosen before any data exists.
-//
-// Anything that goes wrong - a missing rubric, a CLI that is not installed, a
-// timeout, an HTTP error, a malformed answer - falls back to the keyword
-// verdict and logs. The classifier must never be able to fail the run.
-//
-// Modes (JEV_RELEVANCE)
-// ---------------------
-//   off      (default) no requests, items untouched
-//   shadow   classify and log what Jev would have decided; output unchanged
-//   enforce  apply the decisions above to item.relevant / item.reason
-//
-// Nothing here publishes, sends, or approves anything on its own.
+// Jev evaluates inclusion and eligible BCBSVT sentiment after Gemini summaries.
+// Keyword recall and deterministic editorial rules remain authoritative.
+// Shadow mode records evidence without changing reader output. Enforce applies
+// confident decisions; uncertainty or service failure keeps the current result.
+// Successful evaluations are cached by their exact bounded request and rubrics.
+import { createHash } from "node:crypto";
+import { isObituaryItem } from "./filters.js";
+import { applyDeterministicRelevance } from "./relevance.js";
+import { matchStorylines, SENTIMENT_RULES, SENTIMENT_VALUES, shouldScoreSentiment, TRACKER_EXAMPLES } from "./summaries.js";
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { cleanText, mapWithConcurrency, parsePositiveInteger } from "./utils.js";
+import { cleanText, mapWithConcurrency, parsePositiveInteger, sleep } from "./utils.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -61,6 +27,7 @@ const JEV_MODES = new Set([JEV_MODE_OFF, JEV_MODE_SHADOW, JEV_MODE_ENFORCE]);
 // run in shadow mode and move them once real disagreements are in hand.
 export const INCLUDE_THRESHOLD = 0.7;
 export const EXCLUDE_THRESHOLD = 0.3;
+export const SENTIMENT_CONFIDENCE_THRESHOLD = 0.7;
 
 // Title plus a short excerpt only. Full article text is deliberately never
 // sent: it is large, it is untrusted, and the feed's own keyword matching is
@@ -158,8 +125,21 @@ function articleExcerpt(item) {
   return cleanText(source).slice(0, MAX_EXCERPT_CHARS);
 }
 
-export function buildJevRequest(item, rubric) {
+export function buildJevRequest(item, rubric, { sentimentRubric } = {}) {
   validateRelevanceRubric(rubric);
+  const questions = { ...rubric.questions };
+  if (sentimentRubric && shouldScoreSentiment({ ...item, relevant: undefined })) {
+    const boundedItem = { title: cleanText(item?.title || "").slice(0, MAX_TITLE_CHARS), snippet: articleExcerpt(item) };
+    questions.sentiment = {
+      ...sentimentRubric.question,
+      instructions: {
+        question: sentimentRubric.question.instructions,
+        rules: SENTIMENT_RULES,
+        examples: TRACKER_EXAMPLES,
+        storylines: matchStorylines(boundedItem).map(({ name, note }) => ({ name, note })),
+      },
+    };
+  }
   return {
     state: {
       article: {
@@ -168,12 +148,12 @@ export function buildJevRequest(item, rubric) {
       },
     },
     model: rubric.model,
-    questions: rubric.questions,
+    questions,
   };
 }
 
 function noulValue(answer) {
-  return answer?.type === "noul" && Number.isFinite(answer.noul)
+  return answer?.type === "noul" && isProbability(answer.noul)
     ? answer.noul
     : null;
 }
@@ -277,8 +257,8 @@ export async function classifyItemRelevance(item, options = {}) {
   const keywordRelevant = keywordVerdict(item);
   try {
     const rubric = options.rubric || (await loadRelevanceRubric(options));
-    const request = buildJevRequest(item, rubric);
-    const callJev = options.callJev || callJevCli;
+    const request = options.request || buildJevRequest(item, rubric, options);
+    const callJev = options.callJev || callJevApi;
     const response = await callJev(request, options);
     const decision = decideJevRelevance({
       answers: response?.answers,
@@ -286,10 +266,16 @@ export async function classifyItemRelevance(item, options = {}) {
       includeThreshold: options.includeThreshold,
       excludeThreshold: options.excludeThreshold,
     });
+    const sentiment = request.questions.sentiment
+      ? parseSentimentAnswer(response?.answers?.sentiment)
+      : null;
     return {
       ...decision,
-      ok: true,
-      error: "",
+      sentiment: sentiment?.choice || null,
+      sentimentConfidence: sentiment?.confidence ?? null,
+      ok: decision.include !== null && (!request.questions.sentiment || sentiment !== null),
+      error: decision.include === null ? "no usable include answer"
+        : request.questions.sentiment && !sentiment ? "no usable sentiment answer" : "",
       rubricVersion: rubric.version,
       model: response?.model || rubric.model,
     };
@@ -312,11 +298,14 @@ export async function classifyItemRelevance(item, options = {}) {
 
 // Deterministic rules own these items, so the model is never asked about them.
 function skipReason(item) {
-  if (item?.fromMediaTracker) {
-    return "hand-vetted media tracker entry";
+  if (isObituaryItem(item) || applyDeterministicRelevance({ ...item, relevant: undefined }).relevant === false) {
+    return "rejected by a deterministic rule";
   }
-  if (item?.relevant === false) {
-    return "already rejected by a deterministic rule";
+  if (item?.fromMediaTracker) {
+    return shouldScoreSentiment({ ...item, relevant: undefined }) ? "" : "hand-vetted entry without eligible sentiment";
+  }
+  if (applyDeterministicRelevance({ ...item, relevant: false }).relevant === true) {
+    return "explicitly included by a deterministic rule";
   }
   if (!cleanText(item?.title || "") && !articleExcerpt(item)) {
     return "no title or excerpt to judge";
@@ -354,83 +343,190 @@ function describeDecision(item, classification) {
   return `[${parts.join(" ")}] ${cleanText(item.title || "").slice(0, 70)}`;
 }
 
-// Returns the items, classified or untouched depending on the mode. In shadow
-// mode the returned items are the ones passed in: it logs and changes nothing.
+
+function isProbability(value) {
+  return Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
+function parseSentimentAnswer(answer) {
+  if (answer?.type !== "choice" || !SENTIMENT_VALUES.includes(answer.choice) || !isProbability(answer.confidence)) return null;
+  const probabilities = answer.probabilities;
+  if (!probabilities || Object.keys(probabilities).length !== SENTIMENT_VALUES.length ||
+      !SENTIMENT_VALUES.every((label) => isProbability(probabilities[label]))) return null;
+  const total = SENTIMENT_VALUES.reduce((sum, label) => sum + probabilities[label], 0);
+  if (Math.abs(total - 1) > 0.001 || SENTIMENT_VALUES.some((label) => probabilities[label] > probabilities[answer.choice])) return null;
+  return { choice: answer.choice, confidence: answer.confidence };
+}
+
+export async function loadSentimentRubric() {
+  const rubric = JSON.parse(await readFile(new URL("./rubrics/sentiment-v1.json", import.meta.url), "utf8"));
+  if (!rubric.version || rubric.question?.type !== "choice" ||
+      !SENTIMENT_VALUES.every((label) => typeof rubric.question.criteria?.[label] === "string")) {
+    throw new Error("Invalid Jev sentiment rubric");
+  }
+  return rubric;
+}
+
+// Use the provider's HTTPS endpoint directly in Actions. No CLI installation
+// or credential file is required. Never log response bodies or authorization.
+export async function callJevApi(requestBody, options = {}) {
+  const env = options.env || process.env;
+  const apiKey = env.TYPESAFE_API_KEY?.trim();
+  if (!apiKey) {
+    if (options.cliPath || env.JEV_CLI_PATH?.trim()) {
+      return callJevCli(requestBody, { ...options, cliPath: options.cliPath || env.JEV_CLI_PATH });
+    }
+    throw new Error("TYPESAFE_API_KEY is not configured");
+  }
+  const timeoutMs = parsePositiveInteger(options.timeoutMs ?? env.JEV_RELEVANCE_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
+  const fetchImpl = options.fetchImpl || fetch;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = await fetchImpl("https://api.typesafe.ai/v1/systemone", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+      signal: AbortSignal.timeout(timeoutMs),
+      redirect: "error",
+    });
+    if (response.ok) return response.json();
+    if (attempt === 0 && [429, 529].includes(response.status)) {
+      const retryAfter = response.headers.get("retry-after");
+      const parsedDelay = retryAfter && (/^\d+(?:\.\d+)?$/.test(retryAfter)
+        ? Number(retryAfter) * 1000 : Date.parse(retryAfter) - Date.now());
+      const delay = Math.max(1000, Number.isFinite(parsedDelay) ? parsedDelay : 1000);
+      if (delay <= 10000) {
+        await response.body?.cancel();
+        await (options.sleepImpl || sleep)(delay);
+        continue;
+      }
+    }
+    await response.body?.cancel();
+    throw new Error(`TypeSafe API HTTP ${response.status}`);
+  }
+}
+
+// The audit cache carries only typed signals, never article text, credentials,
+// raw responses, or exception strings. Invalid persisted entries are dropped.
+export function normalizeJevCache(value) {
+  const cache = {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) return cache;
+  for (const [key, entry] of Object.entries(value)) {
+    if (!/^[a-f0-9]{64}$/.test(key) || !entry || !isProbability(entry.include) ||
+        typeof entry.model !== "string" || typeof entry.rubricVersion !== "string" ||
+        (entry.sentiment != null && (!SENTIMENT_VALUES.includes(entry.sentiment) || !isProbability(entry.sentimentConfidence)))) continue;
+    cache[key] = {
+      model: entry.model.slice(0, 80),
+      rubricVersion: entry.rubricVersion.slice(0, 80),
+      include: entry.include,
+      localAngle: isProbability(entry.localAngle) ? entry.localAngle : null,
+      relevanceScore: Number.isFinite(entry.relevanceScore) && entry.relevanceScore >= 0 && entry.relevanceScore <= 9 ? entry.relevanceScore : null,
+      sentiment: entry.sentiment || null,
+      sentimentConfidence: entry.sentiment ? entry.sentimentConfidence : null,
+    };
+  }
+  return cache;
+}
+
+function decisionFromCache(entry, item, options) {
+  return {
+    ...entry,
+    ...decideJevRelevance({
+      answers: {
+        include: { type: "noul", noul: entry.include },
+        local_angle: { type: "noul", noul: entry.localAngle },
+        relevance: { type: "score", score: entry.relevanceScore },
+      },
+      keywordRelevant: keywordVerdict(item),
+      includeThreshold: options.includeThreshold,
+      excludeThreshold: options.excludeThreshold,
+    }),
+    ok: true,
+  };
+}
+
 export async function applyJevRelevance(items, options = {}) {
   const env = options.env || process.env;
-  const mode = options.mode || jevRelevanceMode(env);
-  if (mode === JEV_MODE_OFF || !Array.isArray(items) || items.length === 0) {
+  const mode = jevRelevanceMode({ JEV_RELEVANCE: options.mode ?? env.JEV_RELEVANCE });
+  const metrics = options.metrics || {};
+  Object.assign(metrics, { mode, status: mode === JEV_MODE_OFF ? "off" : "pending", eligible: 0,
+    requested: 0, succeeded: 0, failed: 0, cached: 0, pending: 0,
+    inclusionDisagreements: 0, sentimentDisagreements: 0 });
+  if (mode === JEV_MODE_OFF || !Array.isArray(items) || items.length === 0) return items;
+
+  let rubric, sentimentRubric;
+  try {
+    rubric = options.rubric || await loadRelevanceRubric(options);
+    sentimentRubric = options.sentimentRubric || await loadSentimentRubric();
+    validateRelevanceRubric(rubric);
+  } catch {
+    metrics.status = "rubric_unavailable";
+    console.warn(`Jev evaluation (${mode}): rubric unavailable; keeping existing decisions.`);
     return items;
   }
 
-  const maxItems = parsePositiveInteger(
-    options.maxItems ?? env.JEV_RELEVANCE_MAX_ITEMS,
-    DEFAULT_MAX_ITEMS,
-  );
-  const concurrency = parsePositiveInteger(
-    options.concurrency ?? env.JEV_RELEVANCE_CONCURRENCY,
-    DEFAULT_CONCURRENCY,
-  );
-  const candidates = selectJevCandidates(items, maxItems);
-  if (candidates.length === 0) {
-    return items;
-  }
-
-  let rubric = options.rubric;
-  if (!rubric) {
-    try {
-      rubric = await loadRelevanceRubric(options);
-    } catch (error) {
-      console.warn(
-        `Jev relevance (${mode}) disabled for this run: ${cleanText(error?.message || String(error))}`,
-      );
-      return items;
-    }
-  }
-
-  const classifications = new Map();
-  await mapWithConcurrency(candidates, concurrency, async (item) => {
-    const classification = await classifyItemRelevance(item, {
-      ...options,
-      rubric,
-    });
-    classifications.set(item, classification);
-    console.log(`  jev ${mode} -> ${describeDecision(item, classification)}`);
+  const maxItems = parsePositiveInteger(options.maxItems ?? env.JEV_RELEVANCE_MAX_ITEMS, DEFAULT_MAX_ITEMS);
+  const concurrency = parsePositiveInteger(options.concurrency ?? env.JEV_RELEVANCE_CONCURRENCY, DEFAULT_CONCURRENCY);
+  const candidates = selectJevCandidates(items, Infinity);
+  metrics.eligible = candidates.length;
+  const cache = options.cache || {};
+  const normalized = normalizeJevCache(cache);
+  const entries = candidates.map((item) => {
+    const request = buildJevRequest(item, rubric, { sentimentRubric });
+    const key = createHash("sha256").update(JSON.stringify({ version: rubric.version, sentimentVersion: sentimentRubric.version, request })).digest("hex");
+    return { item, request, key };
   });
-
-  const disagreements = [...classifications.values()].filter(
-    (classification) => !classification.agreesWithKeyword,
-  ).length;
-  console.log(
-    `Jev relevance (${mode}): classified ${classifications.size} of ${items.length} items, ${disagreements} disagreed with the keyword verdict.`,
-  );
-
-  if (mode === JEV_MODE_SHADOW) {
-    return items;
+  const activeKeys = new Set(entries.map(({ key }) => key));
+  for (const key of Object.keys(cache)) {
+    if (!activeKeys.has(key) || !normalized[key]) delete cache[key];
+    else cache[key] = normalized[key];
   }
+  const classifications = new Map();
+  const pending = [];
+  for (const entry of entries) {
+    if (cache[entry.key]) {
+      classifications.set(entry.item, decisionFromCache(cache[entry.key], entry.item, options));
+      metrics.cached += 1;
+    } else pending.push(entry);
+  }
+  const configured = options.callJev || env.TYPESAFE_API_KEY?.trim() || options.cliPath || env.JEV_CLI_PATH?.trim();
+  const runEntries = configured ? pending.slice(0, maxItems) : [];
+  metrics.requested = runEntries.length;
+  metrics.status = configured ? "complete" : "credentials_missing";
+  if (!configured) console.warn(`Jev evaluation (${mode}): TYPESAFE_API_KEY is not configured; no live evaluations can run.`);
+  await mapWithConcurrency(runEntries, concurrency, async ({ item, request, key }) => {
+    const classification = await classifyItemRelevance(item, { ...options, rubric, request });
+    classifications.set(item, classification);
+    if (classification.ok) {
+      cache[key] = normalizeJevCache({ [key]: classification })[key];
+      metrics.succeeded += 1;
+    } else metrics.failed += 1;
+    console.log(`  jev ${mode} -> ${describeDecision(item, classification)} sentiment=${classification.sentiment || "n/a"} confidence=${classification.sentimentConfidence ?? "n/a"}`);
+  });
+  metrics.pending = pending.length - metrics.succeeded;
+  if (metrics.failed) metrics.status = "partial_failure";
+  for (const [item, classification] of classifications) {
+    if (!item.fromMediaTracker && !classification.agreesWithKeyword) metrics.inclusionDisagreements += 1;
+    if (classification.sentiment && item.sentiment && classification.sentiment !== item.sentiment) metrics.sentimentDisagreements += 1;
+  }
+  console.log(`Jev evaluation (${mode}): ${metrics.succeeded}/${metrics.requested} successful, ${metrics.cached} cached, ${metrics.pending} pending; ${metrics.inclusionDisagreements} inclusion and ${metrics.sentimentDisagreements} sentiment disagreements. Status: ${metrics.status}.`);
+  if (mode === JEV_MODE_SHADOW) return items;
 
   return items.map((item) => {
     const classification = classifications.get(item);
-    if (!classification || classification.decision === DECISION_KEYWORD) {
-      return item;
+    if (!classification?.ok) return item;
+    let result = item;
+    if (!item.fromMediaTracker && classification.decision !== DECISION_KEYWORD) {
+      result = { ...item, relevant: classification.relevant,
+        reason: classification.decision === DECISION_EXCLUDE ? ENFORCED_EXCLUDE_REASON
+          : item.relevant === false ? "Jev judged this relevant to Vermont health care coverage." : item.reason || "",
+        jevRelevance: { rubricVersion: classification.rubricVersion, model: classification.model,
+          include: classification.include, localAngle: classification.localAngle,
+          relevanceScore: classification.relevanceScore, decision: classification.decision },
+      };
     }
-    return {
-      ...item,
-      relevant: classification.relevant,
-      reason:
-        classification.decision === DECISION_EXCLUDE
-          ? ENFORCED_EXCLUDE_REASON
-          : item.reason || "",
-      // In-memory diagnostics; the output serializers publish a fixed field
-      // list, so this rides along for logging and debugging only.
-      jevRelevance: {
-        rubricVersion: classification.rubricVersion,
-        model: classification.model,
-        include: classification.include,
-        localAngle: classification.localAngle,
-        relevanceScore: classification.relevanceScore,
-        decision: classification.decision,
-      },
-    };
+    if (classification.sentiment && classification.sentimentConfidence >= SENTIMENT_CONFIDENCE_THRESHOLD && shouldScoreSentiment(result)) {
+      result = { ...result, sentiment: classification.sentiment, sentimentReason: "" };
+    }
+    return result;
   });
 }

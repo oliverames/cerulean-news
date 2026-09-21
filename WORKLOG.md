@@ -1,3 +1,36 @@
+## 2026-09-21 - Jev evaluation wired for inclusion and sentiment
+
+**Review**: The checkout is now `cerulean-news`, with one registered worktree.
+The Jev implementation from #7 was merged, but the publisher never called it.
+Gemini still owned relevance and sentiment. The local Jev branch contains no
+unmerged work; its remote-tracking reference is stale, and no branch was deleted.
+
+**Changes**: Added direct TypeSafe API support and a five-label sentiment
+question using the existing tracker rules, examples, and storyline context.
+Jev now runs after Gemini. Cached typed evaluations survive the audit round trip,
+reapply after a Gemini re-judge, and let the request cap advance through articles.
+Invalid probabilities fall back. Deterministic exclusions remain authoritative,
+and curated tracker inclusion stays protected while eligible clips receive
+sentiment checks. The publishing workflow is configured for shadow evaluation.
+
+**Verification**: All 230 tests pass, including 14 new regressions covering
+pipeline ordering, sentiment eligibility, request privacy, caching, and API
+behavior. An independent review found no remaining scoped defects. Oliver saved
+a TypeSafe key in 1Password during this review. Fifty authenticated calls to
+`jev-1.13.0` succeeded. On 30 current articles, inclusion agreed with existing
+decisions 22 times. In ten tracker examples with each target omitted from its
+own prompt, sentiment matched four labels. Only three of seven predictions at
+confidence 0.70 or above matched. The sample is small and excerpt-limited.
+
+**Decision**: Keep shadow mode. These results do not justify enforcement.
+[Issue #8](https://github.com/oliverames/cerulean-news/issues/8) retains rubric
+calibration, independent holdout review, and the separate keyword-miss rescue
+scope decision. The [dated review](docs/2026-09-21-jev-evaluation-review.md)
+records the evidence and limits. GitHub secret provisioning and the receiving
+publishing run still need verification.
+
+---
+
 ## 2026-09-21 - A Jev second opinion on relevance, off by default, and the Actions issue closed
 
 **What changed**: Merged [#7](https://github.com/oliverames/cerulean-news/pull/7)

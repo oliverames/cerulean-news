@@ -1,6 +1,7 @@
 // Durable archive: load the previous run's audit JSON, merge current items
 // with archived ones, and dedupe resolved links and titles.
 import { readText } from "./fsx.js";
+import { normalizeJevCache } from "./jev-relevance.js";
 import {
   cleanStorySnippet,
   cleanText,
@@ -121,6 +122,7 @@ export function normalizeCrawlState(value = {}) {
     version: CRAWL_STATE_VERSION,
     sourceState: normalizeSourceState(value.sourceState),
     articleCache: normalizeArticleCache(value.articleCache),
+    jevCache: normalizeJevCache(value.jevCache),
   };
 }
 
