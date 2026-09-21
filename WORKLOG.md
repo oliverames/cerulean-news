@@ -26,8 +26,16 @@ confidence 0.70 or above matched. The sample is small and excerpt-limited.
 [Issue #8](https://github.com/oliverames/cerulean-news/issues/8) retains rubric
 calibration, independent holdout review, and the separate keyword-miss rescue
 scope decision. The [dated review](docs/2026-09-21-jev-evaluation-review.md)
-records the evidence and limits. GitHub secret provisioning and the receiving
-publishing run still need verification.
+records the evidence and limits.
+
+**Receiving-host verification**: Commit `8fdd1a3` is pushed. Publishing run
+[35625768907](https://github.com/oliverames/cerulean-news/actions/runs/35625768907)
+passed all 230 tests and deployed successfully. The live audit reports
+`mode: shadow`, `status: credentials_missing`, zero requests, and 3,180 pending
+candidates. The public feed has 1,813 items and no Jev cache or diagnostics.
+Scheduled Jev calls are therefore not active yet. Automatic approval review
+blocked copying the 1Password key into the repository's Actions secret pending
+explicit authorization for that destination. The approval question remains open.
 
 ---
 

@@ -44,7 +44,9 @@ The decision is to run shadow evaluation and retain current publication decision
 
 The existing 216-test suite passed after the integration change. Fourteen new regression tests cover final pipeline ordering, inclusion and sentiment eligibility, curated inclusion, request privacy, cache progression and replay, durable archive persistence, malformed values, mode validation, missing credentials, and HTTP behavior. Tests use isolated fixtures and never call a live model.
 
-Deployment evidence will be added after the publishing workflow completes.
+Commit `8fdd1a3` was pushed to `main`. [Publishing run 35625768907](https://github.com/oliverames/cerulean-news/actions/runs/35625768907) passed all 230 tests and deployed successfully. The live audit reports shadow mode with `credentials_missing`, zero requests, and 3,180 pending candidates. The reader feed contains 1,813 items and excludes the internal cache and Jev diagnostics.
+
+Scheduled API calls remain blocked on authorization to copy the 1Password credential into the private repository's `TYPESAFE_API_KEY` Actions secret. Automatic approval review rejected that transfer without explicit destination authorization. The local authenticated calibration succeeded, but it does not establish that scheduled evaluation is active.
 
 ## References
 

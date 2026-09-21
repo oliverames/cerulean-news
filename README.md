@@ -263,7 +263,7 @@ trends page groups by that rather than by `sourceName`.
 
 ### Jev article evaluation
 
-The Actions publisher runs Jev in `shadow` mode. Jev evaluates article inclusion, local relevance, and sentiment toward Blue Cross VT after Gemini creates summaries and its baseline judgments. Shadow mode records the comparison and leaves the published decisions unchanged. Set the repository variable `JEV_RELEVANCE=off` to pause it. Enforcement remains deferred in [issue #8](https://github.com/oliverames/cerulean-news/issues/8) because the September 21 calibration found confident disagreements with the tracker labels. See the [review](docs/2026-09-21-jev-evaluation-review.md).
+The Actions publisher is configured for Jev in `shadow` mode. Live calls require the `TYPESAFE_API_KEY` Actions secret. Jev evaluates article inclusion, local relevance, and sentiment toward Blue Cross VT after Gemini creates summaries and its baseline judgments. Shadow mode records the comparison and leaves the published decisions unchanged. Set the repository variable `JEV_RELEVANCE=off` to pause it. Enforcement remains deferred in [issue #8](https://github.com/oliverames/cerulean-news/issues/8) because the September 21 calibration found confident disagreements with the tracker labels. See the [review](docs/2026-09-21-jev-evaluation-review.md).
 
 `src/jev-relevance.js` calls the [official TypeSafe API](https://docs.typesafe.ai/api) with the `TYPESAFE_API_KEY` secret. It does not require a CLI installation on the runner. The credential's canonical home is 1Password. Local runs are off unless `JEV_RELEVANCE` is set. An explicitly configured `JEV_CLI_PATH` remains available as a fallback when no API key is supplied.
 
