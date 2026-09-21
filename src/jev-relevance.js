@@ -4,7 +4,9 @@
 // confident decisions; uncertainty or service failure keeps the current result.
 // Successful evaluations are cached by their exact bounded request and rubrics.
 import { createHash } from "node:crypto";
+import { loadReferenceExamples } from "./jev-examples.js";
 import { isObituaryItem } from "./filters.js";
+import { addEditorialAlignment, alignedInclusionAnswer, loadAlignmentProfile } from "./jev-alignment.js";
 import { applyDeterministicRelevance, itemCategory, itemOutletName, itemSourceType } from "./relevance.js";
 import { INCLUSION_PRIORITIES, INCLUSION_RULES, matchStorylines, SENTIMENT_RULES, SENTIMENT_VALUES, shouldScoreSentiment, TRACKER_EXAMPLES } from "./summaries.js";
 import { execFile } from "node:child_process";
@@ -133,7 +135,7 @@ function articleExcerpt(item) {
   return cleanText(source).slice(0, MAX_EXCERPT_CHARS);
 }
 
-export function buildJevRequest(item, rubric, { sentimentRubric } = {}) {
+export function buildJevRequest(item, rubric, { sentimentRubric, alignment, referenceExamples } = {}) {
   validateRelevanceRubric(rubric);
   const questions = { ...rubric.questions };
   if (sentimentRubric && shouldScoreSentiment({ ...item, relevant: undefined })) {
@@ -147,7 +149,7 @@ export function buildJevRequest(item, rubric, { sentimentRubric } = {}) {
       },
     };
   }
-  return {
+  const request = {
     state: {
       article: {
         title: cleanText(item?.title || "").slice(0, MAX_TITLE_CHARS),
@@ -164,6 +166,7 @@ export function buildJevRequest(item, rubric, { sentimentRubric } = {}) {
     model: rubric.model,
     questions,
   };
+  return alignment ? addEditorialAlignment(request, item, { ...alignment, examples: referenceExamples || [] }) : request;
 }
 
 function noulValue(answer) {
@@ -275,7 +278,7 @@ export async function classifyItemRelevance(item, options = {}) {
     const callJev = options.callJev || callJevApi;
     const response = await callJev(request, options);
     const decision = decideJevRelevance({
-      answers: response?.answers,
+      answers: { ...response?.answers, include: alignedInclusionAnswer(response?.answers, request) },
       keywordRelevant,
       includeThreshold: options.includeThreshold,
       excludeThreshold: options.excludeThreshold,
@@ -287,6 +290,8 @@ export async function classifyItemRelevance(item, options = {}) {
       ...decision,
       sentiment: sentiment?.choice || null,
       sentimentConfidence: sentiment?.confidence ?? null,
+      sentimentProbabilities: sentiment ? response.answers.sentiment.probabilities : null,
+      scopeSignals: request.questions.scope_brand ? Object.fromEntries(["scope_brand", "scope_regional", "scope_policy"].map((name) => [name, response?.answers?.[name]?.noul ?? null])) : undefined,
       ok: decision.include !== null && (!request.questions.sentiment || sentiment !== null),
       error: decision.include === null ? "no usable include answer"
         : request.questions.sentiment && !sentiment ? "no usable sentiment answer" : "",
@@ -429,6 +434,7 @@ export function normalizeJevCache(value) {
         typeof entry.model !== "string" || typeof entry.rubricVersion !== "string" ||
         (entry.sentiment != null && (!SENTIMENT_VALUES.includes(entry.sentiment) || !isProbability(entry.sentimentConfidence)))) continue;
     cache[key] = {
+      ...(typeof entry.alignmentVersion === "string" ? { alignmentVersion: entry.alignmentVersion.slice(0, 80) } : {}),
       model: entry.model.slice(0, 80),
       rubricVersion: entry.rubricVersion.slice(0, 80),
       include: entry.include,
@@ -478,6 +484,28 @@ export async function applyJevRelevance(items, options = {}) {
     return items;
   }
 
+  let alignment, referenceExamples = [];
+  if (options.alignment || env.JEV_ALIGNMENT_PROFILE) {
+    try {
+      alignment = options.alignment || await loadAlignmentProfile(env.JEV_ALIGNMENT_PROFILE);
+    } catch {
+      metrics.status = "alignment_unavailable";
+      console.warn(`Jev evaluation (${mode}): alignment profile unavailable; keeping existing decisions.`);
+      return items;
+    }
+    const reference = options.referenceExamples
+      ? { status: "loaded", examples: options.referenceExamples }
+      : await loadReferenceExamples(items, { env, config: alignment.references });
+    Object.assign(metrics, { alignmentVersion: alignment.version, referenceStatus: reference.status,
+      inclusionReferences: reference.examples.length, sentimentReferences: reference.examples.filter(row => row.sentiment).length });
+    if (reference.status !== "loaded" || !reference.examples.length) {
+      metrics.status = "examples_unavailable";
+      console.warn(`Jev evaluation (${mode}): human references ${reference.status}; keeping existing decisions.`);
+      return items;
+    }
+    referenceExamples = reference.examples;
+  }
+
   const maxItems = parsePositiveInteger(options.maxItems ?? env.JEV_RELEVANCE_MAX_ITEMS, DEFAULT_MAX_ITEMS);
   const concurrency = parsePositiveInteger(options.concurrency ?? env.JEV_RELEVANCE_CONCURRENCY, DEFAULT_CONCURRENCY);
   const candidates = selectJevCandidates(items, Infinity);
@@ -485,8 +513,8 @@ export async function applyJevRelevance(items, options = {}) {
   const cache = options.cache || {};
   const normalized = normalizeJevCache(cache);
   const entries = candidates.map((item) => {
-    const request = buildJevRequest(item, rubric, { sentimentRubric });
-    const key = createHash("sha256").update(JSON.stringify({ version: rubric.version, sentimentVersion: sentimentRubric.version, request })).digest("hex");
+    const request = buildJevRequest(item, rubric, { sentimentRubric, alignment, referenceExamples });
+    const key = createHash("sha256").update(JSON.stringify({ alignmentVersion: alignment?.version, version: rubric.version, sentimentVersion: sentimentRubric.version, request })).digest("hex");
     return { item, request, key };
   });
   const activeKeys = new Set(entries.map(({ key }) => key));
@@ -509,6 +537,7 @@ export async function applyJevRelevance(items, options = {}) {
   if (!configured) console.warn(`Jev evaluation (${mode}): TYPESAFE_API_KEY is not configured; no live evaluations can run.`);
   await mapWithConcurrency(runEntries, concurrency, async ({ item, request, key }) => {
     const classification = await classifyItemRelevance(item, { ...options, rubric, request });
+    if (alignment) classification.alignmentVersion = alignment.version;
     classifications.set(item, classification);
     if (classification.ok) {
       cache[key] = normalizeJevCache({ [key]: classification })[key];

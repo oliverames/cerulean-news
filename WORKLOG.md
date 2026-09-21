@@ -1,3 +1,13 @@
+## 2026-09-21 - Human reference alignment for future Jev decisions
+
+**Request**: Use the team's human selections and sentiment judgments to improve Jev on incoming articles, beyond keyword matching.
+
+**Completed**: Built a private corpus and fixed story-group split. The selected profile supplies up to eight inclusion examples and 16 sentiment examples per question, drawn from 101 human selections and 50 unambiguous sentiment labels. Independent scope questions cover brand, regional health care, and national payer/policy coverage. Future requests load the existing private tracker seed. Known conflicts and reserved groups remain excluded; model predictions never become human labels.
+
+**Evidence**: Compared five development configurations, then froze the selected profile. Reserved validation retains 34/34 human selections and matches 13/16 human sentiment scores versus 12/16 baseline. On 21 provisional agent-reviewed selection cases, it matches 20 versus 15 for the pipeline and 13 for keyword matching. Equal story-group weighting and uncertainty are documented. All 3,179 archive candidates and 221 sentiment requests completed, followed by a zero-call cache verification. Selection uncertainty falls from 43.7% to 12.3%; proposed additions and removals remain unapplied.
+
+**Decision**: Deploy the reference profile in shadow. Confidence-gated sentiment still equals the current baseline, negative labels are scarce, and the human inclusion set contains no rejection labels. [The dated report](docs/2026-09-21-jev-human-alignment.md) records the findings and reproduction steps. [Issue #8](https://github.com/oliverames/cerulean-news/issues/8) retains prospective human review, better brand excerpts, and threshold validation before enforcement. Jev uses request-level guidance; its provider does not offer customer-specific weight training.
+
 ## 2026-09-21 - Full-archive Jev inclusion and sentiment comparison
 
 **Request**: Evaluate the retained historical archive against the established article-selection and sentiment criteria before deciding whether Jev can replace live judgments.

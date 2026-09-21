@@ -93,7 +93,7 @@ async function privateJson(filename, value) {
 }
 
 export async function evaluateArchive({ snapshot, holdout = { rows: [] }, outputDirectory, concurrency = 4, callJev,
-  rubric, sentimentRubric, onProgress = () => {}, limit = Infinity } = {}) {
+  rubric, sentimentRubric, alignment, referenceExamples, onProgress = () => {}, limit = Infinity } = {}) {
   if (!Array.isArray(snapshot?.items)) throw new Error("Snapshot must contain an items array");
   if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 16) throw new Error("Concurrency must be 1–16");
   rubric ||= await loadRelevanceRubric();
@@ -103,11 +103,12 @@ export async function evaluateArchive({ snapshot, holdout = { rows: [] }, output
   const labels = new Map((holdout.rows || []).map((row) => [row.url, row]));
   if (labels.size !== (holdout.rows || []).length) throw new Error("Holdout URLs must be unique");
   const entries = snapshot.items.map((item, index) => {
-    const request = buildJevRequest(item, rubric, { sentimentRubric });
+    const request = buildJevRequest(item, rubric, { sentimentRubric, alignment, referenceExamples });
     return { item, index, request, skipReason: jevSkipReason(item),
-      key: fingerprint({ version: rubric.version, sentimentVersion: sentimentRubric.version, request }) };
+      key: fingerprint({ alignmentVersion: alignment?.version, version: rubric.version, sentimentVersion: sentimentRubric.version, request }) };
   });
   const manifest = { requestSetHash: fingerprint(entries.map(({ key, skipReason }) => ({ key, skipReason }))), snapshotHash: fingerprint(snapshot), holdoutHash: fingerprint(holdout), generatedAt: snapshot.generatedAt,
+    ...(alignment ? { alignmentVersion: alignment.version, alignmentHash: fingerprint(alignment), inclusionReferences: referenceExamples?.length || 0, sentimentReferences: referenceExamples?.filter(row => row.sentiment).length || 0 } : {}),
     model: rubric.model, rubricVersion: rubric.version, sentimentVersion: sentimentRubric.version,
     policyHash: fingerprint({ rubric, sentimentRubric }), total: snapshot.items.length };
   const manifestPath = path.join(directory, "manifest.json");

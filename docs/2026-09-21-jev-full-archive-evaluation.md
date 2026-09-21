@@ -82,7 +82,7 @@ Enforcement would remove 326 currently included articles and add one. Thirty-nin
 
 ### Human-selected inclusion controls
 
-After Oliver highlighted the historical human decisions, an additional inclusion-only pass tested all 184 human-selected tracker candidates with the `curatedInclusion` marker hidden. The other two tracker articles remain outside the model-candidate set under existing deterministic rules. Normal publisher, matched-term, and brand-eligibility evidence remained available. No human selection label, baseline verdict, sentiment label, or sentiment question entered these requests.
+After Oliver highlighted the historical human decisions, an additional inclusion-only pass tested all 184 human-selected tracker candidates with the `curatedInclusion` marker hidden. The other two tracker articles remain outside the model-candidate set under existing deterministic rules. Publisher and matched-term evidence remained available. A later audit found that masking the underlying tracker flag also changed inferred brand eligibility for some rows. This was a stronger metadata mask than intended. The later grouped alignment evaluation instead hides only the request selection flag, preserving normal eligibility. No human selection label, baseline verdict, sentiment label, or sentiment question entered these requests.
 
 All 184 requests succeeded. Jev confidently included 142, confidently excluded none, and left 42 in the uncertainty band. This positive-only control set supports retention of established tracker coverage, but cannot measure false inclusions or general selection accuracy. The 42 uncertain answers would still need a fallback. Live protection of all 186 human-selected articles was unchanged.
 
