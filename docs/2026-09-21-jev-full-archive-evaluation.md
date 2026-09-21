@@ -22,6 +22,12 @@ The fixed public audit snapshot was generated on September 21, 2026, at 16:39:37
 | Eligible brand sentiment evaluations | 221 |
 | Curated inclusions protected within model candidates | 184 |
 
+The 186 tracker articles are human selections, not model-generated inclusion labels. All retain protected inclusion.
+
+Human editorial input also shaped the existing rules: the June 12 work log cites a colleague's News Export, and the June 16 entry records alignment with her 18 Boolean queries. Existing matching and deterministic rules remain in force; their historical provenance is distinct from a fresh labeled evaluation set.
+
+No additional article-level human inclusion/exclusion dataset was recovered from repository data, work logs, relevant history, or archive metadata. The original News Export was not preserved in those searched paths. Untagged historical decisions lack author metadata, so the comparison calls them current pipeline judgments without claiming that every decision was exclusively machine-made.
+
 Every candidate received inclusion, local-angle, and relevance-score questions. Every eligible brand article also received sentiment, including three currently rejected articles. Existing deterministic editorial rules and curated inclusion remain authoritative.
 
 The run used `jev-1.13.0`, `relevance-v2`, and `sentiment-v2`, at concurrency four. The initial pass produced 3,177 usable results and two malformed sentiment answers. A resume reused those successes and successfully retried both failures. Final coverage is 3,179 of 3,179 candidates and 221 of 221 sentiment requests, with no remaining failures. A further credential-free resume reused all 3,179 checkpoints and made zero API calls.
@@ -78,7 +84,7 @@ An independent agent review sampled 40 accepted and 40 rejected non-curated cand
 
 The review exposes weaknesses in both systems, including missed national coverage-policy stories. A second review found that some provisional rationales broadened the national scope or imposed blanket promotional exclusions absent from the established policy. Consequently, the blinded sample is retained as a review queue, not reported as an accuracy score.
 
-A separate deterministic sample reviewed 40 of the 326 proposed removals: 35 source-excerpt cases and five generated-summary cases. All proposed removals were topic articles; none were brand articles. The review found 17 apparent false removals under the existing policy, 19 supported removals, and four unresolved cases. These are agent assessments of bounded evidence, not editorial sign-off or a full-archive error-rate estimate.
+A separate, unblinded agent review of a deterministic sample assessed 40 of the 326 proposed removals: 35 source-excerpt cases and five generated-summary cases. All proposed removals were topic articles; none were brand articles. The review found 17 apparent false removals under the existing policy, 19 supported removals, and four unresolved cases. These are agent assessments of bounded evidence, not editorial sign-off or a full-archive error-rate estimate.
 
 Two clear examples independently checked against the current rules are:
 
@@ -93,7 +99,9 @@ Run `scripts/evaluate-jev.js` with a fixed audit snapshot, a private URL-keyed l
 
 Private files are stored under the Git-ignored `artifacts/jev-evaluation/2026-09-21-v2/` directory: the snapshot, verified human-label split, per-request results, full JSON/CSV comparison, blinded inclusion review, targeted removal review, sampling map, and initial/retry/cache-only logs. Human labels and raw tracker records are not added to Git or the live feed.
 
-All 234 repository tests pass. New tests verify shared policy, label exclusion, request deduplication, per-article uncertainty fallback, checkpoint reuse, failed-call retry, unchanged-input enforcement, and matched sentiment denominators. Live publishing verification is recorded below after deployment.
+All 234 repository tests pass. New tests verify shared policy, label exclusion, request deduplication, per-article uncertainty fallback, checkpoint reuse, failed-call retry, unchanged-input enforcement, and matched sentiment denominators. Commit `d94ec5a` was pushed to `main`. [Publishing run 35630033814](https://github.com/oliverames/cerulean-news/actions/runs/35630033814) passed and deployed successfully. The live audit generated at 17:08:36 UTC contains 25 successful `relevance-v2` / `jev-1.13.0` shadow evaluations, zero failures, and 3,156 pending candidates. The current archive has 4,492 articles after two new arrivals; the reader has 1,814 articles and exposes neither the internal cache nor human evaluation-label fields.
+
+The first production v2 batch contains no sentiment-eligible articles, so its live cache has zero sentiment answers. The separate full-archive API run verifies all 221 eligible sentiment requests, and integration tests verify production eligibility and ordering. Historical offline results were not imported into the published cache. Scheduled evaluation continues under the existing 25-new-request cap; Jev has not changed reader inclusion or sentiment decisions.
 
 ## Remaining work
 
