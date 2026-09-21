@@ -9,3 +9,6 @@ data/media-tracker-seed.json
 
 # Local Worker dev secrets
 .dev.vars
+
+# Private model evaluations include withheld human tracker labels.
+artifacts/jev-evaluation/

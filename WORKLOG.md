@@ -1,3 +1,13 @@
+## 2026-09-21 - Full-archive Jev inclusion and sentiment comparison
+
+**Request**: Evaluate the retained historical archive against the established article-selection and sentiment criteria before deciding whether Jev can replace live judgments.
+
+**Completed**: Corrected v1 scope drift and missing metadata in versioned v2 requests. Added a private, resumable evaluator. All 4,490 archived articles were accounted for, including 3,179 successful model evaluations and 221 successful sentiment evaluations. Two malformed sentiment answers succeeded on retry. A final resume reused every checkpoint with zero new API calls. All 234 tests pass.
+
+**Evidence**: The clean 77-article human comparison gives Jev 48 exact sentiment matches, versus 51 for the current baseline. Confidence-gated application gives 50. Current selection thresholds would remove 326 articles and recover one, with 1,309 non-curated decisions still falling back to the existing system. Blinded policy adjudication and targeted disagreement review supplement model agreement. Private labels and article-level results remain outside Git.
+
+**Decision**: Retain shadow mode for both selection and sentiment. This run does not demonstrate readiness to replace live judgments. The [full dated report](docs/2026-09-21-jev-full-archive-evaluation.md) records scope, comparisons, caveats, and next steps. [Issue #8](https://github.com/oliverames/cerulean-news/issues/8) retains the unfinished calibration and editorial-validation work.
+
 ## 2026-09-21 - Jev evaluation wired for inclusion and sentiment
 
 **Review**: The checkout is now `cerulean-news`, with one registered worktree.

@@ -5,8 +5,8 @@
 // Successful evaluations are cached by their exact bounded request and rubrics.
 import { createHash } from "node:crypto";
 import { isObituaryItem } from "./filters.js";
-import { applyDeterministicRelevance } from "./relevance.js";
-import { matchStorylines, SENTIMENT_RULES, SENTIMENT_VALUES, shouldScoreSentiment, TRACKER_EXAMPLES } from "./summaries.js";
+import { applyDeterministicRelevance, itemCategory, itemOutletName, itemSourceType } from "./relevance.js";
+import { INCLUSION_PRIORITIES, INCLUSION_RULES, matchStorylines, SENTIMENT_RULES, SENTIMENT_VALUES, shouldScoreSentiment, TRACKER_EXAMPLES } from "./summaries.js";
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -33,9 +33,9 @@ export const SENTIMENT_CONFIDENCE_THRESHOLD = 0.7;
 // sent: it is large, it is untrusted, and the feed's own keyword matching is
 // title/description-scoped for the same reason.
 const MAX_TITLE_CHARS = 300;
-const MAX_EXCERPT_CHARS = 600;
+const MAX_EXCERPT_CHARS = 1200;
 
-const DEFAULT_RUBRIC_RELATIVE_PATH = "src/rubrics/relevance-v1.json";
+const DEFAULT_RUBRIC_RELATIVE_PATH = "src/rubrics/relevance-v2.json";
 const DEFAULT_CLI_PATH = "jev";
 const DEFAULT_TIMEOUT_MS = 30000;
 const DEFAULT_CONCURRENCY = 2;
@@ -75,7 +75,7 @@ function resolveRubricPath(rubricPath, env = process.env) {
   try {
     // Next to the module, which is where the wording belongs; import.meta.url
     // is unavailable in a bundled Worker, hence the cwd fallback.
-    return fileURLToPath(new URL("./rubrics/relevance-v1.json", import.meta.url));
+    return fileURLToPath(new URL("./rubrics/relevance-v2.json", import.meta.url));
   } catch {
     return path.resolve(process.cwd(), DEFAULT_RUBRIC_RELATIVE_PATH);
   }
@@ -110,17 +110,25 @@ export function validateRelevanceRubric(rubric) {
   return rubric;
 }
 
-// The rubric is the single source of the question wording. Nothing in this
-// module restates it, so a wording change is one diffable JSON edit.
+// Versioned questions combine with the same editorial priorities Gemini uses.
+// Keeping the policy shared prevents independent classifiers drifting in scope.
 export async function loadRelevanceRubric({ rubricPath, env } = {}) {
   const resolved = resolveRubricPath(rubricPath, env || process.env);
   const raw = await readFile(resolved, "utf8");
-  return validateRelevanceRubric(JSON.parse(raw));
+  const rubric = validateRelevanceRubric(JSON.parse(raw));
+  if (rubric.version === "relevance-v2") {
+    rubric.questions.include.instructions = {
+      question: rubric.questions.include.instructions,
+      priorities: INCLUSION_PRIORITIES,
+      rules: INCLUSION_RULES,
+    };
+  }
+  return rubric;
 }
 
 function articleExcerpt(item) {
-  // Feed-supplied summary text only. item.articleText / feedContent hold the
-  // fetched page and are deliberately not considered.
+  // Prefer source excerpts, with an explicitly marked generated-summary fallback.
+  // item.articleText / feedContent hold fetched pages and are never considered.
   const source = item?.snippet || item?.description || item?.summary || "";
   return cleanText(source).slice(0, MAX_EXCERPT_CHARS);
 }
@@ -129,14 +137,13 @@ export function buildJevRequest(item, rubric, { sentimentRubric } = {}) {
   validateRelevanceRubric(rubric);
   const questions = { ...rubric.questions };
   if (sentimentRubric && shouldScoreSentiment({ ...item, relevant: undefined })) {
-    const boundedItem = { title: cleanText(item?.title || "").slice(0, MAX_TITLE_CHARS), snippet: articleExcerpt(item) };
     questions.sentiment = {
       ...sentimentRubric.question,
       instructions: {
         question: sentimentRubric.question.instructions,
         rules: SENTIMENT_RULES,
         examples: TRACKER_EXAMPLES,
-        storylines: matchStorylines(boundedItem).map(({ name, note }) => ({ name, note })),
+        storylines: matchStorylines(item).map(({ name, note }) => ({ name, note })),
       },
     };
   }
@@ -145,6 +152,13 @@ export function buildJevRequest(item, rubric, { sentimentRubric } = {}) {
       article: {
         title: cleanText(item?.title || "").slice(0, MAX_TITLE_CHARS),
         excerpt: articleExcerpt(item),
+        excerptSource: item?.snippet ? "source snippet" : item?.description ? "source description" : item?.summary ? "generated summary" : "none",
+        outlet: cleanText(itemOutletName(item)).slice(0, 200),
+        matchedKeywords: (Array.isArray(item?.matchedTerms) ? item.matchedTerms : []).slice(0, 30).map((term) => cleanText(String(term)).slice(0, 100)),
+        category: itemCategory(item),
+        sourceType: itemSourceType(item),
+        eligibleBcbsVtSentiment: shouldScoreSentiment({ ...item, relevant: undefined }),
+        curatedInclusion: item?.fromMediaTracker === true,
       },
     },
     model: rubric.model,
@@ -297,7 +311,7 @@ export async function classifyItemRelevance(item, options = {}) {
 }
 
 // Deterministic rules own these items, so the model is never asked about them.
-function skipReason(item) {
+export function jevSkipReason(item) {
   if (isObituaryItem(item) || applyDeterministicRelevance({ ...item, relevant: undefined }).relevant === false) {
     return "rejected by a deterministic rule";
   }
@@ -316,7 +330,7 @@ function skipReason(item) {
 export function selectJevCandidates(items, maxItems) {
   const candidates = [];
   for (const item of items) {
-    if (skipReason(item)) {
+    if (jevSkipReason(item)) {
       continue;
     }
     if (candidates.length >= maxItems) {
@@ -359,7 +373,7 @@ function parseSentimentAnswer(answer) {
 }
 
 export async function loadSentimentRubric() {
-  const rubric = JSON.parse(await readFile(new URL("./rubrics/sentiment-v1.json", import.meta.url), "utf8"));
+  const rubric = JSON.parse(await readFile(new URL("./rubrics/sentiment-v2.json", import.meta.url), "utf8"));
   if (!rubric.version || rubric.question?.type !== "choice" ||
       !SENTIMENT_VALUES.every((label) => typeof rubric.question.criteria?.[label] === "string")) {
     throw new Error("Invalid Jev sentiment rubric");

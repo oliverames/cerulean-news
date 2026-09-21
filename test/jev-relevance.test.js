@@ -55,15 +55,15 @@ function stubCaller(response) {
 test("relevance rubric loads from disk and carries the three questions", async () => {
   const rubric = await loadRelevanceRubric();
 
-  assert.equal(rubric.version, "relevance-v1");
+  assert.equal(rubric.version, "relevance-v2");
   assert.equal(rubric.model, "jev-1.13.0");
   assert.equal(rubric.questions.include.type, "noul");
   assert.equal(rubric.questions.local_angle.type, "noul");
   assert.equal(rubric.questions.relevance.type, "score");
   assert.ok(rubric.questions.relevance.criteria.length >= 2);
   // The wording lives in the rubric file, not in the module.
-  assert.match(rubric.questions.include.instructions, /Cerulean News/);
-  assert.match(rubric.questions.local_angle.instructions, /Vermont or local/i);
+  assert.match(rubric.questions.include.instructions.question, /Cerulean News/);
+  assert.match(rubric.questions.local_angle.instructions, /Vermont or New England/i);
 });
 
 test("a rubric missing a question is rejected rather than half-loaded", () => {
@@ -125,11 +125,11 @@ test("a request asks all three questions over title and excerpt only", async () 
 test("excerpt prefers the snippet and is length-capped", async () => {
   const rubric = await loadRelevanceRubric();
   const request = buildJevRequest(
-    { title: "t", snippet: "s".repeat(900), description: "ignored" },
+    { title: "t", snippet: "s".repeat(1500), description: "ignored" },
     rubric,
   );
 
-  assert.equal(request.state.article.excerpt.length, 600);
+  assert.equal(request.state.article.excerpt.length, 1200);
   assert.ok(!request.state.article.excerpt.includes("ignored"));
 });
 
@@ -308,7 +308,7 @@ test("enforce mode applies confident verdicts and leaves the band alone", async 
 
   assert.equal(result[0].relevant, false);
   assert.match(result[0].reason, /Jev relevance classifier/);
-  assert.equal(result[0].jevRelevance.rubricVersion, "relevance-v1");
+  assert.equal(result[0].jevRelevance.rubricVersion, "relevance-v2");
   // Uncertainty band: untouched, including the object identity.
   assert.equal(result[1], items[1]);
   // A model rejection may be reconsidered; deterministic exclusions are tested separately.
