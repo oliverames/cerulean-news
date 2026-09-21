@@ -2,6 +2,8 @@
 
 Author: Oliver Ames
 
+> Historical report: These findings preceded human-reference alignment and the approved live rollout later on September 21, 2026. See the [current alignment and activation report](2026-09-21-jev-human-alignment.md) for the live configuration and subsequent results.
+
 Jev was merged but inactive when this review began. The updated publisher is configured for live shadow evaluation of inclusion, local relevance, and eligible Blue Cross VT sentiment. Enforcement is deferred because the calibration did not support it.
 
 ## Repository review

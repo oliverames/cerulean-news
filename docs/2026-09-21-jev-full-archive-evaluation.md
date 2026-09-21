@@ -2,6 +2,8 @@
 
 Author: Oliver Ames
 
+> Historical report: These findings preceded human-reference alignment and the approved live rollout later on September 21, 2026. See the [current alignment and activation report](2026-09-21-jev-human-alignment.md) for the live configuration and subsequent results.
+
 ## Decision
 
 Keep Jev in live shadow mode for both article selection and eligible BCBSVT sentiment. The complete retained-archive comparison does not support replacing the current decisions. Jev did not improve agreement with the available human sentiment labels, and its current selection thresholds would remove 326 published articles while recovering one rejected article. Inclusion disagreements require policy review rather than assuming either model is correct.
