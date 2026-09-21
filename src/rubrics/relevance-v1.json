@@ -1,0 +1,34 @@
+{
+  "version": "relevance-v1",
+  "model": "jev-1.13.0",
+  "questions": {
+    "include": {
+      "type": "noul",
+      "instructions": "Should this article be included in Cerulean News, an RSS feed tracking Blue Cross VT mentions in Vermont news outlets? Judge only from `article.title` and `article.excerpt`. The feed carries two kinds of story for the health plan's communications team: press coverage that mentions Blue Cross and Blue Shield of Vermont (also written Blue Cross VT, BCBSVT, or Vermont's largest health insurer), and Vermont health care news the team tracks, such as the Green Mountain Care Board, Vermont hospitals and providers, coverage programs, premiums, and state health policy. News from outside Vermont belongs in the feed only when it bears on insurers, coverage, or health policy.",
+      "criteria": {
+        "true": "Reporting a Vermont health plan's communications team would want in its daily clip feed: it names Blue Cross VT, covers Vermont health care, or covers insurance, payer, or health policy news that bears on Vermont coverage.",
+        "false": "Not coverage the team tracks: national or general-interest news with no Vermont, payer, coverage, or health policy angle; a crime, crash, or incident brief where a hospital or clinic is only a passing detail; or promotional, directory, or listing content rather than reporting."
+      }
+    },
+    "local_angle": {
+      "type": "noul",
+      "instructions": "Does this article have a Vermont or local angle? Judge only from `article.title` and `article.excerpt`.",
+      "criteria": {
+        "true": "The article concerns Vermont or its immediate region: Vermont people, towns, institutions, state government, Vermont outlets reporting on their own communities, or a New England story that directly affects Vermonters.",
+        "false": "The article is national or out-of-region, with no specific connection to Vermont or its neighboring communities."
+      }
+    },
+    "relevance": {
+      "type": "score",
+      "instructions": "Rate how relevant this article is to Cerulean News, an RSS feed that tracks Blue Cross VT mentions and Vermont health care coverage for the health plan's communications team. Judge only from `article.title` and `article.excerpt`.",
+      "criteria": [
+        "Not health care or insurance coverage at all, or not reporting: general-interest news, promotional copy, or a listing or directory page.",
+        "Health-adjacent but incidental: a hospital, clinic, or injury appears only in passing, as in a crime or crash brief, and the story is not about coverage, care, or policy.",
+        "Health care or insurance news with no Vermont connection and no payer or policy angle the team would act on.",
+        "National health policy, insurance, or payer-industry news that bears on Vermont coverage without naming a Vermont organization.",
+        "Vermont health care news: Vermont providers, regulators, coverage programs, premiums, or state health policy, with no Blue Cross VT mention.",
+        "Press coverage that names Blue Cross and Blue Shield of Vermont, one of its plans, or one of its sponsorships."
+      ]
+    }
+  }
+}

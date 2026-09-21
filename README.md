@@ -253,6 +253,16 @@ trends page groups by that rather than by `sourceName`.
 | `FACEBOOK_POST_URLS` | No | empty | Optional comma- or newline-separated `Name\|URL` public Facebook posts, used only when social sources are enabled |
 | `FACEBOOK_PAGE_URLS` | No | empty | Optional comma- or newline-separated `Name\|URL` public Facebook pages, used only when social sources are enabled |
 | `FACEBOOK_PAGE_MAX_POSTS` | No | `10` | Maximum post links to read from each configured Facebook page when social sources are enabled |
+| `JEV_RELEVANCE` | No | `off` | Experimental Jev relevance classifier: `off`, `shadow` (log what it would decide), or `enforce` (apply its confident verdicts) |
+| `JEV_RELEVANCE_RUBRIC_PATH` | No | `src/rubrics/relevance-v1.json` | Alternate rubric file, for trying a wording change without editing the versioned one |
+| `JEV_CLI_PATH` | No | `jev` | Path to the authenticated Jev CLI the classifier shells out to |
+| `JEV_RELEVANCE_MAX_ITEMS` | No | `25` | Maximum articles classified per run |
+| `JEV_RELEVANCE_CONCURRENCY` | No | `2` | Jev requests in flight at once |
+| `JEV_RELEVANCE_TIMEOUT_MS` | No | `30000` | Timeout for a single Jev request |
+
+### Experimental: Jev relevance classifier
+
+`src/jev-relevance.js` is an experimental second opinion on relevance, off unless `JEV_RELEVANCE` is set. Keyword matching stays the recall stage, and the deterministic editorial rules keep the last word: URL dedup, the item exclusions in `src/filters.js`, and everything in `applyDeterministicRelevance` run first, and an item they reject is never sent to the model. One request per article asks three questions over the article's title and excerpt only, never its full text: `include` and `local_angle` (noul) and `relevance` (score). Only `include` decides, with an uncertainty band: `>= 0.7` includes, `<= 0.3` excludes, and anything between keeps the keyword verdict. A missing rubric, a failed call, or a malformed answer falls back to the keyword verdict and logs. The question wording lives in `src/rubrics/relevance-v1.json` so a change to it is one diffable edit; the thresholds live in the module. Start in `shadow` mode, which logs each decision and changes nothing.
 
 Gemini rate limits vary by project, model, and usage tier. The summarizer batches stories, caches successful summaries in `feed-audit.json`, and caps requests per run. Each configured model gets up to three attempts for network failures, HTTP 408 or 429, and transient 5xx responses. The retry uses exponential backoff with jitter and honors `Retry-After` when present. A batch that still fails remains pending for the next scheduled run.
 
