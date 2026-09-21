@@ -1,3 +1,53 @@
+## 2026-09-21 - A Jev second opinion on relevance, off by default, and the Actions issue closed
+
+**What changed**: Merged [#7](https://github.com/oliverames/cerulean-news/pull/7)
+as `3ab34b3`. `src/jev-relevance.js` asks Jev (TypeSafe System One) three
+questions per candidate article over its title and a 600-character excerpt, and
+only the `include` noul gates the verdict: 0.7 and above includes, 0.3 and below
+excludes, and the band between keeps the keyword verdict. `local_angle` and
+`relevance` are recorded as diagnostics so a shadow run produces calibration
+signals rather than having thresholds chosen before any data exists. Question
+wording lives in `src/rubrics/relevance-v1.json` with the model pinned to
+`jev-1.13.0`.
+
+**The work arrived as a patch, not as a branch.** It was built in a Claude cloud
+VM that could not reach GitHub, and an earlier handoff described the work as
+already on a `jev-relevance` branch. It was not: no branch, commit, stash, or PR
+existed anywhere, and the only artifact that had escaped the VM was an Apple Note
+append, because Notes syncs through iCloud. The patch bundle turned up later on
+the Desktop and applied cleanly to `a23222b`.
+
+**Verification**: 216 tests pass, 18 of them new, none touching the network. The
+suite was checked for teeth rather than trusted: breaking the shadow
+short-circuit failed 1 test, failing open on an unknown mode failed 1, sending
+deterministic rejections to Jev failed 2, and throwing instead of falling back
+failed 3. The privacy guarantee is asserted directly, with `SECRET FULL ARTICLE
+TEXT` planted in `articleText` and the serialized request checked for its absence.
+`outputs.js` builds an explicit field list, so the `jevRelevance` diagnostics
+cannot reach `feed.json`. CI passed on the PR in 32s.
+
+**Nothing calls Jev yet.** `JEV_RELEVANCE` defaults to `off`, no workflow or repo
+variable sets it, and there is no `jev` CLI on the Mac, so even `enforce` would
+fail closed to the keyword verdict.
+
+**Resolved this session**:
+[#5](https://github.com/oliverames/cerulean-news/issues/5), the Actions billing
+block. The last eight `publish-feed` runs all succeeded, and the live pages were
+checked rather than inferred from green runs: both `/` and `/trends` return 200
+with no password-gate source, and the feed carries 1,807 items with the newest
+timestamped 2026-09-21T10:20Z.
+
+**Left off at**: `main` at `3ab34b3`, clean, `jev-relevance` branch deleted.
+
+**Open questions**: [#8](https://github.com/oliverames/cerulean-news/issues/8)
+carries the calibration work. The rescue case the design note describes cannot
+happen in this implementation, because an article with no keyword hit never
+becomes a candidate and a deterministically rejected item is skipped. Only the
+filtering direction works today, and whether rescue is worth building is the open
+question.
+
+---
+
 ## 2026-09-18 - Actions publishing restored, Worker handed off, stall gap measured
 
 **Why**: GitHub Pro activated, which cleared the account-wide billing block that
