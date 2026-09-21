@@ -15,7 +15,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { cleanText, mapWithConcurrency, parsePositiveInteger, sleep } from "./utils.js";
+import { cleanText, mapWithConcurrency, parseDate, parsePositiveInteger, sleep } from "./utils.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -447,6 +447,17 @@ export function normalizeJevCache(value) {
   return cache;
 }
 
+// Audit-only original decisions enable a targeted restoration without
+// replacing the whole archive or losing subsequently discovered articles.
+export function normalizeJevBaseline(value) {
+  const capturedAt = parseDate(value?.capturedAt);
+  if (!capturedAt || ![true, false, null].includes(value.relevant) ||
+      (value.sentiment !== null && !SENTIMENT_VALUES.includes(value.sentiment))) return undefined;
+  return { capturedAt: capturedAt.toISOString(), relevant: value.relevant,
+    reason: cleanText(value.reason || "").slice(0, 1000), sentiment: value.sentiment,
+    sentimentReason: cleanText(value.sentimentReason || "").slice(0, 1000) };
+}
+
 function decisionFromCache(entry, item, options) {
   return {
     ...entry,
@@ -506,10 +517,27 @@ export async function applyJevRelevance(items, options = {}) {
     referenceExamples = reference.examples;
   }
 
+  const enforceAfter = options.enforceAfter ?? env.JEV_ENFORCE_AFTER;
+  const boundedEnforcement = Boolean(alignment) || enforceAfter !== undefined;
+  const cutoff = parseDate(enforceAfter);
+  const mayEnforce = item => !boundedEnforcement || Boolean(cutoff && parseDate(item.firstSeenAt) &&
+    parseDate(item.firstSeenAt).valueOf() >= cutoff.valueOf());
+  if (boundedEnforcement) {
+    metrics.enforceAfter = cutoff?.toISOString() || null;
+    metrics.historicalProtected = items.filter(item => !mayEnforce(item)).length;
+  }
+  if (mode === JEV_MODE_ENFORCE && boundedEnforcement && !cutoff) {
+    metrics.status = "activation_boundary_unavailable";
+    console.warn("Jev enforcement: valid activation boundary required; keeping existing decisions.");
+    return items;
+  }
+  Object.assign(metrics, { inclusionApplied: 0, sentimentApplied: 0 });
+
   const maxItems = parsePositiveInteger(options.maxItems ?? env.JEV_RELEVANCE_MAX_ITEMS, DEFAULT_MAX_ITEMS);
   const concurrency = parsePositiveInteger(options.concurrency ?? env.JEV_RELEVANCE_CONCURRENCY, DEFAULT_CONCURRENCY);
   const candidates = selectJevCandidates(items, Infinity);
   metrics.eligible = candidates.length;
+  metrics.enforcementEligible = candidates.filter(mayEnforce).length;
   const cache = options.cache || {};
   const normalized = normalizeJevCache(cache);
   const entries = candidates.map((item) => {
@@ -531,7 +559,8 @@ export async function applyJevRelevance(items, options = {}) {
     } else pending.push(entry);
   }
   const configured = options.callJev || env.TYPESAFE_API_KEY?.trim() || options.cliPath || env.JEV_CLI_PATH?.trim();
-  const runEntries = configured ? pending.slice(0, maxItems) : [];
+  const eligiblePending = mode === JEV_MODE_ENFORCE ? pending.filter(entry => mayEnforce(entry.item)) : pending;
+  const runEntries = configured ? eligiblePending.slice(0, maxItems) : [];
   metrics.requested = runEntries.length;
   metrics.status = configured ? "complete" : "credentials_missing";
   if (!configured) console.warn(`Jev evaluation (${mode}): TYPESAFE_API_KEY is not configured; no live evaluations can run.`);
@@ -545,7 +574,7 @@ export async function applyJevRelevance(items, options = {}) {
     } else metrics.failed += 1;
     console.log(`  jev ${mode} -> ${describeDecision(item, classification)} sentiment=${classification.sentiment || "n/a"} confidence=${classification.sentimentConfidence ?? "n/a"}`);
   });
-  metrics.pending = pending.length - metrics.succeeded;
+  metrics.pending = eligiblePending.length - metrics.succeeded;
   if (metrics.failed) metrics.status = "partial_failure";
   for (const [item, classification] of classifications) {
     if (!item.fromMediaTracker && !classification.agreesWithKeyword) metrics.inclusionDisagreements += 1;
@@ -556,7 +585,7 @@ export async function applyJevRelevance(items, options = {}) {
 
   return items.map((item) => {
     const classification = classifications.get(item);
-    if (!classification?.ok) return item;
+    if (!classification?.ok || !mayEnforce(item)) return item;
     let result = item;
     if (!item.fromMediaTracker && classification.decision !== DECISION_KEYWORD) {
       result = { ...item, relevant: classification.relevant,
@@ -569,6 +598,15 @@ export async function applyJevRelevance(items, options = {}) {
     }
     if (classification.sentiment && classification.sentimentConfidence >= SENTIMENT_CONFIDENCE_THRESHOLD && shouldScoreSentiment(result)) {
       result = { ...result, sentiment: classification.sentiment, sentimentReason: "" };
+    }
+    if (result !== item) {
+      if (result.relevant !== item.relevant) metrics.inclusionApplied += 1;
+      if (result.sentiment !== item.sentiment) metrics.sentimentApplied += 1;
+      result = { ...result, jevBaseline: normalizeJevBaseline(item.jevBaseline) || normalizeJevBaseline({
+        capturedAt: (options.now || new Date()).toISOString(), relevant: typeof item.relevant === "boolean" ? item.relevant : null,
+        reason: item.reason || "", sentiment: SENTIMENT_VALUES.includes(item.sentiment) ? item.sentiment : null,
+        sentimentReason: item.sentimentReason || "",
+      }) };
     }
     return result;
   });

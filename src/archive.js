@@ -1,7 +1,7 @@
 // Durable archive: load the previous run's audit JSON, merge current items
 // with archived ones, and dedupe resolved links and titles.
 import { readText } from "./fsx.js";
-import { normalizeJevCache } from "./jev-relevance.js";
+import { normalizeJevCache, normalizeJevBaseline } from "./jev-relevance.js";
 import {
   cleanStorySnippet,
   cleanText,
@@ -211,6 +211,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
           fromMediaTracker: item.fromMediaTracker || undefined,
           trackerOutlet: item.trackerOutlet || undefined,
           firstSeenAt,
+          jevBaseline: normalizeJevBaseline(item.jevBaseline),
           comments: Array.isArray(item.comments) ? item.comments : [],
           articleError: item.articleError || "",
           matchSource: item.matchSource || "",
@@ -235,6 +236,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
           fromMediaTracker: item.fromMediaTracker || undefined,
           trackerOutlet: item.trackerOutlet || undefined,
           firstSeenAt,
+          jevBaseline: normalizeJevBaseline(item.jevBaseline),
           comments: Array.isArray(item.comments) ? item.comments : [],
           articleError: item.articleError || "",
           matchSource: item.matchSource || "",
@@ -486,6 +488,7 @@ function mergeEquivalentStoryItems(
     merged.previewChecked = true;
   }
 
+  if (!primary?.jevBaseline && fallback?.jevBaseline) merged.jevBaseline = fallback.jevBaseline;
   const firstSeenAt = earliestFirstSeenAt(primary, fallback);
   if (firstSeenAt) {
     merged.firstSeenAt = firstSeenAt;

@@ -7,7 +7,7 @@ Author: Oliver Ames
 
 The publisher now has persistent human reference guidance for incoming articles. Jev evaluates editorial scope through separate brand, regional health-care, and national payer/policy questions. Eligible brand coverage receives paired human sentiment examples. Word overlap retrieves relevant examples; Jev makes the semantic judgment.
 
-The selected configuration improves the small reserved comparison. It remains in shadow mode because confidence-gated sentiment does not improve the current baseline, negative labels are scarce, and human rejection examples are absent. This is a stronger candidate for future use, not proof that replacement is ready.
+The selected configuration improves the small reserved comparison. Oliver subsequently approved live selection and confident sentiment for new articles, after the distinction between selection and sentiment evidence was explained. Confidence-gated sentiment still equals the current baseline, negative labels are scarce, and human rejection examples are absent. This is an approved bounded rollout, not a claim of definitive superiority.
 
 Jev does not support customer-specific fine-tuning. Its supported adaptation uses reference material, instructions, and criteria supplied with each request. Separate questions are evaluated independently, so references accompany each relevant question. See TypeSafe's [model customization documentation](https://docs.typesafe.ai/models#customizing-jev), [state guidance](https://docs.typesafe.ai/concepts/state), and [System One design guidance](https://docs.typesafe.ai/concepts/how-to-build-with-system-one).
 
@@ -73,12 +73,18 @@ The operational run retains normal curated metadata and is distinct from the mas
 
 The workflow enables `src/rubrics/editorial-alignment-v1.json` through `JEV_ALIGNMENT_PROFILE`. Each incoming candidate receives the same profile used in evaluation. Any qualifying scope can support inclusion. The maximum of three scope signals is a decision rule, not a calibrated joint probability. Existing thresholds remain 0.70 for inclusion, 0.30 for exclusion, and 0.70 for sentiment confidence.
 
-The existing 25-request cap, deterministic exclusions, protected human selections, and shadow mode remain active. Requests and caches are versioned by the full reference-bearing input. Updating the guidance invalidates affected cached judgments. Missing or invalid profiles or reference files preserve the current output and record an explicit status.
+The existing 25-request cap, deterministic exclusions, and protected human selections remain active. Live enforcement is restricted to articles first discovered on or after `2026-09-21T18:13:31Z`. Discovery dates persist for both dated and undated audit records, preserving the boundary through later runs and rediscovery. Missing dates or an invalid configured boundary preserve existing decisions. Only the new cohort consumes the live request allowance. Requests and caches are versioned by the full reference-bearing input. Updating the guidance invalidates affected cached judgments. Missing or invalid profiles or reference files preserve the current output and record an explicit status.
 
-Tests cover group exclusions, conflicting labels, query-sensitive article identity, future human-reference additions, environment-only workflow activation, privacy, malformed scope answers, missing inputs, unchanged shadow output, and cache invalidation when human context changes. The existing complete suite passed 241 tests before the final environment-only case, which also passed in the targeted run.
+Tests cover group exclusions, conflicting labels, query-sensitive article identity, future human-reference additions, environment-only workflow activation, privacy, malformed scope answers, missing inputs, unchanged shadow output, and cache invalidation when human context changes. All 245 tests pass, including historical migration across repeated audit reloads, new-cohort priority, missing boundary protection, and original-decision persistence.
+
+The pre-enforcement shadow deployment was verified in [run 35635050909](https://github.com/oliverames/cerulean-news/actions/runs/35635050909). Its receiving audit reports 101 inclusion references, 50 sentiment references, 25 successful requests, zero failures, and `editorial-examples-v1` in every cache entry.
+
+The audit now preserves original decisions for touched articles in `jevBaseline`. Switching to shadow stops further writes; restoration of already changed articles requires applying those saved originals to the affected cohort. No whole-archive restore is part of this rollout.
+
+The supplied workbook was read in place and matched the corpus source digest. Its 99 exported sentiment labels and 12 conflicts were reverified. The workbook was not copied into the repository.
 
 ## Reproduction and next evidence
 
 The grouped split, private corpus, development runs, reserved results, and request checkpoints are retained in the ignored `artifacts/jev-evaluation/2026-09-21-alignment/` directory. The full-archive evaluator accepts `--alignment src/rubrics/editorial-alignment-v1.json` and reads the same private reference seed. It fingerprints all inputs and resumes successful requests without repeating them.
 
-[Issue #8](https://github.com/oliverames/cerulean-news/issues/8) tracks the remaining enforcement decision: obtain human-reviewed exclusions and new prospective sentiment judgments, improve excerpts that miss the brand passage, review the broader proposed inclusion changes, and validate confidence thresholds separately. No further tuning was performed on the reserved results.
+[Issue #8](https://github.com/oliverames/cerulean-news/issues/8) tracks follow-up quality work during the approved rollout: obtain human-reviewed exclusions and new prospective sentiment judgments, improve excerpts that miss the brand passage, review the broader proposed inclusion changes, and validate confidence thresholds separately. No further tuning was performed on the reserved results.

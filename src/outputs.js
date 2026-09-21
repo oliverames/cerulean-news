@@ -1,4 +1,5 @@
 // Feed outputs: RSS XML, public JSON Feed, audit JSON, and file writing.
+import { normalizeJevBaseline } from "./jev-relevance.js";
 import { writeText } from "./fsx.js";
 import {
   cleanStorySnippet,
@@ -324,12 +325,12 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
         link: item.link,
         guid: item.guid || item.link,
         pubDate: item.pubDate?.toISOString() || null,
-        // Audit-only retention metadata for stories whose publisher supplied
-        // no usable date. It must persist across runs without pretending to be
-        // a publication date in the public feed.
-        firstSeenAt: includeRejected && !parseDate(item.pubDate)
+        // Persist discovery time for every audit item so a future-only rollout
+        // cannot mistake dated history for newly discovered coverage.
+        firstSeenAt: includeRejected
           ? parseDate(item.firstSeenAt)?.toISOString() || undefined
           : undefined,
+        jevBaseline: includeRejected ? normalizeJevBaseline(item.jevBaseline) : undefined,
         matchedTerms,
         // Recomputed rather than echoed, so an item classified under an older
         // rule is corrected in place instead of staying misfiled forever.

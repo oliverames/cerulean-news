@@ -2977,7 +2977,7 @@ test("buildJsonSummary persists first-seen only in the audit feed", () => {
     new Date(),
     { includeRejected: true },
   );
-  assert.equal(datedAudit.items[0].firstSeenAt, undefined);
+  assert.equal(datedAudit.items[0].firstSeenAt, "2026-08-27T12:00:00.000Z");
 });
 
 test("parseFeedItems supports isSearchFeed property", () => {

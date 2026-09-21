@@ -1,3 +1,13 @@
+## 2026-09-21 - Approve Jev selection and confident sentiment for new articles
+
+**Authorization**: Oliver chose "Live selection and confident sentiment" after the separate results and uncertainty were explained. The 34/34 result describes retention of human-selected articles; sentiment agreement is 13/16, not 34/34.
+
+**Change**: Restrict aligned enforcement to articles first discovered on or after `2026-09-21T18:13:31Z`. Persist discovery dates for all audit records so dated history cannot drift across the boundary. Historical backlog does not consume the 25-request live quota. Uncertain or failed evaluations retain the current result, and the audit preserves original judgments for targeted restoration.
+
+**Verification**: All 245 tests pass, including two-cycle historical migration, rediscovery, confidence fallback, missing-date protection, workflow reference loading, and audit-only baseline persistence. The preceding shadow deployment successfully loaded 101 human selections and 50 sentiment examples. The provided workbook was verified in place and was not copied into the repository.
+
+**Follow-up**: [Issue #8](https://github.com/oliverames/cerulean-news/issues/8) continues prospective review, rare sentiment labels, better brand excerpts, and review of proposed article changes. The rollout does not claim definitive superiority across both tasks.
+
 ## 2026-09-21 - Human reference alignment for future Jev decisions
 
 **Request**: Use the team's human selections and sentiment judgments to improve Jev on incoming articles, beyond keyword matching.
