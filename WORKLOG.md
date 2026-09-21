@@ -8,6 +8,8 @@
 
 **Decision**: Retain shadow mode for both selection and sentiment. This run does not demonstrate readiness to replace live judgments. The [full dated report](docs/2026-09-21-jev-full-archive-evaluation.md) records scope, comparisons, caveats, and next steps. [Issue #8](https://github.com/oliverames/cerulean-news/issues/8) retains the unfinished calibration and editorial-validation work.
 
+**Additional human inclusion check**: With the curated marker hidden, all 184 eligible human-selected clips were evaluated again for inclusion only. Jev confidently included 142, excluded none, and deferred on 42. All requests succeeded. This is positive-only retention evidence, not a general accuracy measure; all 186 curated inclusions remain protected in production.
+
 **Live verification**: Commit `d94ec5a` deployed successfully in [run 35630033814](https://github.com/oliverames/cerulean-news/actions/runs/35630033814). The receiving audit reports 25 successful v2 shadow calls and zero failures. Its first batch contains no eligible sentiment, while the full offline run covers all 221 eligible articles. Original human scores and 186 human-selected clips were verified separately from current pipeline judgments; untagged historical decisions lack author metadata.
 
 ## 2026-09-21 - Jev evaluation wired for inclusion and sentiment

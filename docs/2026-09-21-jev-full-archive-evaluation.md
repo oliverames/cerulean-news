@@ -80,6 +80,12 @@ At the existing 0.70 inclusion and 0.30 exclusion thresholds, 2,995 non-curated 
 
 Enforcement would remove 326 currently included articles and add one. Thirty-nine changed decisions use generated-summary input. The one recovered story concerns [CVPH funding for a psychiatric emergency program](https://www.mynbc5.com/article/cvph-funding-comprehensive-psychiatric-emergency-program/73394864), a Vermont-serving regional provider. All 184 curated candidates retain inclusion; none received a confident model exclusion.
 
+### Human-selected inclusion controls
+
+After Oliver highlighted the historical human decisions, an additional inclusion-only pass tested all 184 human-selected tracker candidates with the `curatedInclusion` marker hidden. The other two tracker articles remain outside the model-candidate set under existing deterministic rules. Normal publisher, matched-term, and brand-eligibility evidence remained available. No human selection label, baseline verdict, sentiment label, or sentiment question entered these requests.
+
+All 184 requests succeeded. Jev confidently included 142, confidently excluded none, and left 42 in the uncertainty band. This positive-only control set supports retention of established tracker coverage, but cannot measure false inclusions or general selection accuracy. The 42 uncertain answers would still need a fallback. Live protection of all 186 human-selected articles was unchanged.
+
 An independent agent review sampled 40 accepted and 40 rejected non-curated candidates deterministically. Reviewers saw titles, excerpts, and publisher context, but neither model's verdict or rationale. They proposed 46 inclusions, 26 exclusions, and eight unresolved cases. Nineteen inputs used generated summaries. These are provisional policy assessments, not human ground truth or a prevalence-weighted accuracy estimate.
 
 The review exposes weaknesses in both systems, including missed national coverage-policy stories. A second review found that some provisional rationales broadened the national scope or imposed blanket promotional exclusions absent from the established policy. Consequently, the blinded sample is retained as a review queue, not reported as an accuracy score.
@@ -97,7 +103,7 @@ The saved Afterglow Festival article also explicitly describes a Vermont event r
 
 Run `scripts/evaluate-jev.js` with a fixed audit snapshot, a private URL-keyed label file, and a private output directory. The README documents arguments and runtime credential injection. Request checkpoints include only typed model results. The manifest fingerprints the snapshot, labels, rubric, and ordered complete requests. It refuses a mixed run if any input changes. Failed calls retry while successes remain cached.
 
-Private files are stored under the Git-ignored `artifacts/jev-evaluation/2026-09-21-v2/` directory: the snapshot, verified human-label split, per-request results, full JSON/CSV comparison, blinded inclusion review, targeted removal review, sampling map, and initial/retry/cache-only logs. Human labels and raw tracker records are not added to Git or the live feed.
+Private files are stored under the Git-ignored `artifacts/jev-evaluation/2026-09-21-v2/` directory: the snapshot, verified human-label split, per-request results, full JSON/CSV comparison, blinded inclusion review, targeted removal review, masked human-inclusion controls and their reproduction script, sampling map, and initial/retry/cache-only logs. Human labels and raw tracker records are not added to Git or the live feed.
 
 All 234 repository tests pass. New tests verify shared policy, label exclusion, request deduplication, per-article uncertainty fallback, checkpoint reuse, failed-call retry, unchanged-input enforcement, and matched sentiment denominators. Commit `d94ec5a` was pushed to `main`. [Publishing run 35630033814](https://github.com/oliverames/cerulean-news/actions/runs/35630033814) passed and deployed successfully. The live audit generated at 17:08:36 UTC contains 25 successful `relevance-v2` / `jev-1.13.0` shadow evaluations, zero failures, and 3,156 pending candidates. The current archive has 4,492 articles after two new arrivals; the reader has 1,814 articles and exposes neither the internal cache nor human evaluation-label fields.
 
