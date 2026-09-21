@@ -8,6 +8,8 @@
 
 **Follow-up**: [Issue #8](https://github.com/oliverames/cerulean-news/issues/8) continues prospective review, rare sentiment labels, better brand excerpts, and review of proposed article changes. The rollout does not claim definitive superiority across both tasks.
 
+**Live activation verified**: [Run 35637740901](https://github.com/oliverames/cerulean-news/actions/runs/35637740901) passed all 245 tests and deployed `7196169`. The receiving audit confirms `enforce`, the fixed discovery cutoff, 101 inclusion references, and 50 sentiment references. It applied three new-cohort inclusion decisions, made two successful API requests, and reported no failures or pending new-cohort evaluations. All 4,493 historical records in the current archive remained outside enforcement, with zero historical decision changes and zero leaked internal fields in public JSON. Discovery times persisted for all 4,497 audit records. No new sentiment-eligible article appeared in this pass. A separate actual-API replay applied a 0.99-confidence positive sentiment to an isolated eligible copy while preserving its historical counterpart; no test record was published.
+
 ## 2026-09-21 - Human reference alignment for future Jev decisions
 
 **Request**: Use the team's human selections and sentiment judgments to improve Jev on incoming articles, beyond keyword matching.

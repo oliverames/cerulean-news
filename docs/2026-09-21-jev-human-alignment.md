@@ -83,6 +83,8 @@ The audit now preserves original decisions for touched articles in `jevBaseline`
 
 The supplied workbook was read in place and matched the corpus source digest. Its 99 exported sentiment labels and 12 conflicts were reverified. The workbook was not copied into the repository.
 
+**Live activation verified**: [Run 35637740901](https://github.com/oliverames/cerulean-news/actions/runs/35637740901) passed all 245 tests and deployed `7196169`. The receiving audit confirms `enforce`, the fixed discovery cutoff, 101 inclusion references, and 50 sentiment references. It applied three new-cohort inclusion decisions, made two successful API requests, and reported no failures or pending new-cohort evaluations. All 4,493 historical records in the current archive remained outside enforcement, with zero historical decision changes and zero leaked internal fields in public JSON. Discovery times persisted for all 4,497 audit records. No new sentiment-eligible article appeared in this pass. A separate actual-API replay applied a 0.99-confidence positive sentiment to an isolated eligible copy while preserving its historical counterpart; no test record was published.
+
 ## Reproduction and next evidence
 
 The grouped split, private corpus, development runs, reserved results, and request checkpoints are retained in the ignored `artifacts/jev-evaluation/2026-09-21-alignment/` directory. The full-archive evaluator accepts `--alignment src/rubrics/editorial-alignment-v1.json` and reads the same private reference seed. It fingerprints all inputs and resumes successful requests without repeating them.
