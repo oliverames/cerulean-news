@@ -44,9 +44,23 @@ The decision is to run shadow evaluation and retain current publication decision
 
 The existing 216-test suite passed after the integration change. Fourteen new regression tests cover final pipeline ordering, inclusion and sentiment eligibility, curated inclusion, request privacy, cache progression and replay, durable archive persistence, malformed values, mode validation, missing credentials, and HTTP behavior. Tests use isolated fixtures and never call a live model.
 
-Commit `8fdd1a3` was pushed to `main`. [Publishing run 35625768907](https://github.com/oliverames/cerulean-news/actions/runs/35625768907) passed all 230 tests and deployed successfully. The live audit reports shadow mode with `credentials_missing`, zero requests, and 3,180 pending candidates. The reader feed contains 1,813 items and excludes the internal cache and Jev diagnostics.
+Commit `8fdd1a3` was pushed to `main`. [Publishing run 35625768907](https://github.com/oliverames/cerulean-news/actions/runs/35625768907) passed all 230 tests and deployed successfully. That initial deployment reported missing credentials and zero requests.
 
-Scheduled API calls remain blocked on authorization to copy the 1Password credential into the private repository's `TYPESAFE_API_KEY` Actions secret. Automatic approval review rejected that transfer without explicit destination authorization. The local authenticated calibration succeeded, but it does not establish that scheduled evaluation is active.
+Oliver subsequently approved storing the key in the private repository's Actions secret. The credential was copied directly from 1Password to `TYPESAFE_API_KEY`, without displaying or committing it. The repository variable `JEV_RELEVANCE` is now `shadow`.
+
+[Activation run 35626956144](https://github.com/oliverames/cerulean-news/actions/runs/35626956144) passed all 230 tests and deployed successfully. The live audit, generated September 21 at 16:39:37 UTC, reports:
+
+| Live check | Result |
+| --- | --- |
+| Mode and status | Shadow, complete |
+| Requested / successful / failed | 25 / 25 / 0 |
+| Persisted evaluations | 25, all `jev-1.13.0` |
+| Candidates remaining | 3,154 |
+| Inclusion disagreements | 9 |
+| Sentiment evaluations in this batch | 0, no eligible articles in the first 25 |
+| Reader feed | 1,813 items, no internal cache or Jev diagnostics |
+
+Scheduled sentiment evaluation is configured and queued. Its first eligible article was at position 103 in the pre-run snapshot. Authenticated sentiment calls were demonstrated in the separate local calibration, but this first runner batch verifies inclusion, local relevance, and durable caching only. The cap remains 25 new evaluations per run, on the existing four-hour schedule. No publication decisions changed because of Jev.
 
 ## References
 

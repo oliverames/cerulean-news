@@ -28,14 +28,24 @@ calibration, independent holdout review, and the separate keyword-miss rescue
 scope decision. The [dated review](docs/2026-09-21-jev-evaluation-review.md)
 records the evidence and limits.
 
-**Receiving-host verification**: Commit `8fdd1a3` is pushed. Publishing run
-[35625768907](https://github.com/oliverames/cerulean-news/actions/runs/35625768907)
-passed all 230 tests and deployed successfully. The live audit reports
-`mode: shadow`, `status: credentials_missing`, zero requests, and 3,180 pending
-candidates. The public feed has 1,813 items and no Jev cache or diagnostics.
-Scheduled Jev calls are therefore not active yet. Automatic approval review
-blocked copying the 1Password key into the repository's Actions secret pending
-explicit authorization for that destination. The approval question remains open.
+**Receiving-host verification**: Commit `8fdd1a3` deployed successfully in
+[run 35625768907](https://github.com/oliverames/cerulean-news/actions/runs/35625768907).
+That initial run correctly reported missing credentials and zero requests.
+Oliver then explicitly approved the credential destination. The key was copied
+securely from 1Password to the private repository's `TYPESAFE_API_KEY` Actions
+secret, and `JEV_RELEVANCE` was set to `shadow`.
+
+The activation [run 35626956144](https://github.com/oliverames/cerulean-news/actions/runs/35626956144)
+passed all 230 tests and deployed successfully. Its live audit reports shadow
+mode, complete status, 25 requested and successful evaluations, zero failures,
+25 persisted cache entries, and 3,154 remaining candidates. Nine inclusion
+judgments disagreed with the current decisions. The public feed retains 1,813
+items and contains no internal cache or Jev diagnostics.
+
+The first batch contained no sentiment-eligible articles. Scheduled sentiment
+is configured and queued, while authenticated sentiment calls were verified in
+the separate calibration above. The 25-item cap and four-hour schedule remain
+unchanged. Enforcement and rubric improvement remain tracked in issue #8.
 
 ---
 
