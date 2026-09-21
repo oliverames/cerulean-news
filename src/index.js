@@ -12,6 +12,7 @@ import {
   selectPreviewBackfillItems,
 } from "./enrich.js";
 import { applyDeterministicRelevance } from "./relevance.js";
+import { applyJevRelevance } from "./jev-relevance.js";
 import {
   dedupeResolvedItems,
   loadPreviousState,
@@ -201,10 +202,16 @@ export async function generateFeed({
       now,
     }),
   );
-  const matchedItems = await measurePhase(crawlMetrics, "merge", async () =>
+  const mergedItems = await measurePhase(crawlMetrics, "merge", async () =>
     dedupeResolvedItems(
       sortItemsByDate(mergeWithArchive(currentMatched, archivedItems, now)),
     ).map(applyDeterministicRelevance),
+  );
+  // EXPERIMENTAL. Off unless JEV_RELEVANCE is set, and a no-op in shadow mode:
+  // the deterministic rules above have already had the last word on the items
+  // they reject. See src/jev-relevance.js for the decision policy.
+  const matchedItems = await measurePhase(crawlMetrics, "jevRelevance", () =>
+    applyJevRelevance(mergedItems),
   );
   await measurePhase(crawlMetrics, "summarize", () =>
     summarizeItems(matchedItems),
@@ -371,6 +378,16 @@ export {
   itemOutletName,
   namesBlueCrossVermont,
 } from "./relevance.js";
+export {
+  applyJevRelevance,
+  buildJevRequest,
+  classifyItemRelevance,
+  decideJevRelevance,
+  jevRelevanceMode,
+  keywordVerdict,
+  loadRelevanceRubric,
+  selectJevCandidates,
+} from "./jev-relevance.js";
 export {
   dedupeResolvedItems,
   loadPreviousState,
