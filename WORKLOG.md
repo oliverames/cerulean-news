@@ -7,12 +7,19 @@
 - Decide whether the six projects whose Mac builds were disabled get self-hosted runners on the MacBook Pro and home-server, or stay manual (since 2026-09-16) (unverified)
 - Establish why `xcode-27` appears as a `runs-on` label with no registered runner before that label is reused (since 2026-09-16)
 - `ames-plugins-local/marketplace-validation.yml` is still on `macos-latest`, which bills at 10x if it fires (since 2026-09-16)
-- Pre-rewrite commits remain fetchable on GitHub by SHA until garbage collection or a GitHub Support request, which Support may decline for non-sensitive data (since 2026-07-13)
 - The GA4 cross-domain list still names bluenews.online and oliverames.github.io, harmless since both redirect (since 2026-09-04; [#4](https://github.com/oliverames/cerulean-news/issues/4))
 - Prove the `data/coverage-context.json` VT Basic storyline in production with a re-score sweep that completes (`rescore_sentiment` with a small `summary_max_requests`) (since 2026-08-27) (unverified)
 - The calendar and briefs recall gap is a product decision that needs Oliver's call before any matcher work (since 2026-08-27) (unverified)
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
+
+## 2026-09-22 - Worklog compaction and open-item decisions
+
+**What changed**: Compacted this worklog: entries before 2026-08-23 became the Earlier history digest and every unresolved item moved to Open items.
+
+**Decisions made**: Pre-rewrite commits such as `7b71ccc` still resolve on GitHub by SHA and contain the old reader password. Oliver accepted that exposure because the password gate was removed on 2026-09-03 and the password no longer protects anything. No GitHub Support purge request will be sent.
+
+---
 
 ## 2026-09-21 - Approve Jev selection and confident sentiment for new articles
 
