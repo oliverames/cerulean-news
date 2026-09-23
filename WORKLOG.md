@@ -13,6 +13,18 @@
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
 
+## 2026-09-23 - Grouped story coverage and specific Jev inclusion notes
+
+**Request**: Combine duplicate coverage such as the six reader entries for the 760,000 ACA enrollee removal, and replace the generic "Jev judged this relevant" note.
+
+**Completed**: The reader and RSS feed now show one entry per event, led by the newest report, with other outlets listed beneath it. The JSON Feed keeps every article and adds `storyGroupId`. Brand coverage, opinion pieces, and roundups are not grouped. On the 2026-09-23 live feed this forms 162 groups from 396 of 1,855 visible articles, and the ACA story becomes one entry covering seven reports. Jev inclusion notes now keep Gemini's description of the article and name Jev's strongest scope with its confidence. Scope scores are now cached for that purpose.
+
+**Verification**: All 251 tests pass. The reader was checked locally against the live feed with grouping applied. Each group with differing headlines was reviewed by hand, and letters, candidate forums, a daily roundup, and one Dartmouth story were removed as false matches.
+
+**Limits**: The 32 existing Jev notes will show their topic line but not a scope, because their cached decisions predate scope storage. Three have no usable topic line. A few true duplicates stay separate where wording differs too much, which is the safer failure.
+
+---
+
 ## 2026-09-22 - Worklog compaction and open-item decisions
 
 **What changed**: Compacted this worklog: entries before 2026-08-23 became the Earlier history digest and every unresolved item moved to Open items.

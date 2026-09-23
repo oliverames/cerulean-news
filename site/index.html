@@ -343,6 +343,22 @@
         font-weight: 600;
       }
 
+      ul.stories .related {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 0.84rem;
+        line-height: 1.4;
+      }
+
+      ul.stories .related ul {
+        margin: 2px 0 0;
+        padding-left: 1.1em;
+      }
+
+      ul.stories .related li {
+        margin: 2px 0 0;
+      }
+
       ul.stories .meta {
         font-size: 0.8rem;
         color: var(--muted);
@@ -924,8 +940,57 @@
         ["negative", "var(--s-neg)"],
       ]);
 
+      // Reports of one event share a storyGroupId. The newest matching report
+      // leads and the others are listed beneath it, so a story appears once
+      // however many outlets covered it.
+      function groupStories(items) {
+        const entries = [];
+        const byGroup = new Map();
+        for (const item of items) {
+          const group = item.storyGroupId && byGroup.get(item.storyGroupId);
+          if (group) {
+            group.related.push(item);
+            continue;
+          }
+          const entry = { item, related: [] };
+          if (item.storyGroupId) {
+            byGroup.set(item.storyGroupId, entry);
+          }
+          entries.push(entry);
+        }
+        return entries;
+      }
+
+      function renderRelated(related) {
+        const container = document.createElement("div");
+        container.className = "related";
+        const label = document.createElement("span");
+        label.className = "reason-label";
+        label.textContent = "Also covered by:";
+        container.appendChild(label);
+        const list = document.createElement("ul");
+        for (const item of related) {
+          const li = document.createElement("li");
+          li.appendChild(document.createTextNode(`${item.outlet || item.sourceName}: `));
+          const link = document.createElement("a");
+          try {
+            const parsed = new URL(item.link);
+            if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+              link.href = item.link;
+            }
+          } catch {
+            // leave unlinked
+          }
+          link.textContent = item.title;
+          li.appendChild(link);
+          list.appendChild(li);
+        }
+        container.appendChild(list);
+        return container;
+      }
+
       function renderStories() {
-        const items = orderedItems(searchItems(sectionItems()));
+        const items = groupStories(orderedItems(searchItems(sectionItems())));
         const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
         const page = Math.min(activePage(), pageCount);
         const pageItems = items.slice((page - 1) * pageSize, page * pageSize);
@@ -946,7 +1011,7 @@
           return;
         }
 
-        for (const [itemIndex, item] of pageItems.entries()) {
+        for (const [itemIndex, { item, related }] of pageItems.entries()) {
           const li = document.createElement("li");
 
           const date = formatDate(item.pubDate, {
@@ -1007,6 +1072,10 @@
             reason.appendChild(reasonLabel);
             reason.appendChild(document.createTextNode(item.reason));
             li.appendChild(reason);
+          }
+
+          if (related.length > 0) {
+            li.appendChild(renderRelated(related));
           }
 
           if (item.sentiment && SENTIMENT_COLORS.has(item.sentiment)) {

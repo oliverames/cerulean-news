@@ -24,6 +24,7 @@ import {
   itemOutletName,
   itemSourceType,
 } from "./relevance.js";
+import { groupRelatedStories } from "./story-groups.js";
 import { shouldScoreSentiment } from "./summaries.js";
 
 const SITE_URL = process.env.SITE_URL?.trim() || "";
@@ -86,7 +87,34 @@ function previewTextForOutput(item) {
   return previewTerms.some((term) => itemTermSet.has(term)) ? previewText : "";
 }
 
-function itemDescription(item) {
+// Groups the stories people read; rejected items never lead or join a group.
+export function groupVisibleStories(items) {
+  return groupRelatedStories(
+    items.filter((item) => item.relevant !== false),
+    {
+      category: (item) =>
+        itemCategory({
+          ...item,
+          matchedTerms: canonicalizeMatchedTerms(item.matchedTerms || []),
+        }),
+      outlet: itemOutletName,
+    },
+  );
+}
+
+function relatedCoverageHtml(group, lead) {
+  const others = group.members.filter((member) => member !== lead);
+  const lines = ["<p><strong>Also covered by:</strong></p>", "<ul>"];
+  for (const member of others) {
+    lines.push(
+      `<li>${escapeXml(itemOutletName(member) || member.sourceName || "")}: <a href="${escapeXml(member.link)}">${escapeXml(member.title)}</a></li>`,
+    );
+  }
+  lines.push("</ul>");
+  return lines.join("\n");
+}
+
+function itemDescription(item, group) {
   const snippet = cleanStorySnippet(item.snippet, item.title);
   const date = item.pubDate?.toISOString()?.slice(0, 10) || "";
   const access = itemAccessLabel(item);
@@ -128,6 +156,10 @@ function itemDescription(item) {
 
   if (!item.summary && snippet) {
     lines.push(`<p>${escapeXml(snippet)}</p>`);
+  }
+
+  if (group) {
+    lines.push(relatedCoverageHtml(group, item));
   }
 
   if (Array.isArray(item.comments) && item.comments.length > 0) {
@@ -197,9 +229,12 @@ export function buildRss(items, options = {}) {
     : "";
 
   // Items the relevance gate rejected stay in feed-audit.json but are
-  // excluded from the feeds people read.
+  // excluded from the feeds people read. Other outlets' reports of a grouped
+  // story are listed inside its lead item instead of repeating as items.
+  const groups = groupVisibleStories(items);
   const itemXml = sortItemsByDate(items)
     .filter((item) => item.relevant !== false)
+    .filter((item) => !groups.has(item) || groups.get(item).lead === item)
     .slice(0, 100)
     .map((item) => {
       const categories = item.matchedTerms
@@ -221,7 +256,7 @@ export function buildRss(items, options = {}) {
       <link>${escapeXml(item.link)}</link>
       <guid isPermaLink="true">${escapeXml(item.guid || item.link)}</guid>${pubDate}${sourceTag}
 ${categories}
-      <description>${wrapCdata(itemDescription(item))}</description>
+      <description>${wrapCdata(itemDescription(item, groups.get(item)))}</description>
     </item>`;
     })
     .join("\n");
@@ -249,6 +284,8 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
     (item) => includeRejected || item.relevant !== false,
   );
   const rejectedItemCount = items.filter((item) => item.relevant === false).length;
+  // The audit archive keeps no grouping; it is recomputed on every run.
+  const groups = includeRejected ? new Map() : groupVisibleStories(items);
 
   return {
     version: "https://jsonfeed.org/version/1.1",
@@ -366,6 +403,9 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
         // Marks an entry seeded from the team's media tracker rather than
         // found by the crawler, so the two can be told apart in the archive.
         fromMediaTracker: item.fromMediaTracker || undefined,
+        // Items sharing an id report the same event; the reader shows the
+        // newest one and lists the rest beneath it as other coverage.
+        storyGroupId: groups.get(item)?.id,
       };
     }),
   };

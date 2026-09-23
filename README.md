@@ -146,7 +146,10 @@ Each story can include:
 | Publisher preview | Up to two lead paragraphs and 600 characters from a paywalled publisher's ordinary unauthenticated page, when available |
 | Sentiment | Five-point score, shown only on press coverage that names Blue Cross VT |
 | Why it is here | Short relevance reason for a reader who wants to skim quickly |
+| Also covered by | Other outlets' reports of the same event, listed under the newest one |
 | Comments | Publicly parseable article or post comments, hidden by default |
+
+When several outlets report one event, the reader and RSS feed show it once, led by the newest report, with the rest listed beneath it. `src/story-groups.js` compares headlines and summaries published within three days, including shared figures such as "760,000." An article joins a group only when it matches more than half of the group's articles. Blue Cross VT coverage, letters, columns, and roundups are not grouped, and one outlet's own articles group only when their headlines are nearly identical. Grouping is display only. The JSON Feed keeps every article and marks group members with a shared `storyGroupId`, so coverage counts and the trends page are unchanged. Search runs before grouping, so a search for one outlet still finds its report.
 
 The browser does not recrawl sources. GitHub Actions does the collection and deploys the latest feed every four hours; reloading the page loads the latest published feed.
 
@@ -280,7 +283,7 @@ Keyword matching still determines which articles enter the candidate archive. De
 
 One bounded request includes a title of at most 300 characters and an excerpt of at most 1,200 characters. Requests also include the resolved outlet, matched terms, trusted BCBSVT sentiment eligibility, curated provenance, and whether the excerpt came from a generated summary. Existing verdicts, sentiment labels, and rationales are excluded. Full article text and feed bodies are never sent. The versioned relevance rubric asks `include`, `local_angle`, and `relevance`. Only `include` gates inclusion: at least 0.7 includes, at most 0.3 excludes, and the band between keeps the current decision. Local angle and relevance score remain diagnostics.
 
-Eligible BCBSVT press coverage also receives a five-label sentiment question from `src/rubrics/sentiment-v2.json`. It starts with the existing tracker rules and matching storyline notes. The aligned profile supplies up to 16 paired human sentiment examples and more explicit label distinctions. In enforce mode, sentiment requires a valid answer with confidence of at least 0.7. Other coverage is not scored. Jev returns a label rather than a written rationale, so an applied Jev score clears the previous model's rationale. Both inclusion and sentiment thresholds remain uncalibrated starting points.
+Eligible BCBSVT press coverage also receives a five-label sentiment question from `src/rubrics/sentiment-v2.json`. It starts with the existing tracker rules and matching storyline notes. The aligned profile supplies up to 16 paired human sentiment examples and more explicit label distinctions. In enforce mode, sentiment requires a valid answer with confidence of at least 0.7. Other coverage is not scored. Jev returns a label rather than a written rationale, so an applied Jev score clears the previous model's rationale. Jev likewise writes no inclusion rationale. When it adds an article that the first review left out, the "Why it is here" note keeps Gemini's description of the article and names the scope Jev rated highest, with its confidence, for example "National ACA enrollment changes. Jev added it as U.S. health coverage, insurance, or policy news (93% confidence) after the first review left it out." A Gemini line that states a rejection is dropped. Cached evaluations from before scope scores were stored give the description without the scope. Both inclusion and sentiment thresholds remain uncalibrated starting points.
 
 The v2 inclusion question shares the existing Gemini policy: brand coverage, Vermont health care broadly, New England health care, and national insurance/payer, health-policy, or drug-coverage reporting. National reporting does not need a Vermont consequence. A Vermont publisher alone does not make syndicated subject matter local.
 
@@ -328,6 +331,7 @@ src/politeness.js  Per-host crawl policy: request pacing and cache freshness
 src/enrich.js      Google News decoding, article scanning, match enrichment
 src/relevance.js   Deterministic relevance, source type, access labels
 src/archive.js     Audit loading, archive retention, dedupe rules
+src/story-groups.js  Groups different outlets' reports of one event for display
 src/summaries.js   Gemini prompt, batching, parsing, summary cache behavior
 src/alerts.js      Failure streaks and optional webhook alerts
 src/outputs.js     RSS, JSON Feed, audit JSON, file writes

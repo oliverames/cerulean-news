@@ -51,6 +51,40 @@ export const DECISION_KEYWORD = "keyword";
 
 const ENFORCED_EXCLUDE_REASON =
   "Jev relevance classifier judged this outside the feed's editorial scope.";
+// Written by earlier runs for every article Jev added. It named no scope and
+// misdescribed national stories, so those notes are rebuilt when next seen.
+const LEGACY_INCLUDE_REASON = "Jev judged this relevant to Vermont health care coverage.";
+
+// The editorial scope each aligned Jev question tests, in reader wording.
+const SCOPE_REASONS = {
+  scope_brand: "Blue Cross and Blue Shield coverage",
+  scope_regional: "Vermont or New England health care news",
+  scope_policy: "U.S. health coverage, insurance, or policy news",
+};
+
+// Gemini writes a reason even for articles it rejects. Most describe the
+// topic ("National ACA enrollment changes"), but some state the rejection
+// ("Outside scope", "New Hampshire grant, not Vermont") and would contradict
+// an inclusion note, so those are left out.
+const REJECTION_WORDING = /\b(?:not|no|outside|unrelated|irrelevant|incidental|generic|only|but|lacks?|without)\b/i;
+
+// Explains an article Jev added after the first review left it out. The first
+// sentence is Gemini's own description of the article; the second names the
+// scope Jev found strongest, with its confidence, so the note says why the
+// story belongs rather than only that a model approved it.
+export function jevInclusionReason(description, scopeSignals) {
+  const strongest = Object.entries(SCOPE_REASONS)
+    .map(([name, scope]) => ({ scope, value: scopeSignals?.[name] }))
+    .filter(({ value }) => isProbability(value))
+    .sort((a, b) => b.value - a.value)[0];
+  const why = strongest && strongest.value >= INCLUDE_THRESHOLD
+    ? `Jev added it as ${strongest.scope} (${Math.round(strongest.value * 100)}% confidence) after the first review left it out.`
+    : "Jev added it after the first review left it out.";
+  const subject = cleanText(description || "").replace(/[.\s]+$/, "");
+  return subject && `${subject}.` !== LEGACY_INCLUDE_REASON && !REJECTION_WORDING.test(subject)
+    ? `${subject}. ${why}`
+    : why;
+}
 
 export function jevRelevanceMode(env = process.env) {
   const configured = String(env.JEV_RELEVANCE || "").trim().toLowerCase();
@@ -442,9 +476,18 @@ export function normalizeJevCache(value) {
       relevanceScore: Number.isFinite(entry.relevanceScore) && entry.relevanceScore >= 0 && entry.relevanceScore <= 9 ? entry.relevanceScore : null,
       sentiment: entry.sentiment || null,
       sentimentConfidence: entry.sentiment ? entry.sentimentConfidence : null,
+      // Kept so the published note can name the scope that qualified an article.
+      ...(normalizeScopeSignals(entry.scopeSignals) ? { scopeSignals: normalizeScopeSignals(entry.scopeSignals) } : {}),
     };
   }
   return cache;
+}
+
+function normalizeScopeSignals(value) {
+  if (!value || typeof value !== "object") return undefined;
+  const signals = Object.fromEntries(Object.keys(SCOPE_REASONS)
+    .map((name) => [name, isProbability(value[name]) ? value[name] : null]));
+  return Object.values(signals).some((signal) => signal !== null) ? signals : undefined;
 }
 
 // Audit-only original decisions enable a targeted restoration without
@@ -588,9 +631,13 @@ export async function applyJevRelevance(items, options = {}) {
     if (!classification?.ok || !mayEnforce(item)) return item;
     let result = item;
     if (!item.fromMediaTracker && classification.decision !== DECISION_KEYWORD) {
+      const baseline = normalizeJevBaseline(item.jevBaseline);
       result = { ...item, relevant: classification.relevant,
         reason: classification.decision === DECISION_EXCLUDE ? ENFORCED_EXCLUDE_REASON
-          : item.relevant === false ? "Jev judged this relevant to Vermont health care coverage." : item.reason || "",
+          : item.relevant === false ? jevInclusionReason(item.reason, classification.scopeSignals)
+            : item.reason === LEGACY_INCLUDE_REASON
+              ? jevInclusionReason(baseline?.relevant === false ? baseline.reason : "", classification.scopeSignals)
+              : item.reason || "",
         jevRelevance: { rubricVersion: classification.rubricVersion, model: classification.model,
           include: classification.include, localAngle: classification.localAngle,
           relevanceScore: classification.relevanceScore, decision: classification.decision },
