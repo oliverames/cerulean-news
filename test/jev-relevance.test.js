@@ -307,7 +307,7 @@ test("enforce mode applies confident verdicts and leaves the band alone", async 
   });
 
   assert.equal(result[0].relevant, false);
-  assert.match(result[0].reason, /Jev relevance classifier/);
+  assert.match(result[0].reason, /^Outside the feed's editorial scope\.$/);
   assert.equal(result[0].jevRelevance.rubricVersion, "relevance-v2");
   // Uncertainty band: untouched, including the object identity.
   assert.equal(result[1], items[1]);

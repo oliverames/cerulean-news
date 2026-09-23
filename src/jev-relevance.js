@@ -49,8 +49,8 @@ export const DECISION_INCLUDE = "include";
 export const DECISION_EXCLUDE = "exclude";
 export const DECISION_KEYWORD = "keyword";
 
-const ENFORCED_EXCLUDE_REASON =
-  "Jev relevance classifier judged this outside the feed's editorial scope.";
+// Reapplied on every run, so earlier wording is replaced when next seen.
+const ENFORCED_EXCLUDE_REASON = "Outside the feed's editorial scope.";
 // The editorial scope each aligned Jev question tests, in reader wording.
 const SCOPE_REASONS = {
   scope_brand: "Blue Cross and Blue Shield coverage",

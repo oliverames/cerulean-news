@@ -141,3 +141,16 @@ test("a first-review line that states a rejection never leads an inclusion note"
   assert.equal(jevInclusionReason("Jev judged this relevant to Vermont health care coverage.", undefined),
     "Fits the feed's editorial scope.");
 });
+
+test("a removal note does not name the model", async () => {
+  const alignment = await loadAlignmentProfile("src/rubrics/editorial-alignment-v1.json");
+  const offTopic = { title: "Local restaurant opens second location", snippet: "A diner expands downtown.",
+    link: "https://example.test/diner", matchedTerms: ["Health care"], sourceName: "VTDigger", pubDate: now,
+    firstSeenAt: now, relevant: true, reason: "Old wording from the Jev relevance classifier." };
+  const none = { answers: { include: { type: "noul", noul: 0.05 }, scope_brand: { type: "noul", noul: 0.02 },
+    scope_regional: { type: "noul", noul: 0.05 }, scope_policy: { type: "noul", noul: 0.03 } } };
+  const [removed] = await applyJevRelevance([offTopic], { env: {}, mode: "enforce", enforceAfter: cutoff, alignment,
+    referenceExamples: references, callJev: async () => none });
+  assert.equal(removed.relevant, false);
+  assert.equal(removed.reason, "Outside the feed's editorial scope.");
+});
