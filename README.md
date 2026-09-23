@@ -146,10 +146,10 @@ Each story can include:
 | Publisher preview | Up to two lead paragraphs and 600 characters from a paywalled publisher's ordinary unauthenticated page, when available |
 | Sentiment | Five-point score, shown only on press coverage that names Blue Cross VT |
 | Why it is here | Short relevance reason for a reader who wants to skim quickly |
-| Also covered by | Other outlets' reports of the same event, listed under the newest one |
+| More | Other outlets' reports of the same event, linked by outlet name under the newest one, Techmeme style |
 | Comments | Publicly parseable article or post comments, hidden by default |
 
-When several outlets report one event, the reader and RSS feed show it once, led by the newest report, with the rest listed beneath it. `src/story-groups.js` compares headlines and summaries published within three days, including shared figures such as "760,000." An article joins a group only when it matches more than half of the group's articles. Blue Cross VT coverage, letters, columns, and roundups are not grouped, and one outlet's own articles group only when their headlines are nearly identical. Grouping is display only. The JSON Feed keeps every article and marks group members with a shared `storyGroupId`, so coverage counts and the trends page are unchanged. Search runs before grouping, so a search for one outlet still finds its report.
+When several outlets report one event, the reader and RSS feed show it once, led by the newest report. A "More:" line beneath it links each other outlet's report by name, with that report's headline on hover. `src/story-groups.js` compares headlines and summaries published within three days, including shared figures such as "760,000." An article joins a group only when it matches more than half of the group's articles. Blue Cross VT coverage, letters, columns, and roundups are not grouped, and one outlet's own articles group only when their headlines are nearly identical. Grouping is display only. The JSON Feed keeps every article and marks group members with a shared `storyGroupId`, so coverage counts and the trends page are unchanged. Search runs before grouping, so a search for one outlet still finds its report.
 
 The browser does not recrawl sources. GitHub Actions does the collection and deploys the latest feed every four hours; reloading the page loads the latest published feed.
 

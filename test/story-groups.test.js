@@ -83,7 +83,7 @@ test("the RSS feed lists grouped coverage once and the JSON Feed marks every mem
   assert.equal((rss.match(/760,000/g) || []).length > 0, true);
   assert.equal(rss.includes(`<link>${aca[0].link}</link>`), false);
   assert.ok(rss.includes(`<link>${aca[4].link}</link>`));
-  assert.match(rss, /Also covered by:/);
+  assert.match(rss, /<strong>More:<\/strong> <a href=/);
   for (const item of aca.slice(0, 4)) assert.ok(rss.includes(item.link));
 
   const json = buildJsonSummary(items, [], new Date(base + 30 * hour));

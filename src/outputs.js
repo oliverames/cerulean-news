@@ -102,16 +102,17 @@ export function groupVisibleStories(items) {
   );
 }
 
+// Techmeme-style "More:" line: each other report linked by its outlet name.
 function relatedCoverageHtml(group, lead) {
   const others = group.members.filter((member) => member !== lead);
-  const lines = ["<p><strong>Also covered by:</strong></p>", "<ul>"];
-  for (const member of others) {
-    lines.push(
-      `<li>${escapeXml(itemOutletName(member) || member.sourceName || "")}: <a href="${escapeXml(member.link)}">${escapeXml(member.title)}</a></li>`,
-    );
-  }
-  lines.push("</ul>");
-  return lines.join("\n");
+  const links = others.map(
+    (member) =>
+      `<a href="${escapeXml(member.link)}" title="${escapeXml(member.title)}">${escapeXml(itemOutletName(member) || member.sourceName || "")}</a>`,
+  );
+  const joined = links.length > 1
+    ? `${links.slice(0, -1).join(", ")}${links.length > 2 ? "," : ""} and ${links.at(-1)}`
+    : links[0];
+  return `<p><strong>More:</strong> ${joined}</p>`;
 }
 
 function itemDescription(item, group) {

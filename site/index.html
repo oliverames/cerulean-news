@@ -350,15 +350,6 @@
         line-height: 1.4;
       }
 
-      ul.stories .related ul {
-        margin: 2px 0 0;
-        padding-left: 1.1em;
-      }
-
-      ul.stories .related li {
-        margin: 2px 0 0;
-      }
-
       ul.stories .meta {
         font-size: 0.8rem;
         color: var(--muted);
@@ -961,17 +952,21 @@
         return entries;
       }
 
+      // Techmeme-style "More:" line: every other outlet's report, linked by
+      // outlet name, with its own headline shown on hover.
       function renderRelated(related) {
-        const container = document.createElement("div");
+        const container = document.createElement("p");
         container.className = "related";
         const label = document.createElement("span");
         label.className = "reason-label";
-        label.textContent = "Also covered by:";
+        label.textContent = "More: ";
         container.appendChild(label);
-        const list = document.createElement("ul");
-        for (const item of related) {
-          const li = document.createElement("li");
-          li.appendChild(document.createTextNode(`${item.outlet || item.sourceName}: `));
+        related.forEach((item, index) => {
+          if (index > 0) {
+            container.appendChild(document.createTextNode(
+              index === related.length - 1 ? (related.length > 2 ? ", and " : " and ") : ", ",
+            ));
+          }
           const link = document.createElement("a");
           try {
             const parsed = new URL(item.link);
@@ -981,11 +976,10 @@
           } catch {
             // leave unlinked
           }
-          link.textContent = item.title;
-          li.appendChild(link);
-          list.appendChild(li);
-        }
-        container.appendChild(list);
+          link.textContent = item.outlet || item.sourceName;
+          link.title = item.title;
+          container.appendChild(link);
+        });
         return container;
       }
 
