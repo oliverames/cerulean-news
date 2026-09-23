@@ -350,6 +350,10 @@
         line-height: 1.4;
       }
 
+      ul.stories .related a {
+        color: var(--muted);
+      }
+
       ul.stories .meta {
         font-size: 0.8rem;
         color: var(--muted);
@@ -952,20 +956,18 @@
         return entries;
       }
 
-      // Techmeme-style "More:" line: every other outlet's report, linked by
-      // outlet name, with its own headline shown on hover.
+      // One line of other outlets' reports, linked by outlet name with each
+      // headline on hover. Label and separators match the reason and meta lines.
       function renderRelated(related) {
         const container = document.createElement("p");
         container.className = "related";
         const label = document.createElement("span");
         label.className = "reason-label";
-        label.textContent = "More: ";
+        label.textContent = "Also covered by: ";
         container.appendChild(label);
         related.forEach((item, index) => {
           if (index > 0) {
-            container.appendChild(document.createTextNode(
-              index === related.length - 1 ? (related.length > 2 ? ", and " : " and ") : ", ",
-            ));
+            container.appendChild(document.createTextNode(" · "));
           }
           const link = document.createElement("a");
           try {
