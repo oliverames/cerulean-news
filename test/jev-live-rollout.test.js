@@ -124,6 +124,7 @@ test("an added article's note gives its subject and the scope it fits", async ()
   const [rebuilt] = await applyJevRelevance([legacy], { ...options, metrics, callJev: async () => { calls += 1; return drifted; } });
   assert.equal(calls, 2);
   assert.equal(metrics.scopeBackfilled, 1);
+  assert.equal(metrics.scopeBackfillPending, 0);
   assert.equal(rebuilt.relevant, true, "a backfill never changes the published decision");
   assert.equal(rebuilt.reason, expected);
   await applyJevRelevance([rebuilt], options);

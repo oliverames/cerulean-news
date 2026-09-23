@@ -602,13 +602,13 @@ export async function applyJevRelevance(items, options = {}) {
   // Additions cached before scope scores were stored have notes that cannot
   // name a scope. Re-ask for those scores within the same per-run cap. Only
   // the scope scores are kept, so published decisions cannot change.
-  const scopeBackfill = configured && alignment && mode === JEV_MODE_ENFORCE
+  const needsScope = configured && alignment && mode === JEV_MODE_ENFORCE
     ? entries.filter(({ item, key }) => cache[key] && !cache[key].scopeSignals && mayEnforce(item) &&
         !item.fromMediaTracker && classifications.get(item)?.decision === DECISION_INCLUDE &&
         (item.relevant === false || normalizeJevBaseline(item.jevBaseline)?.relevant === false))
-      .slice(0, Math.max(0, maxItems - runEntries.length))
     : [];
-  metrics.scopeBackfillPending = scopeBackfill.length;
+  const scopeBackfill = needsScope.slice(0, Math.max(0, maxItems - runEntries.length));
+  metrics.scopeBackfillPending = needsScope.length;
   metrics.scopeBackfilled = 0;
   await mapWithConcurrency(scopeBackfill, concurrency, async ({ item, request, key }) => {
     const refreshed = await classifyItemRelevance(item, { ...options, rubric, request });
