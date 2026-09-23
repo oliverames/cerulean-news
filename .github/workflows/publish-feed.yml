@@ -27,13 +27,12 @@ on:
         type: string
         default: ""
   schedule:
-    # Every 4 hours: 6 runs a day at ~6.3 minutes is about 1,134 billed units a
-    # month. This is the only scheduled workflow in any private repo, and it is
-    # most of the private-repo allowance on its own, so the cadence is the main
-    # lever on the bill. It dropped from 3 hours on 2026-09-16 after Actions was
-    # cut off for eleven days. Use the "Run workflow" button for an immediate
-    # refresh rather than tightening this.
-    - cron: "17 */4 * * *"
+    # Every 30 minutes. The repo went public on 2026-09-23, so scheduled runs
+    # use the unlimited free public-repo minutes and no longer draw on the
+    # 3,000-minute Pro allowance. Cadence was every 4 hours while private
+    # (tightened from 3 hours on 2026-09-16). Use the "Run workflow" button
+    # for an immediate refresh.
+    - cron: "17,47 * * * *"
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
