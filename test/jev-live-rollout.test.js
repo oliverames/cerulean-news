@@ -92,7 +92,7 @@ test("dated history stays before activation across audit migrations and rediscov
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 
-test("an article Jev adds explains its subject and the scope that qualified it", async () => {
+test("an added article's note gives its subject and the scope it fits", async () => {
   const alignment = await loadAlignmentProfile("src/rubrics/editorial-alignment-v1.json");
   const national = { title: "Trump administration to remove 760,000 Affordable Care Act enrollees over fraud claims",
     snippet: "Officials allege 760,000 marketplace enrollees were fraudulently enrolled.", link: "https://www.npr.org/aca-fraud",
@@ -100,31 +100,43 @@ test("an article Jev adds explains its subject and the scope that qualified it",
     relevant: false, reason: "National ACA enrollment changes" };
   const scoped = { answers: { include: { type: "noul", noul: 0.93 }, scope_brand: { type: "noul", noul: 0.02 },
     scope_regional: { type: "noul", noul: 0.1 }, scope_policy: { type: "noul", noul: 0.93 } } };
+  const expected = "National ACA enrollment changes. Fits U.S. health coverage, insurance, or policy news (93% confidence).";
   const cache = {};
+  let calls = 0;
   const options = { env: {}, mode: "enforce", enforceAfter: cutoff, alignment, referenceExamples: references,
-    cache, now, callJev: async () => scoped };
+    cache, now, callJev: async () => { calls += 1; return scoped; } };
   const [added] = await applyJevRelevance([national], options);
   assert.equal(added.relevant, true);
-  assert.equal(added.reason, "National ACA enrollment changes. Jev added it as U.S. health coverage, " +
-    "insurance, or policy news (93% confidence) after the first review left it out.");
+  assert.equal(added.reason, expected);
+  assert.doesNotMatch(added.reason, /Jev/);
   assert.equal(added.jevBaseline.reason, "National ACA enrollment changes");
-  const [again] = await applyJevRelevance([added], { ...options, callJev: async () => assert.fail("cached") });
-  assert.equal(again.reason, added.reason);
+  const [again] = await applyJevRelevance([added], options);
+  assert.equal(calls, 1);
+  assert.equal(again.reason, expected);
 
-  // Notes written before this change carried no subject or scope. They are
-  // rebuilt from the saved original description, even from a cache entry
-  // that predates scope signals.
-  const legacy = { ...added, reason: "Jev judged this relevant to Vermont health care coverage." };
+  // A note written in an earlier format, from a cache entry saved before
+  // scope scores were kept: one request backfills the scores, the note is
+  // rebuilt, and a later run needs no request.
+  const legacy = { ...added, reason: "Federal action. Jev added it after the first review left it out." };
   for (const entry of Object.values(cache)) delete entry.scopeSignals;
-  const [rebuilt] = await applyJevRelevance([legacy], { ...options, callJev: async () => assert.fail("cached") });
-  assert.equal(rebuilt.reason, "National ACA enrollment changes. Jev added it after the first review left it out.");
+  const metrics = {};
+  const drifted = { answers: { ...scoped.answers, include: { type: "noul", noul: 0.1 } } };
+  const [rebuilt] = await applyJevRelevance([legacy], { ...options, metrics, callJev: async () => { calls += 1; return drifted; } });
+  assert.equal(calls, 2);
+  assert.equal(metrics.scopeBackfilled, 1);
+  assert.equal(rebuilt.relevant, true, "a backfill never changes the published decision");
+  assert.equal(rebuilt.reason, expected);
+  await applyJevRelevance([rebuilt], options);
+  assert.equal(calls, 2);
 });
 
 test("a first-review line that states a rejection never leads an inclusion note", () => {
   const policy = { scope_brand: 0.1, scope_regional: 0.2, scope_policy: 0.88 };
   assert.equal(jevInclusionReason("New Hampshire mental health grant, not Vermont.", policy),
-    "Jev added it as U.S. health coverage, insurance, or policy news (88% confidence) after the first review left it out.");
-  assert.equal(jevInclusionReason("Mentions Blue Cross, but content is generic.", policy).startsWith("Jev added it"), true);
+    "Fits U.S. health coverage, insurance, or policy news (88% confidence).");
+  assert.equal(jevInclusionReason("Mentions Blue Cross, but content is generic.", policy).startsWith("Fits"), true);
   assert.equal(jevInclusionReason("Medicaid enrollment issues in Ohio", { scope_regional: 0.4 }),
-    "Medicaid enrollment issues in Ohio. Jev added it after the first review left it out.");
+    "Medicaid enrollment issues in Ohio.");
+  assert.equal(jevInclusionReason("Jev judged this relevant to Vermont health care coverage.", undefined),
+    "Fits the feed's editorial scope.");
 });

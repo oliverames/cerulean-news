@@ -51,10 +51,6 @@ export const DECISION_KEYWORD = "keyword";
 
 const ENFORCED_EXCLUDE_REASON =
   "Jev relevance classifier judged this outside the feed's editorial scope.";
-// Written by earlier runs for every article Jev added. It named no scope and
-// misdescribed national stories, so those notes are rebuilt when next seen.
-const LEGACY_INCLUDE_REASON = "Jev judged this relevant to Vermont health care coverage.";
-
 // The editorial scope each aligned Jev question tests, in reader wording.
 const SCOPE_REASONS = {
   scope_brand: "Blue Cross and Blue Shield coverage",
@@ -65,25 +61,24 @@ const SCOPE_REASONS = {
 // Gemini writes a reason even for articles it rejects. Most describe the
 // topic ("National ACA enrollment changes"), but some state the rejection
 // ("Outside scope", "New Hampshire grant, not Vermont") and would contradict
-// an inclusion note, so those are left out.
-const REJECTION_WORDING = /\b(?:not|no|outside|unrelated|irrelevant|incidental|generic|only|but|lacks?|without)\b/i;
+// an inclusion note, so those are left out. Earlier notes named the model
+// instead of the article; they are never reused as a description.
+const REJECTION_WORDING = /\b(?:not|no|outside|unrelated|irrelevant|incidental|generic|only|but|lacks?|without|jev)\b/i;
 
-// Explains an article Jev added after the first review left it out. The first
-// sentence is Gemini's own description of the article; the second names the
-// scope Jev found strongest, with its confidence, so the note says why the
-// story belongs rather than only that a model approved it.
+// Explains an article added after the first review left it out: Gemini's
+// description of the article, then the editorial scope it was judged to fit
+// most strongly, with that judgment's confidence.
 export function jevInclusionReason(description, scopeSignals) {
   const strongest = Object.entries(SCOPE_REASONS)
     .map(([name, scope]) => ({ scope, value: scopeSignals?.[name] }))
     .filter(({ value }) => isProbability(value))
     .sort((a, b) => b.value - a.value)[0];
-  const why = strongest && strongest.value >= INCLUDE_THRESHOLD
-    ? `Jev added it as ${strongest.scope} (${Math.round(strongest.value * 100)}% confidence) after the first review left it out.`
-    : "Jev added it after the first review left it out.";
+  const scope = strongest && strongest.value >= INCLUDE_THRESHOLD
+    ? `Fits ${strongest.scope} (${Math.round(strongest.value * 100)}% confidence).`
+    : "";
   const subject = cleanText(description || "").replace(/[.\s]+$/, "");
-  return subject && `${subject}.` !== LEGACY_INCLUDE_REASON && !REJECTION_WORDING.test(subject)
-    ? `${subject}. ${why}`
-    : why;
+  const lead = subject && !REJECTION_WORDING.test(subject) ? `${subject}.` : "";
+  return [lead, scope].filter(Boolean).join(" ") || "Fits the feed's editorial scope.";
 }
 
 export function jevRelevanceMode(env = process.env) {
@@ -604,6 +599,26 @@ export async function applyJevRelevance(items, options = {}) {
   const configured = options.callJev || env.TYPESAFE_API_KEY?.trim() || options.cliPath || env.JEV_CLI_PATH?.trim();
   const eligiblePending = mode === JEV_MODE_ENFORCE ? pending.filter(entry => mayEnforce(entry.item)) : pending;
   const runEntries = configured ? eligiblePending.slice(0, maxItems) : [];
+  // Additions cached before scope scores were stored have notes that cannot
+  // name a scope. Re-ask for those scores within the same per-run cap. Only
+  // the scope scores are kept, so published decisions cannot change.
+  const scopeBackfill = configured && alignment && mode === JEV_MODE_ENFORCE
+    ? entries.filter(({ item, key }) => cache[key] && !cache[key].scopeSignals && mayEnforce(item) &&
+        !item.fromMediaTracker && classifications.get(item)?.decision === DECISION_INCLUDE &&
+        (item.relevant === false || normalizeJevBaseline(item.jevBaseline)?.relevant === false))
+      .slice(0, Math.max(0, maxItems - runEntries.length))
+    : [];
+  metrics.scopeBackfillPending = scopeBackfill.length;
+  metrics.scopeBackfilled = 0;
+  await mapWithConcurrency(scopeBackfill, concurrency, async ({ item, request, key }) => {
+    const refreshed = await classifyItemRelevance(item, { ...options, rubric, request });
+    const scopeSignals = refreshed.ok ? normalizeScopeSignals(refreshed.scopeSignals) : undefined;
+    if (!scopeSignals) return;
+    cache[key] = { ...cache[key], scopeSignals };
+    classifications.set(item, { ...classifications.get(item), scopeSignals });
+    metrics.scopeBackfilled += 1;
+  });
+  metrics.scopeBackfillPending -= metrics.scopeBackfilled;
   metrics.requested = runEntries.length;
   metrics.status = configured ? "complete" : "credentials_missing";
   if (!configured) console.warn(`Jev evaluation (${mode}): TYPESAFE_API_KEY is not configured; no live evaluations can run.`);
@@ -623,7 +638,7 @@ export async function applyJevRelevance(items, options = {}) {
     if (!item.fromMediaTracker && !classification.agreesWithKeyword) metrics.inclusionDisagreements += 1;
     if (classification.sentiment && item.sentiment && classification.sentiment !== item.sentiment) metrics.sentimentDisagreements += 1;
   }
-  console.log(`Jev evaluation (${mode}): ${metrics.succeeded}/${metrics.requested} successful, ${metrics.cached} cached, ${metrics.pending} pending; ${metrics.inclusionDisagreements} inclusion and ${metrics.sentimentDisagreements} sentiment disagreements. Status: ${metrics.status}.`);
+  console.log(`Jev evaluation (${mode}): ${metrics.succeeded}/${metrics.requested} successful, ${metrics.cached} cached, ${metrics.pending} pending, ${metrics.scopeBackfilled} scope backfills (${metrics.scopeBackfillPending} left); ${metrics.inclusionDisagreements} inclusion and ${metrics.sentimentDisagreements} sentiment disagreements. Status: ${metrics.status}.`);
   if (mode === JEV_MODE_SHADOW) return items;
 
   return items.map((item) => {
@@ -635,8 +650,9 @@ export async function applyJevRelevance(items, options = {}) {
       result = { ...item, relevant: classification.relevant,
         reason: classification.decision === DECISION_EXCLUDE ? ENFORCED_EXCLUDE_REASON
           : item.relevant === false ? jevInclusionReason(item.reason, classification.scopeSignals)
-            : item.reason === LEGACY_INCLUDE_REASON
-              ? jevInclusionReason(baseline?.relevant === false ? baseline.reason : "", classification.scopeSignals)
+            // Rebuilt from the saved first-review description on every run,
+            // so a note picks up backfilled scope scores and wording changes.
+            : baseline?.relevant === false ? jevInclusionReason(baseline.reason, classification.scopeSignals)
               : item.reason || "",
         jevRelevance: { rubricVersion: classification.rubricVersion, model: classification.model,
           include: classification.include, localAngle: classification.localAngle,
