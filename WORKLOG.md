@@ -21,7 +21,9 @@
 
 **Verification**: All 251 tests pass. The reader was checked locally against the live feed with grouping applied. Each group with differing headlines was reviewed by hand, and letters, candidate forums, a daily roundup, and one Dartmouth story were removed as false matches.
 
-**Limits**: The 32 existing Jev notes will show their topic line but not a scope, because their cached decisions predate scope storage. Three have no usable topic line. A few true duplicates stay separate where wording differs too much, which is the safer failure.
+**Follow-up the same day**: Notes no longer name Jev. They read as the article description plus the scope it fits, for example "Federal action impacting ACA coverage for many individuals. Fits U.S. health coverage, insurance, or policy news (97% confidence)." Additions cached before scope storage were asked again for scope scores only, keeping their cached include decisions. Runs 35876558495 and the next push filled 15 and then 8. The live audit at 2026-09-23T14:53Z shows scope on all 34 added articles and no public note naming Jev. Related coverage now shows as an "Also covered by" line of outlet links, styled like the reason and meta lines.
+
+**Limits**: A few true duplicates stay separate where wording differs too much, which is the safer failure.
 
 ---
 
