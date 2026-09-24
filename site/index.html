@@ -12,26 +12,34 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Cerulean News: Vermont health care and health insurance news</title>
-    <meta name="description" content="A free, text-only site that looks for Vermont health care news and news about regional health insurers based in Vermont, including Blue Cross and Blue Shield of Vermont, with RSS and JSON feeds. Independent and not affiliated with any insurer.">
+    <meta name="description" content="Vermont health care and health insurance news, including Blue Cross and Blue Shield of Vermont coverage, with RSS and JSON feeds. Not affiliated with any insurer.">
     <meta name="keywords" content="Vermont health care news, Vermont health insurance news, Blue Cross and Blue Shield of Vermont news, BCBSVT coverage, Green Mountain Care Board, Vermont hospital budgets, health insurance rate review Vermont, UVM Health news, MVP Health Care Vermont, Vermont Medicaid, Medicare Advantage Vermont, Vermont Health Connect, OneCare Vermont, Vermont news RSS feed">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://cerulean.news/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Cerulean News">
     <meta property="og:title" content="Cerulean News: Vermont health care and health insurance news">
-    <meta property="og:description" content="A free, text-only site that looks for Vermont health care news and news about regional health insurers based in Vermont, including Blue Cross and Blue Shield of Vermont, with RSS and JSON feeds. Independent and not affiliated with any insurer.">
+    <meta property="og:description" content="Vermont health care and health insurance news, including Blue Cross and Blue Shield of Vermont coverage, with RSS and JSON feeds. Not affiliated with any insurer.">
     <meta property="og:url" content="https://cerulean.news/">
     <meta property="og:image" content="https://cerulean.news/icon-512.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:image:alt" content="Cerulean News logo">
+    <meta property="og:locale" content="en_US">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="Cerulean News: Vermont health care and health insurance news">
-    <meta name="twitter:description" content="A free, text-only site that looks for Vermont health care news and news about regional health insurers based in Vermont, including Blue Cross and Blue Shield of Vermont, with RSS and JSON feeds. Independent and not affiliated with any insurer.">
+    <meta name="twitter:description" content="Vermont health care and health insurance news, including Blue Cross and Blue Shield of Vermont coverage, with RSS and JSON feeds. Not affiliated with any insurer.">
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "name": "Cerulean News: Vermont health care and health insurance news",
+        "@id": "https://cerulean.news/#website",
+        "name": "Cerulean News",
+        "alternateName": "Cerulean News: Vermont health care and health insurance news",
         "url": "https://cerulean.news/",
-        "description": "A free, text-only site that looks for Vermont health care news and news about regional health insurers based in Vermont, including Blue Cross and Blue Shield of Vermont, with RSS and JSON feeds. Independent and not affiliated with any insurer.",
+        "inLanguage": "en-US",
+        "description": "Vermont health care and health insurance news, including Blue Cross and Blue Shield of Vermont coverage, with RSS and JSON feeds. Not affiliated with any insurer.",
         "isAccessibleForFree": true,
         "publisher": { "@type": "Organization", "name": "Ames Consulting, LLC" },
         "about": [
@@ -537,7 +545,7 @@
 
     <div class="page" id="reader-page">
       <div class="topbar">
-        <a class="button" href="trends.html">Trends</a>
+        <a class="button" href="trends">Trends</a>
         <a class="button" href="feed.rss">RSS Feed</a>
         <a class="button" href="feed.json">JSON Feed</a>
         <label class="search" for="search-input">
@@ -594,13 +602,13 @@
         </p>
         <dl class="site-notes">
           <dt>About</dt>
-          <dd>Cerulean News looks for Vermont health care news and news about regional health insurers based in Vermont. Every few hours it collects headlines from Vermont newspapers, broadcasters, and public radio, from a handful of national health policy outlets, and from Google News searches, then keeps the stories that match its Vermont health care and insurer terms. It never requests anything from the insurer&rsquo;s own website.</dd>
+          <dd>Cerulean News looks for Vermont health care news and news about regional health insurers based in Vermont. About every 30 minutes it collects headlines from Vermont newspapers, broadcasters, and public radio, from a handful of national health policy outlets, and from Google News searches, then keeps the stories that match its Vermont health care and insurer terms. It never requests anything from the insurer&rsquo;s own website.</dd>
           <dt>Updates</dt>
-          <dd>Collected from Vermont news outlets and Google News. Refreshed every four hours; reload to load the latest published feed.</dd>
+          <dd>Collected from Vermont news outlets and Google News. Refreshed about every 30 minutes; reload to load the latest published feed.</dd>
           <dt>Archive</dt>
           <dd>Insurer coverage is backfilled to Jan. 1, 2026 and kept indefinitely. Other stories are kept for three months. Insurer press releases and social posts are excluded.</dd>
           <dt>Sentiment</dt>
-          <dd>Scored only for press coverage that names the insurer. <a href="trends.html">See volume, sentiment, and themes over time</a>.</dd>
+          <dd>Scored only for press coverage that names the insurer. <a href="trends">See volume, sentiment, and themes over time</a>.</dd>
           <dt>Feeds</dt>
           <dd><a href="feed.rss">RSS</a> or <a href="feed.json">JSON</a>. Summaries are AI-generated.</dd>
         </dl>
@@ -1199,7 +1207,7 @@
               });
           datelineEl.textContent = generated
             ? `Updated ${generated}`
-            : "Updated every four hours";
+            : "Updated about every 30 minutes";
           renderAll();
         } catch (error) {
           datelineEl.textContent = "";

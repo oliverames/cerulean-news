@@ -1,0 +1,17 @@
+# Cloudflare Pages response headers. This file is parsed at deploy time and is
+# not served. https://developers.cloudflare.com/pages/configuration/headers/
+
+# The project's pages.dev hostnames serve the same pages as cerulean.news.
+# Keep them out of search results so the custom domain is the only indexed
+# copy. The publish workflow reads feed-audit.json from bluenews-7g0.pages.dev
+# with curl, which ignores this header.
+https://:project.pages.dev/*
+  X-Robots-Tag: noindex
+
+https://:version.:project.pages.dev/*
+  X-Robots-Tag: noindex
+
+# The audit archive is a multi-megabyte machine file (rejected items, crawl
+# state), public only because the workflow seeds from it. Not a search result.
+/feed-audit.json
+  X-Robots-Tag: noindex
