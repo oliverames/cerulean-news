@@ -4,7 +4,7 @@
 - Run the publish workflow once with `rebuild_brand_excerpts` and `rescore_sentiment` checked, after PR #9 merges (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Sample the 451 proposed additions and 234 removals from `artifacts/jev-evaluation/` into the Label Desk from a Mac session (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
-- Decide whether to re-judge the two pre-boundary BCBSA AI-billing stories and the BCBSA CFO item under the new rule (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
+- When Oliver's larger clip-email export arrives: rewrite the national inclusion rule and the broad-national code rule against it, add the emails' Blue Cross VT and Vermont articles to the tracker seed, then re-judge the archive with Jev at a raised cap (about 1,000 requests) (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Decide on keyword-miss rescue; the 2026-09-24 analysis recommends against it (since 2026-09-21; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Watch the small September Actions storage charge (about $0.44 net), the kind of overage that can re-trip a zero spending limit (since 2026-09-18) (unverified)
 - Decide whether the six projects whose Mac builds were disabled get self-hosted runners on the MacBook Pro and home-server, or stay manual (since 2026-09-16) (unverified)
@@ -32,9 +32,11 @@
 
 **Labels and rule change**: Oliver labeled 47 items and judged the original tracker lists the best reference. On 43 decided items the feed agreed 35 times and the pre-Jev baseline 34 times. All 4 Jev additions he rejected were single-state stories from outside New England, so the shared inclusion rules now exclude another state's own Medicaid, premiums, rate filings, lawsuits, or single-employer plan unless the story involves a Blues plan, BCBSA, or federal or multi-state policy. Oliver then set the national standard: a trend story counts only when its outcome would matter to BCBSVT as a Vermont insurer, and BCBSA news counts as Blue Cross coverage. All seven out-of-region tracker picks still fit. Two older BCBSA stories on AI billing costs were wrongly rejected and sit before the enforcement boundary.
 
+**Clip emails, BCBSA, and sections**: Oliver shared five daily clip emails (85 articles) and wants every one in the feed. Only 23 of the 85 are included today. Most national rejections come from the broad-national code rule, which rejects 998 archived items. The rule rewrite and a Jev re-judge of the archive wait for his larger export. BCBSA coverage is now a code-level include; a dry run over 4,602 archived items changed exactly the three BCBSA stories. The reader has a section filter (All, Blue Cross VT News, Vermont Healthcare News, National Healthcare News) driven by a new `section` field, and the selection stays in the URL.
+
 **SEO**: The site gained robots.txt, a sitemap, a real 404 page, and noindex on pages.dev hosts and the audit JSON. Metadata and structured data were tightened, and the feeds now point at canonical URLs. The audit is `docs/2026-09-24-seo-audit.md`. The README now states the 30-minute cadence.
 
-**Verification**: `npm test` passes 268 of 268. Nothing here is verified in production yet.
+**Verification**: `npm test` passes 270 of 270. Nothing here is verified in production yet.
 
 ---
 

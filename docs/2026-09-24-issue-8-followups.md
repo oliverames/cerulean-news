@@ -46,6 +46,27 @@ The rule sits in the shared `INCLUSION_RULES` and `INCLUSION_PRIORITIES` and in 
 
 Validation happens live, because this session has no TypeSafe key. After the cohort is re-evaluated, score the 43 labels again against the new decisions, and check the keep and drop lists above.
 
+## Tracker emails and the national rule (paused)
+
+On 2026-09-24 Oliver shared five of the team's daily clip emails (Sept. 17 to 24, 85 articles) and said every article in them belongs in the feed. Against the 12:20 UTC audit:
+
+| Email section | Included | Rejected | Never collected |
+| --- | --- | --- | --- |
+| Blue Cross VT News | 4 | 1 | 7 |
+| Vermont Healthcare News | 13 | 2 | 9 |
+| National Healthcare News | 6 | 10 | 32 |
+| More News (BCBSA) | 0 | 0 | 1 |
+
+The emails' national section is broader than the rules above: it includes FDA decisions, CDC reports, vaccines, GLP-1 drugs, drinking trends, health politics, and polls. Most national rejections come from a code rule in `src/relevance.js` that drops national-source items without a payer, policy, or regional word. That rule accounts for 998 of the archive's 2,733 rejections, many of them the kind of national news the team tracks. Oliver's 17 Label Desk exclusions mark the real boundary: out-of-region incidents and human-interest stories, celebrity news, general science and finance, out-of-region company releases, and single-state stories.
+
+Decisions on 2026-09-24:
+- The national-rule rewrite and the whole-archive re-check wait for Oliver's larger email export, so they are tuned on the full corpus.
+- Jev, not Gemini, will re-judge the archive, at a raised per-run cap of about 1,000 requests. Gemini stays on summaries and sentiment. Until then the pipeline is unchanged: code rules first, then Gemini's verdict for every article, with Jev overriding only articles first seen since the enforcement boundary.
+- The emails' Blue Cross VT and Vermont articles will be guaranteed through the export, which feeds the private tracker seed that already force-includes curated clips.
+- The missing-article investigation proceeds now, as a proposal before any source or matcher change.
+
+Done now: BCBSA coverage is a code-level include, so the association's AI-billing analysis, Fierce Healthcare's report on it, and the CFO appointment are included. A dry run over all 4,602 archived articles changed exactly those three. Jev already skips articles a code rule includes.
+
 ## Excerpts
 
 Of 219 brand-eligible articles, 109 give Jev an excerpt with no Blue Cross mention. Most are rate-review and hospital-budget stories. Their stored snippets start at an earlier topic term, such as the Green Mountain Care Board, because `buildSnippet` centered on the earliest mention or topic match. PR #9 centers on the brand mention whenever the fetched body names the brand.
