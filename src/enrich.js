@@ -631,6 +631,9 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
         sentimentReason: rejudgeCachedRejection
           ? undefined
           : cached.sentimentReason,
+        sentimentRubric: rejudgeCachedRejection
+          ? undefined
+          : cached.sentimentRubric,
         comments: mergeComments(item.comments, cached.comments),
         articleError: cached.articleError,
         matchSource,
@@ -966,6 +969,8 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
       sentiment: inheritedCache?.sentiment || item.sentiment,
       sentimentReason:
         inheritedCache?.sentimentReason || item.sentimentReason,
+      sentimentRubric:
+        inheritedCache?.sentimentRubric || item.sentimentRubric,
       fromMediaTracker: item.fromMediaTracker || undefined,
       trackerOutlet: item.trackerOutlet || undefined,
       trackerSection: item.trackerSection || undefined,

@@ -387,11 +387,15 @@ export function parseSummaryResponse(text, batch) {
         item.sentiment = sentiment;
         item.sentimentReason = cleanText(String(entry.sentimentReason || ""));
       }
+      // Stamped even when the model returns no score, so a re-score counts
+      // this item as done instead of retrying it every run.
+      item.sentimentRubric = SENTIMENT_RUBRIC_VERSION;
     } else if (item.sentiment) {
       // An item can lose brand status when its terms are recanonicalized;
       // clear the stale score rather than leaving it on a topic story.
       delete item.sentiment;
       delete item.sentimentReason;
+      delete item.sentimentRubric;
     }
     // Log the pairing so a model id slip is visible in Actions logs.
     console.log(
@@ -566,12 +570,19 @@ export async function geminiGenerate(prompt, options = {}) {
   throw lastError || new Error("All Gemini models failed");
 }
 
+// Names the sentiment instructions in the summary prompt. Bump it whenever
+// they change; a re-score then revisits only items scored under an older
+// version, so capped runs sweep forward instead of redoing the same batch.
+export const SENTIMENT_RUBRIC_VERSION = "2026-09-24";
+
 // Which items need a Gemini pass. Brand coverage summarized before sentiment
 // existed carries a summary but no score, so it needs one more pass.
 export function selectPendingSummaryItems(items, options = {}) {
   const { rejudgeAll = false, rescoreSentiment = false } = options;
   const needsSentiment = (item) =>
-    shouldScoreSentiment(item) && (rescoreSentiment || !item.sentiment);
+    shouldScoreSentiment(item) &&
+    (!item.sentiment ||
+      (rescoreSentiment && item.sentimentRubric !== SENTIMENT_RUBRIC_VERSION));
   return items.filter(
     (item) =>
       rejudgeAll ||
@@ -586,8 +597,9 @@ export function selectPendingSummaryItems(items, options = {}) {
 // the unscored items are the new ones. It is wrong for a re-score: the same
 // newest N would be redone every run and older items would never be reached,
 // which is how a set of June clips sat on stale scores through three
-// re-scores. Re-scoring works oldest-first, so repeated runs sweep the
-// archive instead of spinning on its head.
+// re-scores. Re-scoring works oldest-first, and each re-scored item carries
+// the current SENTIMENT_RUBRIC_VERSION and leaves the pending set, so
+// repeated runs sweep the archive instead of spinning on its tail.
 export function orderItemsForRun(pending, rescoreSentiment = false) {
   return rescoreSentiment ? [...pending].reverse() : pending;
 }
@@ -605,7 +617,8 @@ export async function summarizeItems(items) {
   const rejudgeAll = process.env.SUMMARY_REJUDGE_ALL === "true";
   // Brand press coverage summarized before sentiment existed carries a summary
   // but no score, so it needs one more pass. SUMMARY_RESCORE_SENTIMENT=true
-  // re-scores every brand item once, for use after changing the rubric above.
+  // re-scores every brand item not yet on SENTIMENT_RUBRIC_VERSION, for use
+  // after changing the rubric above (bump the version with it).
   const rescoreSentiment = process.env.SUMMARY_RESCORE_SENTIMENT === "true";
   const pending = selectPendingSummaryItems(items, {
     rejudgeAll,

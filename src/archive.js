@@ -194,6 +194,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
         const sentimentReason = sentiment
           ? item.sentimentReason || ""
           : undefined;
+        const sentimentRubric = item.sentimentRubric || undefined;
         const firstSeenAt = parseDate(item.firstSeenAt) || archiveGeneratedAt;
         cache.set(item.link, {
           title: item.title || "",
@@ -208,6 +209,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
           relevant,
           sentiment,
           sentimentReason,
+          sentimentRubric,
           fromMediaTracker: item.fromMediaTracker || undefined,
           trackerOutlet: item.trackerOutlet || undefined,
           trackerSection: item.trackerSection || undefined,
@@ -234,6 +236,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
           relevant,
           sentiment,
           sentimentReason,
+          sentimentRubric,
           fromMediaTracker: item.fromMediaTracker || undefined,
           trackerOutlet: item.trackerOutlet || undefined,
           trackerSection: item.trackerSection || undefined,
@@ -453,6 +456,7 @@ function mergeEquivalentStoryItems(
     "summary",
     "sentiment",
     "sentimentReason",
+    "sentimentRubric",
   ];
   for (const field of evidenceFields) {
     if (!cleanText(primary?.[field]) && cleanText(fallback?.[field])) {

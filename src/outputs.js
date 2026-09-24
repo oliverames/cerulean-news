@@ -416,6 +416,10 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
           eligibleForSentiment && item.sentiment
             ? item.sentimentReason || ""
             : undefined,
+        // Which sentiment rubric last scored the item; lets a re-score resume.
+        sentimentRubric: eligibleForSentiment
+          ? item.sentimentRubric || undefined
+          : undefined,
         // undefined (not yet judged) is omitted by JSON.stringify, which
         // marks the item for a relevance pass on the next run.
         relevant: typeof item.relevant === "boolean" ? item.relevant : undefined,

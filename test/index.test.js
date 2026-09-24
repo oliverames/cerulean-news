@@ -52,6 +52,7 @@ import {
   matchStorylines,
   orderItemsForRun,
   selectPendingSummaryItems,
+  SENTIMENT_RUBRIC_VERSION,
   enrichAndFilterItems,
   normalizeSentiment,
   shouldScoreSentiment,
@@ -5343,8 +5344,10 @@ test("parseSummaryResponse scores brand items and ignores stray scores", () => {
   assert.equal(applied, 2);
   assert.equal(batch[0].sentiment, "positive");
   assert.equal(batch[0].sentimentReason, "Award coverage naming us favorably");
+  assert.equal(batch[0].sentimentRubric, SENTIMENT_RUBRIC_VERSION);
   assert.equal(batch[1].sentiment, undefined);
   assert.equal(batch[1].sentimentReason, undefined);
+  assert.equal(batch[1].sentimentRubric, undefined);
 });
 
 test("parseSummaryResponse drops an unusable sentiment value", () => {
@@ -5372,6 +5375,8 @@ test("parseSummaryResponse drops an unusable sentiment value", () => {
 
   assert.equal(batch[0].summary, "BCBSVT issued a statement.");
   assert.equal(batch[0].sentiment, undefined);
+  // The pass still counts, so a re-score does not retry it every run.
+  assert.equal(batch[0].sentimentRubric, SENTIMENT_RUBRIC_VERSION);
 });
 
 test("buildJsonSummary publishes sentiment only for scored items", () => {
@@ -5450,6 +5455,7 @@ test("generateFeed preserves sentiment across an archive round-trip", async () =
           relevant: true,
           sentiment: "positive",
           sentimentReason: "Award coverage naming us favorably",
+          sentimentRubric: SENTIMENT_RUBRIC_VERSION,
         },
       ],
     }),
@@ -5470,6 +5476,8 @@ test("generateFeed preserves sentiment across an archive round-trip", async () =
     output.items[0].sentimentReason,
     "Award coverage naming us favorably",
   );
+  // A re-score resumes from this stamp, so it must persist too.
+  assert.equal(output.items[0].sentimentRubric, SENTIMENT_RUBRIC_VERSION);
 });
 
 test("itemOutletName recovers the publisher behind a Google News search", () => {
@@ -6303,6 +6311,16 @@ test("pending selection picks up coverage that still needs a score", () => {
     selectPendingSummaryItems([brand, topic, scored], { rescoreSentiment: true }),
     [brand, scored],
   );
+  // An item already scored under the current rubric has been re-scored, so a
+  // later capped run moves past it instead of redoing the same oldest batch.
+  const rescored = { ...scored, sentimentRubric: SENTIMENT_RUBRIC_VERSION };
+  const staleRubric = { ...scored, sentimentRubric: "2000-01-01" };
+  assert.deepEqual(
+    selectPendingSummaryItems([rescored, staleRubric], { rescoreSentiment: true }),
+    [staleRubric],
+  );
+  // Outside a re-score the rubric stamp changes nothing.
+  assert.deepEqual(selectPendingSummaryItems([rescored, staleRubric]), []);
   // A sentiment-only re-score does not revisit rejected items.
   assert.deepEqual(
     selectPendingSummaryItems([rejected], { rescoreSentiment: true }),

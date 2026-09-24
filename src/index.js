@@ -425,6 +425,7 @@ export {
   setCoverageContext,
   normalizeSentiment,
   parseSummaryResponse,
+  SENTIMENT_RUBRIC_VERSION,
   SENTIMENT_VALUES,
   shouldScoreSentiment,
   summarizeItems,
