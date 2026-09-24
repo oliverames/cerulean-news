@@ -235,40 +235,36 @@
         }
       }
 
-      .sections .label {
-        font-weight: 700;
-        margin-right: 6px;
-      }
-
-      #section-links {
-        display: inline-flex;
+      .section-filter {
+        display: flex;
         flex-wrap: wrap;
-        column-gap: 16px;
-        row-gap: 4px;
-        vertical-align: text-bottom;
+        gap: 6px;
       }
 
-      .section-option {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        line-height: 1.25;
-        min-height: 24px;
-        white-space: nowrap;
+      .section-filter button {
+        padding: 4px 10px;
+        border: 1px solid var(--fg);
+        background: #fff;
+        color: var(--fg);
+        font: inherit;
+        font-size: 0.9rem;
+        line-height: 1.3;
+        cursor: pointer;
       }
 
-      .section-option input {
-        flex: 0 0 auto;
-        margin: 0;
+      .section-filter button:hover {
+        background: var(--surface);
       }
 
-      .section-option.off {
-        color: var(--muted);
+      .section-filter button[aria-pressed="true"] {
+        background: var(--bar-1);
+        border-color: var(--bar-1);
+        color: #fff;
       }
 
-      .sections .count {
-        color: var(--muted);
-        font-weight: 400;
+      .section-filter .count {
+        font-variant-numeric: tabular-nums;
+        opacity: 0.75;
       }
 
       ul.stories {
@@ -569,13 +565,11 @@
           <span class="c1"></span><span class="c2"></span><span class="c3"></span>
         </div>
 
-        <!-- Section filter, switched off 2026-09-03. The markup stays because the
-             script still computes the default selection from it (all news
-             categories on, owned and social posts off). Re-enable by restoring
-             the sectionsEl.hidden line in renderSections(). -->
-        <nav class="sections" id="sections" aria-label="Filter by section" hidden>
-          <span class="label">Sections:</span>
-          <span id="section-links"></span>
+        <!-- Section filter. The three sections match the headings of the
+             communications team's daily clip email. BlueCrossVT.org posts and
+             social posts stay out of every section, as before. -->
+        <nav class="sections" id="sections" aria-label="Filter by section">
+          <div class="section-filter" id="section-links" role="group" aria-label="Section"></div>
         </nav>
 
         <p
@@ -621,7 +615,6 @@
 
     <script>
       const storiesEl = document.getElementById("stories");
-      const sectionsEl = document.getElementById("sections");
       const sectionLinksEl = document.getElementById("section-links");
       const datelineEl = document.getElementById("dateline");
       const pagerBottomEl = document.getElementById("pager-bottom");
@@ -631,7 +624,6 @@
 
       let allItems = [];
       let resultsAnnouncementTimer = null;
-      let selectedSectionState = null;
       const pageSize = 25;
       const previewPromotionPattern =
         /^(?:get (?:our|your) (?:daily|weekly) dose\b|good morning, everyone\b)/i;
@@ -657,8 +649,24 @@
         return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
       }
 
-      function buildHash(page = 1) {
+      // Section ids in the address, so a filtered view can be linked.
+      const SECTION_OPTIONS = [
+        { id: "all", label: "All news" },
+        { id: "brand", label: "Blue Cross VT News" },
+        { id: "vermont", label: "Vermont Healthcare News" },
+        { id: "national", label: "National Healthcare News" },
+      ];
+
+      function activeSection() {
+        const id = hashParam("section");
+        return SECTION_OPTIONS.some((option) => option.id === id) ? id : "all";
+      }
+
+      function buildHash(page = 1, section = activeSection()) {
         const parts = [];
+        if (section !== "all") {
+          parts.push(`section=${section}`);
+        }
         if (page > 1) {
           parts.push(`page=${page}`);
         }
@@ -749,19 +757,25 @@
         });
       }
 
-      function sectionItems() {
-        const selected = selectedSectionState || new Set();
-        return allItems.filter((item) => selected.has(itemSectionId(item)));
+      function newsItems() {
+        return allItems.filter((item) => !isOwnedItem(item) && !isSocialItem(item));
       }
 
+      // Feeds published before the section field existed have only the
+      // brand/topic category; treat their topic stories as Vermont news.
       function itemSectionId(item) {
-        if (isOwnedItem(item)) {
-          return "source";
-        }
-        if (isSocialItem(item)) {
-          return "social";
-        }
-        return item.category || "Other";
+        const section = item.section ||
+          (item.category === "Blue Cross VT" ? "Blue Cross VT News" : "Vermont Healthcare News");
+        const option = SECTION_OPTIONS.find((candidate) => candidate.label === section);
+        return option ? option.id : "vermont";
+      }
+
+      function sectionItems() {
+        const section = activeSection();
+        const items = newsItems();
+        return section === "all"
+          ? items
+          : items.filter((item) => itemSectionId(item) === section);
       }
 
       function isOwnedItem(item) {
@@ -782,105 +796,34 @@
         });
       }
 
-      function currentSelectedSectionIds() {
-        return new Set(
-          [...sectionLinksEl.querySelectorAll("input[type='checkbox']")]
-            .filter((input) => input.checked)
-            .map((input) => input.value),
-        );
-      }
-
-      function updateSectionOptionStates() {
-        for (const label of sectionLinksEl.querySelectorAll(".section-option")) {
-          const input = label.querySelector("input");
-          label.classList.toggle("off", !input.checked);
-        }
-      }
-
-      function sectionOption(option, selected) {
-        const label = document.createElement("label");
-        label.className = "section-option";
-
-        const input = document.createElement("input");
-        input.type = "checkbox";
-        input.value = option.id;
-        input.checked = selected.has(option.id);
-        input.addEventListener("change", () => {
-          selectedSectionState = currentSelectedSectionIds();
-          updateSectionOptionStates();
-          if (activePage() > 1) {
-            history.replaceState(null, "", buildHash(1));
-          }
-          renderStories();
-        });
-
-        label.appendChild(input);
-        label.appendChild(document.createTextNode(option.label));
-
-        const count = document.createElement("span");
-        count.className = "count";
-        count.textContent = ` (${option.count})`;
-        label.appendChild(count);
-
-        if (!input.checked) {
-          label.classList.add("off");
-        }
-        return label;
-      }
-
       function renderSections() {
+        const items = newsItems();
         const counts = new Map();
-        const defaultItems = allItems.filter(
-          (item) => !isOwnedItem(item) && !isSocialItem(item),
-        );
-        const ownedCount = allItems.filter(isOwnedItem).length;
-        const socialCount = allItems.filter(isSocialItem).length;
-
-        for (const item of defaultItems) {
-          const category = item.category || "Other";
-          counts.set(category, (counts.get(category) || 0) + 1);
+        for (const item of items) {
+          const id = itemSectionId(item);
+          counts.set(id, (counts.get(id) || 0) + 1);
         }
-
-        const options = [...counts.entries()].sort().map(([section, count]) => ({
-          id: section,
-          label: section,
-          count,
-          defaultChecked: true,
-        }));
-        if (ownedCount > 0) {
-          options.push({
-            id: "source",
-            label: "BlueCrossVT.org",
-            count: ownedCount,
-            defaultChecked: false,
-          });
-        }
-        if (socialCount > 0) {
-          options.push({
-            id: "social",
-            label: "Social posts",
-            count: socialCount,
-            defaultChecked: false,
-          });
-        }
-
-        const selected = selectedSectionState
-          ? new Set([...selectedSectionState].filter((id) =>
-              options.some((option) => option.id === id),
-            ))
-          : new Set(
-              options
-                .filter((option) => option.defaultChecked)
-                .map((option) => option.id),
-            );
-        selectedSectionState = selected;
+        const section = activeSection();
 
         sectionLinksEl.replaceChildren();
-        for (const option of options) {
-          sectionLinksEl.appendChild(sectionOption(option, selected));
+        for (const option of SECTION_OPTIONS) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.setAttribute("aria-pressed", String(option.id === section));
+          button.appendChild(document.createTextNode(`${option.label} `));
+          const count = document.createElement("span");
+          count.className = "count";
+          count.textContent = `(${option.id === "all" ? items.length : counts.get(option.id) || 0})`;
+          button.appendChild(count);
+          button.addEventListener("click", () => {
+            if (option.id === activeSection()) {
+              return;
+            }
+            // A new section starts on its first page; hashchange re-renders.
+            location.hash = buildHash(1, option.id);
+          });
+          sectionLinksEl.appendChild(button);
         }
-        // Filter UI is switched off; the default selection above still applies.
-        // sectionsEl.hidden = false;
       }
 
       function renderPager(container, totalItems, page, pageCount) {

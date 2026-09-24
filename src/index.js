@@ -394,7 +394,11 @@ export {
   isSocialVideoItem,
   itemCategory,
   itemOutletName,
+  itemSection,
   namesBlueCrossVermont,
+  SECTION_BRAND,
+  SECTION_NATIONAL,
+  SECTION_VERMONT,
 } from "./relevance.js";
 export {
   applyJevRelevance,

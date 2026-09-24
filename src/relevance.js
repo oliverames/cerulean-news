@@ -143,6 +143,10 @@ export function itemSourceType(item) {
 // bluecrossvt.org is - it is not somebody reporting on us.
 const BCBSA_HOST_PATTERN = /^https?:\/\/(?:www\.)?bcbs\.com\//i;
 
+const BCBSA_MENTION_PATTERN =
+  /\bBCBSA\b|\bBlue\s+Cross\s+(?:and\s+|&\s*)?Blue\s+Shield\s+Association\b/i;
+const BCBSA_REASON = "Blue Cross Blue Shield Association news; BCBSVT is a member.";
+
 export function isAssociationItem(item) {
   return BCBSA_HOST_PATTERN.test(itemLink(item));
 }
@@ -474,6 +478,32 @@ function hasRegionalSignal(item, text) {
   );
 }
 
+// Reader sections, matching the headings of the communications team's daily
+// clip email. Brand coverage keeps its own section; everything else is split
+// on the same Vermont/New England signal the relevance rules use. The title's
+// trailing " - Publisher" is dropped first, so a Vermont paper's name on a
+// syndicated national story does not make the story local.
+export const SECTION_BRAND = "Blue Cross VT News";
+export const SECTION_VERMONT = "Vermont Healthcare News";
+export const SECTION_NATIONAL = "National Healthcare News";
+
+export function itemSection(item) {
+  if (itemCategory(item) === CATEGORY_BRAND) {
+    return SECTION_BRAND;
+  }
+  const evidence = cleanText(
+    [
+      cleanText(item.title || "").replace(/\s+-\s+[^-]{2,80}$/, ""),
+      item.description,
+      item.snippet,
+      item.summary,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+  return hasRegionalSignal(item, evidence) ? SECTION_VERMONT : SECTION_NATIONAL;
+}
+
 function hasOnlyLowPriorityTopicTerms(matchedTerms = []) {
   const topicTerms = canonicalizeMatchedTerms(matchedTerms).filter(
     (term) => !MENTION_TERMS.some((mentionTerm) => mentionTerm.label === term),
@@ -575,6 +605,15 @@ export function applyDeterministicRelevance(item) {
 
   if (isBlueCrossVtOwnedItem(item)) {
     return item.relevant === false ? { ...item, relevant: true } : item;
+  }
+
+  // BCBSVT is a member of the Blue Cross Blue Shield Association, and the
+  // team tracks the association's releases and coverage of them. The
+  // provider-directory and news-index pages are excluded above.
+  if (isAssociationItem(item) || BCBSA_MENTION_PATTERN.test(contentEvidence)) {
+    return item.relevant === true
+      ? item
+      : { ...item, relevant: true, reason: BCBSA_REASON };
   }
 
   if (category === CATEGORY_BRAND) {

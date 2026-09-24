@@ -60,6 +60,10 @@ import {
   isJobListingItem,
   isSocialVideoItem,
   namesBlueCrossVermont,
+  itemSection,
+  SECTION_BRAND,
+  SECTION_NATIONAL,
+  SECTION_VERMONT,
   SENTIMENT_VALUES,
   parseUvmHealthNewsroomItems,
   collectFeedItems,
@@ -3694,6 +3698,54 @@ test("rebuildBrandExcerpts keeps the snippet when the page does not match the ti
 
   assert.equal(result.unchanged, 1);
   assert.equal(item.snippet, "The Green Mountain Care Board set rates.");
+});
+
+test("itemSection splits stories into the clip email's three sections", () => {
+  assert.equal(
+    itemSection({ title: "Blue Cross VT helps combat food insecurity", matchedTerms: ["Blue Cross VT"] }),
+    SECTION_BRAND,
+  );
+  assert.equal(
+    itemSection({ title: "Two local adult day service centers face closure in Vermont", matchedTerms: ["Senior & long-term care"] }),
+    SECTION_VERMONT,
+  );
+  assert.equal(
+    itemSection({ title: "CMS freezes exchange broker enrollment", matchedTerms: ["ACA & marketplace"] }),
+    SECTION_NATIONAL,
+  );
+  // A Vermont publisher's name on a syndicated national story is not local.
+  assert.equal(
+    itemSection({
+      title: "Review finds millionaires on Ohio's Medicaid roles - Vermont Community Newspaper Group",
+      matchedTerms: ["Medicaid"],
+    }),
+    SECTION_NATIONAL,
+  );
+});
+
+test("applyDeterministicRelevance includes Blue Cross Blue Shield Association news", () => {
+  for (const title of [
+    "BCBSA Names Dan Serrano Senior Vice President and Chief Financial Officer",
+    "Hospitals' use of AI coding tools cost BCBSA plans $942M more for similar care: analysis",
+  ]) {
+    const result = applyDeterministicRelevance({
+      title,
+      link: "https://www.fiercehealthcare.com/payers/example",
+      sourceName: "Fierce Healthcare",
+      matchedTerms: ["Health care AI"],
+      relevant: false,
+      reason: "Low-priority health mention outside Vermont or New England.",
+    });
+    assert.equal(result.relevant, true, title);
+    assert.match(result.reason, /BCBSVT is a member/);
+  }
+
+  const directory = applyDeterministicRelevance({
+    title: "Transplant Static List - Blue Cross Blue Shield",
+    link: "https://www.bcbs.com/media/pdf/transplant-static-list.pdf",
+    matchedTerms: ["Blue Cross"],
+  });
+  assert.equal(directory.relevant, false);
 });
 
 test("isLikelyPaywalled matches exact publisher hosts and their subdomains", () => {

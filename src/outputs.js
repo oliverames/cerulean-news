@@ -22,6 +22,7 @@ import {
   itemAccessLabel,
   itemCategory,
   itemOutletName,
+  itemSection,
   itemSourceType,
 } from "./relevance.js";
 import { groupRelatedStories } from "./story-groups.js";
@@ -392,6 +393,8 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
         // Recomputed rather than echoed, so an item classified under an older
         // rule is corrected in place instead of staying misfiled forever.
         category: itemCategory({ ...item, matchedTerms }),
+        // The reader's section filter: Blue Cross VT, Vermont, or national.
+        section: itemSection({ ...item, matchedTerms }),
         snippet,
         summary: item.summary || "",
         previewText: access === "Paywall likely" ? previewText : "",
