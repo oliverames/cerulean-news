@@ -567,8 +567,7 @@
 
         <!-- Section filter. The three sections match the headings of the
              communications team's daily clip email. BlueCrossVT.org posts and
-             social posts stay out of All news and the sections; each has its
-             own opt-in button, shown only when it has posts. -->
+             social posts stay out of every section, as before. -->
         <nav class="sections" id="sections" aria-label="Filter by section">
           <div class="section-filter" id="section-links" role="group" aria-label="Section"></div>
         </nav>
@@ -656,8 +655,6 @@
         { id: "brand", label: "Blue Cross VT News" },
         { id: "vermont", label: "Vermont Healthcare News" },
         { id: "national", label: "National Healthcare News" },
-        { id: "source", label: "BlueCrossVT.org", optIn: true },
-        { id: "social", label: "Social posts", optIn: true },
       ];
 
       function activeSection() {
@@ -775,12 +772,6 @@
 
       function sectionItems() {
         const section = activeSection();
-        if (section === "source") {
-          return allItems.filter(isOwnedItem);
-        }
-        if (section === "social") {
-          return allItems.filter(isSocialItem);
-        }
         const items = newsItems();
         return section === "all"
           ? items
@@ -812,15 +803,10 @@
           const id = itemSectionId(item);
           counts.set(id, (counts.get(id) || 0) + 1);
         }
-        counts.set("source", allItems.filter(isOwnedItem).length);
-        counts.set("social", allItems.filter(isSocialItem).length);
         const section = activeSection();
 
         sectionLinksEl.replaceChildren();
         for (const option of SECTION_OPTIONS) {
-          if (option.optIn && !counts.get(option.id) && option.id !== section) {
-            continue;
-          }
           const button = document.createElement("button");
           button.type = "button";
           button.setAttribute("aria-pressed", String(option.id === section));
