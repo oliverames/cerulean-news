@@ -85,7 +85,7 @@ Sections before mid-September used a single "Industry News" heading. Its Vermont
 
 Against the live audit, before the change: 115 of the 130 Blue Cross VT rows and 44 of the 86 explicit Vermont rows were already included. An offline build with the merged seed put all 593 must-include rows in the published feed under the right section. No Vermont clip was scored for sentiment, and the visible feed grew from 1,830 to 2,212 articles.
 
-Jev cannot be fine-tuned; TypeSafe documents shared weights with reference material as the customization path. "Training" therefore means the reference library: every seed row is an inclusion example, and each request retrieves the eight most similar. The library grows from about 190 tracker rows to about 1,750.
+Jev cannot be fine-tuned; TypeSafe documents shared weights with reference material as the customization path. "Training" therefore means the reference library: every seed row is an inclusion example, and each request retrieves the eight most similar. The clip emails add 1,560 rows to the 101 tracker references in use on 2026-09-21.
 
 Storage follows GitHub's documented method for secrets over 48 KB. Only `data/clip-emails.json.gpg` is committed. The `CLIP_EMAILS_PASSPHRASE` secret decrypts it in Actions, the rows merge into the materialized tracker seed, and the plaintext is deleted. Without the file or the secret, the step does nothing.
 
