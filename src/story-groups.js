@@ -100,8 +100,11 @@ function cosine(a, b) {
   return dot / (a.norm * b.norm);
 }
 
+// Tracker clips group like crawled stories: brand clips are excluded by
+// category, and a Vermont clip-email row should join the crawled copy of
+// the same story rather than sit beside it as a duplicate.
 export function isGroupableStory(item, category) {
-  return category !== "Blue Cross VT" && !item.fromMediaTracker &&
+  return category !== "Blue Cross VT" &&
     item.sourceType !== "BlueCrossVT.org" && item.sourceType !== "Social";
 }
 

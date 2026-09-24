@@ -68,6 +68,23 @@ test("brand coverage, separate letters, and one outlet's series stay separate", 
   for (const item of [...brandCopies, ...letters, ...forums]) assert.equal(groups.has(item), false);
 });
 
+test("a Vermont clip-email row groups with the crawled reprint of the same story", () => {
+  // Seen live on 2026-09-24: the VTDigger original from the clip emails and
+  // the Valley News reprint were listed as two separate stories.
+  const title = "As pharmacies across Vermont close, North Star Health opens 3 new ones";
+  const summary = "North Star Health is opening three pharmacies as other Vermont pharmacies close.";
+  const clip = story(title, "Media Tracker Backfill", 0,
+    { fromMediaTracker: true, trackerSection: "vermont", summary });
+  const reprint = story(title, "Valley News", 2, { summary });
+  const brandClip = story(title, "Media Tracker Backfill", 1,
+    { fromMediaTracker: true, category: "Blue Cross VT", summary });
+  const groups = groupRelatedStories([clip, reprint, brandClip, ...background]);
+  assert.ok(groups.get(clip));
+  assert.equal(groups.get(clip), groups.get(reprint));
+  // Blue Cross coverage still never groups, curated or not.
+  assert.equal(groups.has(brandClip), false);
+});
+
 test("stories outside the three-day window never group", () => {
   const later = story(aca[2].title, "Times Argus", 24 * 5, { summary: aca[2].summary });
   const groups = groupRelatedStories([aca[2], later, ...background]);
