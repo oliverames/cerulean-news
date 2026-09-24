@@ -5309,6 +5309,8 @@ test("parseSummaryResponse scores brand items and ignores stray scores", () => {
       sourceName: "VermontBiz",
       matchedTerms: ["BCBSVT"],
       link: "https://vermontbiz.com/news/award",
+      // A Jev score from an earlier label must not survive a new Gemini label.
+      sentimentScore: 30,
     },
     {
       title: "Hospital budget hearing",
@@ -5345,6 +5347,7 @@ test("parseSummaryResponse scores brand items and ignores stray scores", () => {
   assert.equal(batch[0].sentiment, "positive");
   assert.equal(batch[0].sentimentReason, "Award coverage naming us favorably");
   assert.equal(batch[0].sentimentRubric, SENTIMENT_RUBRIC_VERSION);
+  assert.equal(batch[0].sentimentScore, undefined);
   assert.equal(batch[1].sentiment, undefined);
   assert.equal(batch[1].sentimentReason, undefined);
   assert.equal(batch[1].sentimentRubric, undefined);
@@ -5456,6 +5459,7 @@ test("generateFeed preserves sentiment across an archive round-trip", async () =
           sentiment: "positive",
           sentimentReason: "Award coverage naming us favorably",
           sentimentRubric: SENTIMENT_RUBRIC_VERSION,
+          sentimentScore: 88,
         },
       ],
     }),
@@ -5478,6 +5482,7 @@ test("generateFeed preserves sentiment across an archive round-trip", async () =
   );
   // A re-score resumes from this stamp, so it must persist too.
   assert.equal(output.items[0].sentimentRubric, SENTIMENT_RUBRIC_VERSION);
+  assert.equal(output.items[0].sentimentScore, 88);
 });
 
 test("itemOutletName recovers the publisher behind a Google News search", () => {

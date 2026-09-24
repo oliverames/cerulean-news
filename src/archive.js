@@ -195,6 +195,8 @@ export async function loadPreviousState(...jsonOutputPaths) {
           ? item.sentimentReason || ""
           : undefined;
         const sentimentRubric = item.sentimentRubric || undefined;
+        const sentimentScore =
+          sentiment && Number.isFinite(item.sentimentScore) ? item.sentimentScore : undefined;
         const firstSeenAt = parseDate(item.firstSeenAt) || archiveGeneratedAt;
         cache.set(item.link, {
           title: item.title || "",
@@ -210,6 +212,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
           sentiment,
           sentimentReason,
           sentimentRubric,
+          sentimentScore,
           fromMediaTracker: item.fromMediaTracker || undefined,
           trackerOutlet: item.trackerOutlet || undefined,
           trackerSection: item.trackerSection || undefined,
@@ -237,6 +240,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
           sentiment,
           sentimentReason,
           sentimentRubric,
+          sentimentScore,
           fromMediaTracker: item.fromMediaTracker || undefined,
           trackerOutlet: item.trackerOutlet || undefined,
           trackerSection: item.trackerSection || undefined,
@@ -463,6 +467,12 @@ function mergeEquivalentStoryItems(
       merged[field] = fallback[field];
     }
   }
+  // A score only means something beside the label it came from, so take it
+  // from whichever copy supplied the label.
+  const scoreSource = [primary, fallback].find((candidate) =>
+    candidate?.sentiment && candidate.sentiment === merged.sentiment && Number.isFinite(candidate.sentimentScore));
+  if (scoreSource) merged.sentimentScore = scoreSource.sentimentScore;
+  else delete merged.sentimentScore;
 
   const termPrimary = primary?.fromMediaTracker
     ? primary

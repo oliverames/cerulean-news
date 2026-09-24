@@ -420,6 +420,12 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
         sentimentRubric: eligibleForSentiment
           ? item.sentimentRubric || undefined
           : undefined,
+        // Jev's 0-100 reading of its label odds (50 neutral), published only
+        // beside the Jev label it came from.
+        sentimentScore:
+          eligibleForSentiment && item.sentiment && Number.isFinite(item.sentimentScore)
+            ? item.sentimentScore
+            : undefined,
         // undefined (not yet judged) is omitted by JSON.stringify, which
         // marks the item for a relevance pass on the next run.
         relevant: typeof item.relevant === "boolean" ? item.relevant : undefined,

@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
-import { applyJevRelevance, buildJevRequest, callJevApi, decideJevRelevance, loadRelevanceRubric, loadSentimentRubric, normalizeJevCache } from "../src/jev-relevance.js";
+import { applyJevRelevance, buildJevRequest, callJevApi, decideJevRelevance, loadRelevanceRubric, loadSentimentRubric, normalizeJevCache, sentimentScoreFromProbabilities } from "../src/jev-relevance.js";
 import { generateFeed } from "../src/index.js";
 import { buildJsonSummary, buildRss } from "../src/outputs.js";
 import { SENTIMENT_VALUES, setCoverageContext } from "../src/summaries.js";
@@ -261,4 +261,88 @@ test("curated press keeps its inclusion decision while Jev evaluates sentiment",
   assert.equal(result.relevant, true);
   assert.equal(result.sentiment, "positive");
   assert.equal(metrics.inclusionDisagreements, 0);
+});
+
+function odds(values) {
+  return Object.fromEntries(SENTIMENT_VALUES.map((label, index) => [label, values[index]]));
+}
+function leaningAnswer(include = 0.99) {
+  // Positive wins, but a fifth of the weight sits on neutral to positive.
+  const probabilities = odds([0.7, 0.2, 0.1, 0, 0]);
+  return { model: "jev-1.13.0", answers: {
+    include: { type: "noul", noul: include }, local_angle: { type: "noul", noul: 0.9 },
+    relevance: { type: "score", score: 4 },
+    sentiment: { type: "choice", choice: "positive", confidence: 0.8, probabilities },
+  } };
+}
+
+test("the sentiment score reads Jev's label odds on a 0-100 scale", () => {
+  assert.equal(sentimentScoreFromProbabilities(odds([1, 0, 0, 0, 0])), 100);
+  assert.equal(sentimentScoreFromProbabilities(odds([0, 0, 1, 0, 0])), 50);
+  assert.equal(sentimentScoreFromProbabilities(odds([0, 0, 0, 0, 1])), 0);
+  // 0.7 x 2 + 0.2 x 1 = 1.6 on the -2..2 scale, so 50 + 1.6 x 25 = 90.
+  assert.equal(sentimentScoreFromProbabilities(odds([0.7, 0.2, 0.1, 0, 0])), 90);
+  for (const bad of [null, {}, odds([0.5, 0.5, 0.5, 0, 0]), odds([1, 0, 0, 0, -0.1])]) {
+    assert.equal(sentimentScoreFromProbabilities(bad), null);
+  }
+});
+
+test("an applied Jev label carries its score, and a score never outlives its label", async () => {
+  const cache = {};
+  const [scored] = await applyJevRelevance([brand()], { mode: "enforce", cache, callJev: async () => leaningAnswer() });
+  assert.equal(scored.sentiment, "positive");
+  assert.equal(scored.sentimentScore, 90);
+  assert.ok(Object.values(cache)[0].sentimentProbabilities);
+  const json = buildJsonSummary([scored], [], now);
+  assert.equal(json.items[0].sentimentScore, 90);
+  // An unconfident answer keeps the existing label and drops a stale score.
+  const [kept] = await applyJevRelevance([brand({ sentimentScore: 90 })], { mode: "enforce",
+    callJev: async () => answer(0.99, "negative", 0.6) });
+  assert.equal(kept.sentiment, "neutral");
+  assert.equal(kept.sentimentScore, undefined);
+});
+
+test("older brand coverage gets Jev sentiment from spare capacity without changing inclusion", async () => {
+  const boundary = "2026-09-21T00:00:00Z";
+  const older = brand({ firstSeenAt: "2026-06-01T00:00:00Z", link: "https://vtdigger.org/2026/06/01/award" });
+  const fresh = article(5, { firstSeenAt: "2026-09-21T06:00:00Z" });
+  const calls = [];
+  const options = { mode: "enforce", enforceAfter: boundary, cache: {}, maxItems: 2, metrics: {},
+    callJev: async (request) => { calls.push(request.state.article.title); return leaningAnswer(0.01); } };
+  const [olderResult, freshResult] = await applyJevRelevance([older, fresh], options);
+  // New articles are counted against the cap first; the older one fills the spare slot.
+  assert.deepEqual([...calls].sort(), [fresh.title, older.title].sort());
+  // With no spare slot, the older article waits.
+  const busy = [];
+  await applyJevRelevance([older, fresh], { ...options, cache: {}, maxItems: 1, metrics: {},
+    callJev: async (request) => { busy.push(request.state.article.title); return leaningAnswer(0.01); } });
+  assert.deepEqual(busy, [fresh.title]);
+  assert.equal(freshResult.relevant, false);
+  // Jev's exclusion is not applied to a pre-boundary article, only its sentiment.
+  assert.equal(olderResult.relevant, true);
+  assert.equal(olderResult.sentiment, "positive");
+  assert.equal(olderResult.sentimentScore, 90);
+  assert.equal(options.metrics.sentimentBackfilled, 1);
+  assert.equal(options.metrics.sentimentBackfillPending, 0);
+  // Once cached, later runs reapply the score without another request.
+  const [again] = await applyJevRelevance([older, fresh], options);
+  assert.equal(calls.length, 2);
+  assert.equal(again.sentimentScore, 90);
+});
+
+test("an entry cached before odds were stored refreshes only its sentiment", async () => {
+  const item = brand();
+  const cache = {};
+  await applyJevRelevance([item], { mode: "enforce", cache, callJev: async () => answer(0.99, "negative") });
+  const [key] = Object.keys(cache);
+  delete cache[key].sentimentProbabilities;
+  let calls = 0;
+  const [refreshed] = await applyJevRelevance([item], { mode: "enforce", cache,
+    callJev: async () => { calls++; return leaningAnswer(0.01); } });
+  assert.equal(calls, 1);
+  // The cached inclusion answer stands; the sentiment answer is replaced.
+  assert.equal(cache[key].include, 0.99);
+  assert.equal(refreshed.relevant, true);
+  assert.equal(refreshed.sentiment, "positive");
+  assert.equal(refreshed.sentimentScore, 90);
 });

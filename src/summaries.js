@@ -386,6 +386,8 @@ export function parseSummaryResponse(text, batch) {
       if (sentiment) {
         item.sentiment = sentiment;
         item.sentimentReason = cleanText(String(entry.sentimentReason || ""));
+        // Jev's 0-100 score belongs to Jev's label; Jev re-applies both after.
+        delete item.sentimentScore;
       }
       // Stamped even when the model returns no score, so a re-score counts
       // this item as done instead of retrying it every run.
@@ -396,6 +398,7 @@ export function parseSummaryResponse(text, batch) {
       delete item.sentiment;
       delete item.sentimentReason;
       delete item.sentimentRubric;
+      delete item.sentimentScore;
     }
     // Log the pairing so a model id slip is visible in Actions logs.
     console.log(

@@ -406,6 +406,34 @@ function parseSentimentAnswer(answer) {
   return { choice: answer.choice, confidence: answer.confidence };
 }
 
+// Label odds as Jev returns them: all five labels, each a probability, summing to 1.
+function normalizeSentimentProbabilities(value) {
+  if (!value || typeof value !== "object" ||
+      !SENTIMENT_VALUES.every((label) => isProbability(value[label]))) return null;
+  const total = SENTIMENT_VALUES.reduce((sum, label) => sum + value[label], 0);
+  return Math.abs(total - 1) > 0.001 ? null : Object.fromEntries(SENTIMENT_VALUES.map((label) => [label, value[label]]));
+}
+
+// Label positions on the tracker's five-point scale.
+const SENTIMENT_POSITIONS = {
+  positive: 2,
+  "neutral to positive": 1,
+  neutral: 0,
+  "neutral to negative": -1,
+  negative: -2,
+};
+
+// A 0-100 reading of Jev's label odds: 0 is certainly negative, 50 neutral,
+// 100 certainly positive. It is the probability-weighted position on the
+// five-point scale, so it shows how strongly an article leans, not only which
+// label won. Null when the odds are missing or malformed.
+export function sentimentScoreFromProbabilities(probabilities) {
+  const odds = normalizeSentimentProbabilities(probabilities);
+  if (!odds) return null;
+  const position = SENTIMENT_VALUES.reduce((sum, label) => sum + odds[label] * SENTIMENT_POSITIONS[label], 0);
+  return Math.round(50 + position * 25);
+}
+
 export async function loadSentimentRubric() {
   const rubric = JSON.parse(await readFile(new URL("./rubrics/sentiment-v2.json", import.meta.url), "utf8"));
   if (!rubric.version || rubric.question?.type !== "choice" ||
@@ -471,6 +499,9 @@ export function normalizeJevCache(value) {
       relevanceScore: Number.isFinite(entry.relevanceScore) && entry.relevanceScore >= 0 && entry.relevanceScore <= 9 ? entry.relevanceScore : null,
       sentiment: entry.sentiment || null,
       sentimentConfidence: entry.sentiment ? entry.sentimentConfidence : null,
+      // The full label odds, from which the published 0-100 score is derived.
+      ...(entry.sentiment && normalizeSentimentProbabilities(entry.sentimentProbabilities)
+        ? { sentimentProbabilities: normalizeSentimentProbabilities(entry.sentimentProbabilities) } : {}),
       // Kept so the published note can name the scope that qualified an article.
       ...(normalizeScopeSignals(entry.scopeSignals) ? { scopeSignals: normalizeScopeSignals(entry.scopeSignals) } : {}),
     };
@@ -619,6 +650,32 @@ export async function applyJevRelevance(items, options = {}) {
     metrics.scopeBackfilled += 1;
   });
   metrics.scopeBackfillPending -= metrics.scopeBackfilled;
+  // Eligible brand coverage without Jev's label odds: articles first seen
+  // before the enforcement boundary, which Jev never scored, and entries cached
+  // before the odds were stored. Only the sentiment answer is kept, and only
+  // sentiment is ever applied to pre-boundary articles, so inclusion decisions
+  // cannot change. Uses what the per-run cap leaves after new articles.
+  const liveKeys = new Set(runEntries.map(({ key }) => key));
+  const needsOdds = configured && mode === JEV_MODE_ENFORCE
+    ? entries.filter(({ item, key }) => !liveKeys.has(key) && shouldScoreSentiment(item) &&
+        !cache[key]?.sentimentProbabilities)
+    : [];
+  const oddsBackfill = needsOdds.slice(0, Math.max(0, maxItems - runEntries.length - scopeBackfill.length));
+  metrics.sentimentBackfilled = 0;
+  await mapWithConcurrency(oddsBackfill, concurrency, async ({ item, request, key }) => {
+    const refreshed = await classifyItemRelevance(item, { ...options, rubric, request });
+    if (!refreshed.ok || !refreshed.sentiment) return;
+    if (alignment) refreshed.alignmentVersion = alignment.version;
+    const sentimentAnswer = { sentiment: refreshed.sentiment, sentimentConfidence: refreshed.sentimentConfidence,
+      sentimentProbabilities: refreshed.sentimentProbabilities };
+    // A cached entry keeps its inclusion answer; only the sentiment fields refresh.
+    const stored = normalizeJevCache({ [key]: cache[key] ? { ...cache[key], ...sentimentAnswer } : refreshed })[key];
+    if (!stored) return;
+    cache[key] = stored;
+    classifications.set(item, decisionFromCache(stored, item, options));
+    metrics.sentimentBackfilled += 1;
+  });
+  metrics.sentimentBackfillPending = needsOdds.length - metrics.sentimentBackfilled;
   metrics.requested = runEntries.length;
   metrics.status = configured ? "complete" : "credentials_missing";
   if (!configured) console.warn(`Jev evaluation (${mode}): TYPESAFE_API_KEY is not configured; no live evaluations can run.`);
@@ -638,14 +695,16 @@ export async function applyJevRelevance(items, options = {}) {
     if (!item.fromMediaTracker && !classification.agreesWithKeyword) metrics.inclusionDisagreements += 1;
     if (classification.sentiment && item.sentiment && classification.sentiment !== item.sentiment) metrics.sentimentDisagreements += 1;
   }
-  console.log(`Jev evaluation (${mode}): ${metrics.succeeded}/${metrics.requested} successful, ${metrics.cached} cached, ${metrics.pending} pending, ${metrics.scopeBackfilled} scope backfills (${metrics.scopeBackfillPending} left); ${metrics.inclusionDisagreements} inclusion and ${metrics.sentimentDisagreements} sentiment disagreements. Status: ${metrics.status}.`);
+  console.log(`Jev evaluation (${mode}): ${metrics.succeeded}/${metrics.requested} successful, ${metrics.cached} cached, ${metrics.pending} pending, ${metrics.scopeBackfilled} scope backfills (${metrics.scopeBackfillPending} left), ${metrics.sentimentBackfilled ?? 0} sentiment backfills (${metrics.sentimentBackfillPending ?? 0} left); ${metrics.inclusionDisagreements} inclusion and ${metrics.sentimentDisagreements} sentiment disagreements. Status: ${metrics.status}.`);
   if (mode === JEV_MODE_SHADOW) return items;
 
   return items.map((item) => {
     const classification = classifications.get(item);
-    if (!classification?.ok || !mayEnforce(item)) return item;
+    if (!classification?.ok) return item;
     let result = item;
-    if (!item.fromMediaTracker && classification.decision !== DECISION_KEYWORD) {
+    // Inclusion is enforced only for articles first seen after the boundary;
+    // sentiment applies to every eligible article Jev has scored.
+    if (mayEnforce(item) && !item.fromMediaTracker && classification.decision !== DECISION_KEYWORD) {
       const baseline = normalizeJevBaseline(item.jevBaseline);
       result = { ...item, relevant: classification.relevant,
         reason: classification.decision === DECISION_EXCLUDE ? ENFORCED_EXCLUDE_REASON
@@ -660,7 +719,15 @@ export async function applyJevRelevance(items, options = {}) {
       };
     }
     if (classification.sentiment && classification.sentimentConfidence >= SENTIMENT_CONFIDENCE_THRESHOLD && shouldScoreSentiment(result)) {
-      result = { ...result, sentiment: classification.sentiment, sentimentReason: "" };
+      // The score travels only with the label it came from, so the two agree.
+      const sentimentScore = sentimentScoreFromProbabilities(classification.sentimentProbabilities);
+      result = { ...result, sentiment: classification.sentiment, sentimentReason: "",
+        ...(sentimentScore === null ? {} : { sentimentScore }) };
+      if (sentimentScore === null) delete result.sentimentScore;
+    } else if (result.sentimentScore !== undefined) {
+      // A score from an earlier Jev label must not outlive that label.
+      result = { ...result };
+      delete result.sentimentScore;
     }
     if (result !== item) {
       if (result.relevant !== item.relevant) metrics.inclusionApplied += 1;

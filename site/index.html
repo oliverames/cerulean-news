@@ -629,7 +629,7 @@
           <dt>Archive</dt>
           <dd>Insurer coverage is backfilled to Jan. 1, 2026 and kept indefinitely. Other stories are kept for three months. Insurer press releases and social posts are excluded.</dd>
           <dt>Sentiment</dt>
-          <dd>Scored only for press coverage that names the insurer. <a href="trends">See volume, sentiment, and themes over time</a>.</dd>
+          <dd>Scored only for press coverage that names the insurer. Where a number appears, it runs from 0 (negative) through 50 (neutral) to 100 (positive). <a href="trends">See volume, sentiment, and themes over time</a>.</dd>
           <dt>Feeds</dt>
           <dd><a href="feed.rss">RSS</a> or <a href="feed.json">JSON</a>. Summaries are AI-generated.</dd>
         </dl>
@@ -1066,7 +1066,13 @@
             const label = document.createElement("span");
             label.className = "sentiment-label";
             // Identity is never colour-alone; the swatch sits beside the word.
-            label.textContent = `Sentiment: ${item.sentiment}`;
+            // Jev's 0-100 score (50 neutral) leads when it came with this label.
+            label.textContent = Number.isFinite(item.sentimentScore)
+              ? `Sentiment: ${item.sentimentScore} · ${item.sentiment}`
+              : `Sentiment: ${item.sentiment}`;
+            if (Number.isFinite(item.sentimentScore)) {
+              label.title = "0 is negative, 50 neutral, 100 positive toward Blue Cross VT";
+            }
             sentiment.append(swatch, label);
             if (item.sentimentReason) {
               sentiment.appendChild(
