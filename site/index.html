@@ -235,21 +235,34 @@
         }
       }
 
+      /* One joined strip of equal cells, label over count, so the four
+         sections sit in a single row instead of wrapping unevenly. */
       .section-filter {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border: 1px solid var(--fg);
       }
 
       .section-filter button {
-        padding: 4px 10px;
-        border: 1px solid var(--fg);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1px;
+        min-width: 0;
+        padding: 6px 6px 5px;
+        border: 0;
+        border-left: 1px solid var(--fg);
         background: #fff;
         color: var(--fg);
         font: inherit;
         font-size: 0.9rem;
-        line-height: 1.3;
+        line-height: 1.25;
+        text-align: center;
         cursor: pointer;
+      }
+
+      .section-filter button:first-child {
+        border-left: 0;
       }
 
       .section-filter button:hover {
@@ -258,13 +271,27 @@
 
       .section-filter button[aria-pressed="true"] {
         background: var(--bar-1);
-        border-color: var(--bar-1);
         color: #fff;
       }
 
       .section-filter .count {
+        font-size: 0.78rem;
         font-variant-numeric: tabular-nums;
         opacity: 0.75;
+      }
+
+      @media (max-width: 420px) {
+        .section-filter {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .section-filter button:nth-child(odd) {
+          border-left: 0;
+        }
+
+        .section-filter button:nth-child(n + 3) {
+          border-top: 1px solid var(--fg);
+        }
       }
 
       ul.stories {
@@ -650,11 +677,12 @@
       }
 
       // Section ids in the address, so a filtered view can be linked.
+      // `label` must match the feed's `section` value; `short` is the button text.
       const SECTION_OPTIONS = [
-        { id: "all", label: "All news" },
-        { id: "brand", label: "Blue Cross VT News" },
-        { id: "vermont", label: "Vermont Healthcare News" },
-        { id: "national", label: "National Healthcare News" },
+        { id: "all", label: "All news", short: "All" },
+        { id: "brand", label: "Blue Cross VT News", short: "Blue Cross VT" },
+        { id: "vermont", label: "Vermont Healthcare News", short: "Vermont" },
+        { id: "national", label: "National Healthcare News", short: "National" },
       ];
 
       function activeSection() {
@@ -810,11 +838,15 @@
           const button = document.createElement("button");
           button.type = "button";
           button.setAttribute("aria-pressed", String(option.id === section));
-          button.appendChild(document.createTextNode(`${option.label} `));
+          const total = option.id === "all" ? items.length : counts.get(option.id) || 0;
+          button.title = option.label;
+          button.setAttribute("aria-label", `${option.label}, ${total.toLocaleString("en-US")} stories`);
+          const name = document.createElement("span");
+          name.textContent = option.short;
           const count = document.createElement("span");
           count.className = "count";
-          count.textContent = `(${option.id === "all" ? items.length : counts.get(option.id) || 0})`;
-          button.appendChild(count);
+          count.textContent = total.toLocaleString("en-US");
+          button.append(name, count);
           button.addEventListener("click", () => {
             if (option.id === activeSection()) {
               return;
