@@ -143,10 +143,17 @@ test("inclusion rules exclude another state's own program, market, lawsuit, or e
     assert.match(text, /Blue Cross Blue Shield Association/);
     assert.match(text, /federal or multi-state policy/);
     assert.doesNotMatch(text, /national insurer or industry trend/);
+    assert.match(text, /human-interest/);
   }
-  assert.match(include.instructions.priorities, /outcome would matter to a Vermont health insurer/);
+  // The team's clip emails (2026-09-17 to 24) carry national FDA, CDC,
+  // vaccine, drug, cost, and health-politics news, so all of it qualifies.
+  assert.match(include.instructions.priorities, /outcome reaches a Vermont health insurer/);
+  for (const topic of [/vaccines/, /FDA decisions/, /public-health data/, /health politics/]) {
+    assert.match(include.instructions.priorities, topic);
+    assert.match(include.criteria.true, topic);
+  }
   assert.match(include.instructions.priorities, /Blue Cross Blue Shield Association \(BCBSVT is a member\)/);
-  assert.match(include.instructions.question, /outcome must plausibly affect a Vermont health insurer/);
+  assert.match(include.instructions.question, /need not name Vermont/);
   assert.doesNotMatch(include.instructions.question, /Do not demand a Vermont consequence/);
 });
 

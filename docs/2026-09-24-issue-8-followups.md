@@ -65,6 +65,8 @@ Decisions on 2026-09-24:
 - The emails' Blue Cross VT and Vermont articles will be guaranteed through the export, which feeds the private tracker seed that already force-includes curated clips.
 - The missing-article investigation proceeds now, as a proposal before any source or matcher change.
 
+The model rules were widened at the same time, because the earlier "outcome must matter to a Vermont insurer" wording would have rejected email articles such as the CDC youth report and the mRNA flu shot for new articles. National health news now qualifies when it covers federal policy and programs, the insurance and payer industry, drugs, vaccines, FDA decisions, national public-health data, health costs, or health politics. The single-state exclusion stays. Individual out-of-region patient, crime, or human-interest stories, celebrity news, general science or finance, how-to advice, and out-of-region company promotions are excluded, matching the Label Desk exclusions. This affects Jev and Gemini judgments of new articles only; the broad-national code rule and the archive are unchanged until the export.
+
 Done now: BCBSA coverage is a code-level include, so the association's AI-billing analysis, Fierce Healthcare's report on it, and the CFO appointment are included. A dry run over all 4,602 archived articles changed exactly those three. Jev already skips articles a code rule includes.
 
 ## Excerpts
