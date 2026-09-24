@@ -168,6 +168,41 @@ jobs:
           jq -e '.articles | length > 100' data/media-tracker-seed.json > /dev/null
           echo "Seed has $(jq '.articles | length' data/media-tracker-seed.json) articles"
 
+      # Kristina's daily clip emails, parsed to article rows (no recipients or
+      # message text). Too large for a 48 KB secret, so it is committed only as
+      # data/clip-emails.json.gpg and decrypted with a passphrase secret, as
+      # GitHub documents for large secrets. Blue Cross VT and Vermont rows join
+      # the backfill as must-include clips; national rows are marked
+      # referenceOnly and only teach Jev. Never print the decrypted file: logs
+      # are not redacted for this method.
+      - name: Merge clip-email seed
+        if: steps.mode.outputs.full == 'true'
+        env:
+          CLIP_EMAILS_PASSPHRASE: ${{ secrets.CLIP_EMAILS_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [ ! -f data/clip-emails.json.gpg ]; then
+            echo "No clip-email seed committed; skipping"
+            exit 0
+          fi
+          if [ -z "$CLIP_EMAILS_PASSPHRASE" ]; then
+            echo "::warning::CLIP_EMAILS_PASSPHRASE secret is missing; skipping the clip-email seed"
+            exit 0
+          fi
+          printf '%s' "$CLIP_EMAILS_PASSPHRASE" | gpg --quiet --batch --yes --pinentry-mode loopback \
+            --passphrase-fd 0 --output data/clip-emails.json --decrypt data/clip-emails.json.gpg
+          jq -e '.articles | length > 100' data/clip-emails.json > /dev/null
+          [ -f data/media-tracker-seed.json ] || echo '{"articles":[]}' > data/media-tracker-seed.json
+          # Tracker rows win on a shared URL, since they carry hand-scored sentiment.
+          jq -s '
+            def key: (.url // "") | ascii_downcase | sub("/+$"; "");
+            (.[0].articles | map(key)) as $seen
+            | .[0] + {articles: (.[0].articles + [.[1].articles[] | select(key as $k | $seen | index([$k]) | not)])}
+          ' data/media-tracker-seed.json data/clip-emails.json > /tmp/merged-seed.json
+          mv /tmp/merged-seed.json data/media-tracker-seed.json
+          rm -f data/clip-emails.json
+          echo "Seed has $(jq '.articles | length' data/media-tracker-seed.json) articles, $(jq '[.articles[] | select(.referenceOnly != true)] | length' data/media-tracker-seed.json) must-include"
+
       - name: Generate feed
         if: steps.mode.outputs.full == 'true'
         env:

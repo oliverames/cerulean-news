@@ -380,8 +380,9 @@ const VERMONT_OUTLET_HOSTS = new Set([
 
 export function namesBlueCrossVermont(item) {
   // The media tracker is a hand-kept list of coverage of us; its provenance is
-  // a stronger signal than any text test could be.
-  if (item.fromMediaTracker) {
+  // a stronger signal than any text test could be. Clips from the clip
+  // email's Vermont section are not brand coverage and take the text test.
+  if (item.fromMediaTracker && item.trackerSection !== "vermont") {
     return true;
   }
 
@@ -423,7 +424,7 @@ export function namesBlueCrossVermont(item) {
 export function itemCategory(item) {
   const matchedTerms = canonicalizeMatchedTerms(item.matchedTerms || []);
   if (item.fromMediaTracker) {
-    return CATEGORY_BRAND;
+    return item.trackerSection === "vermont" ? CATEGORY_TOPIC : CATEGORY_BRAND;
   }
   if (categorizeTerms(matchedTerms) !== CATEGORY_BRAND) {
     return CATEGORY_TOPIC;
@@ -490,6 +491,9 @@ export const SECTION_NATIONAL = "National Healthcare News";
 export function itemSection(item) {
   if (itemCategory(item) === CATEGORY_BRAND) {
     return SECTION_BRAND;
+  }
+  if (item.fromMediaTracker && item.trackerSection === "vermont") {
+    return SECTION_VERMONT;
   }
   const evidence = cleanText(
     [

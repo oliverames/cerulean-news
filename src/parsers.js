@@ -1462,6 +1462,11 @@ export function parseMediaTrackerSeedItems(json, source) {
   const articles = Array.isArray(doc?.articles) ? doc.articles : [];
   return articles
     .map((article) => {
+      // Reference-only rows (the clip email's national section) teach Jev
+      // what the team reads but are not must-include coverage.
+      if (article?.referenceOnly === true) {
+        return null;
+      }
       const link = cleanText(article?.url || "");
       if (!/^https?:\/\//i.test(link)) {
         return null;
@@ -1492,6 +1497,9 @@ export function parseMediaTrackerSeedItems(json, source) {
         // matches, and by relevance to treat the entry as vetted coverage.
         fromMediaTracker: true,
         trackerOutlet: cleanText(article?.outlet || ""),
+        // The clip email's section. Rows without one are brand coverage, which
+        // is all the original tracker held.
+        trackerSection: article?.section === "vermont" ? "vermont" : undefined,
       };
     })
     .filter(Boolean);

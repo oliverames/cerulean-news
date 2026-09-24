@@ -60,6 +60,7 @@ import {
   isJobListingItem,
   isSocialVideoItem,
   namesBlueCrossVermont,
+  itemCategory,
   itemSection,
   SECTION_BRAND,
   SECTION_NATIONAL,
@@ -3746,6 +3747,33 @@ test("applyDeterministicRelevance includes Blue Cross Blue Shield Association ne
     matchedTerms: ["Blue Cross"],
   });
   assert.equal(directory.relevant, false);
+});
+
+test("clip-email seed rows keep their section and skip reference-only rows", () => {
+  const items = parseMediaTrackerSeedItems(
+    {
+      articles: [
+        { url: "https://vtdigger.org/brand", title: "Blue Cross VT volunteers", outlet: "VT Digger" },
+        { url: "https://www.wcax.com/vt", title: "Two adult day centers face closure", outlet: "WCAX", section: "vermont" },
+        { url: "https://www.nbcnews.com/national", title: "Drinking finally slows", outlet: "NBC News", section: "national", referenceOnly: true },
+      ],
+    },
+    { name: "Media Tracker Backfill", homepage: "https://www.bluecrossvt.org/" },
+  );
+
+  assert.deepEqual(items.map((item) => item.link), ["https://vtdigger.org/brand", "https://www.wcax.com/vt"]);
+  const [brand, vermont] = items;
+  assert.equal(brand.trackerSection, undefined);
+  assert.equal(itemCategory(brand), CATEGORY_BRAND);
+  assert.equal(itemSection(brand), SECTION_BRAND);
+
+  // A Vermont clip is must-include but is not brand coverage, so it is filed
+  // under Vermont news and never scored for sentiment.
+  assert.equal(vermont.trackerSection, "vermont");
+  assert.equal(itemCategory(vermont), CATEGORY_TOPIC);
+  assert.equal(itemSection(vermont), SECTION_VERMONT);
+  assert.equal(shouldScoreSentiment({ ...vermont, relevant: true }), false);
+  assert.equal(applyDeterministicRelevance({ ...vermont, relevant: false }).relevant, true);
 });
 
 test("isLikelyPaywalled matches exact publisher hosts and their subdomains", () => {

@@ -238,7 +238,7 @@ function writeArticleCache(articleCache, keys, item, resolvedLink, details, now)
 function fallbackMatchForItem(item) {
   const matchedTerms = canonicalizeMatchedTerms(
     item.fromMediaTracker
-      ? ["Blue Cross VT"]
+      ? [item.trackerSection === "vermont" ? "Health care" : "Blue Cross VT"]
       : item.searchFallbackTerms || [],
   );
   return {
@@ -968,6 +968,7 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
         inheritedCache?.sentimentReason || item.sentimentReason,
       fromMediaTracker: item.fromMediaTracker || undefined,
       trackerOutlet: item.trackerOutlet || undefined,
+      trackerSection: item.trackerSection || undefined,
       relevant:
         typeof inheritedCache?.relevant === "boolean"
           ? inheritedCache.relevant
