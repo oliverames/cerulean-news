@@ -22,6 +22,7 @@ import {
   itemAccessLabel,
   itemCategory,
   itemOutletName,
+  itemSection,
   itemSourceType,
 } from "./relevance.js";
 import { groupRelatedStories } from "./story-groups.js";
@@ -55,6 +56,21 @@ function resolveFeedUrl() {
   }
 
   return new URL("feed.rss", `${SITE_URL.replace(/\/+$/, "")}/`).toString();
+}
+
+// The homepage's canonical form, with the trailing slash the page's own
+// <link rel="canonical"> uses, so the feeds point at the exact URL search
+// engines index rather than a redirecting or duplicate variant.
+export function siteHomeUrl(siteUrl = SITE_URL) {
+  const trimmed = String(siteUrl || "").trim();
+  if (!trimmed) {
+    return "";
+  }
+  try {
+    return new URL(`${trimmed.replace(/\/+$/, "")}/`).toString();
+  } catch {
+    return trimmed;
+  }
 }
 
 function formatPubDate(date) {
@@ -221,7 +237,7 @@ function flattenCommentText(comments = []) {
 export function buildRss(items, options = {}) {
   const now = options.now || new Date();
   const feedUrl = options.feedUrl || FEED_URL;
-  const siteUrl = options.siteUrl || SITE_URL || feedUrl || "";
+  const siteUrl = siteHomeUrl(options.siteUrl || SITE_URL) || feedUrl || "";
   const atomLink = feedUrl
     ? `\n    <atom:link href="${escapeXml(feedUrl)}" rel="self" type="application/rss+xml" />`
     : "";
@@ -284,14 +300,21 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
   const rejectedItemCount = items.filter((item) => item.relevant === false).length;
   // The audit archive keeps no grouping; it is recomputed on every run.
   const groups = includeRejected ? new Map() : groupVisibleStories(items);
+  const homeUrl = siteHomeUrl(options.siteUrl ?? SITE_URL);
 
   return {
     version: "https://jsonfeed.org/version/1.1",
     title: "Cerulean News",
     description:
       "Mentions of Blue Cross and Blue Shield of Vermont from Vermont news outlets. Independent personal project, not affiliated with Blue Cross and Blue Shield of Vermont.",
-    home_page_url: SITE_URL || "",
+    home_page_url: homeUrl,
     feed_url: options.feedUrl ?? JSON_FEED_URL ?? "",
+    // JSON Feed 1.1 artwork and language, so feed readers show the site's
+    // icon instead of a blank tile. Both URLs must be absolute, so they are
+    // only emitted when the site URL is known.
+    icon: homeUrl ? new URL("icon-512.png", homeUrl).toString() : undefined,
+    favicon: homeUrl ? new URL("favicon-32x32.png", homeUrl).toString() : undefined,
+    language: "en-US",
     generatedAt: now.toISOString(),
     itemCount: outputItems.length,
     totalItemCount: items.length,
@@ -370,6 +393,8 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
         // Recomputed rather than echoed, so an item classified under an older
         // rule is corrected in place instead of staying misfiled forever.
         category: itemCategory({ ...item, matchedTerms }),
+        // The reader's section filter: Blue Cross VT, Vermont, or national.
+        section: itemSection({ ...item, matchedTerms }),
         snippet,
         summary: item.summary || "",
         previewText: access === "Paywall likely" ? previewText : "",
@@ -401,6 +426,9 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
         // Marks an entry seeded from the team's media tracker rather than
         // found by the crawler, so the two can be told apart in the archive.
         fromMediaTracker: item.fromMediaTracker || undefined,
+        // Kept in the audit so a run without the private seed still files a
+        // Vermont clip under Vermont rather than Blue Cross coverage.
+        trackerSection: includeRejected ? item.trackerSection || undefined : undefined,
         // Items sharing an id report the same event; the reader shows the
         // newest one and lists the rest beneath it as other coverage.
         storyGroupId: groups.get(item)?.id,

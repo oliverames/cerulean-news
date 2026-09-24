@@ -26,6 +26,8 @@ import {
   triggerWebhooks,
   webhookTargetId,
   selectPreviewBackfillItems,
+  brandExcerptRebuildCandidates,
+  rebuildBrandExcerpts,
   canonicalizeMatchedTerms,
   categorizeTerms,
   CATEGORY_BRAND,
@@ -58,6 +60,11 @@ import {
   isJobListingItem,
   isSocialVideoItem,
   namesBlueCrossVermont,
+  itemCategory,
+  itemSection,
+  SECTION_BRAND,
+  SECTION_NATIONAL,
+  SECTION_VERMONT,
   SENTIMENT_VALUES,
   parseUvmHealthNewsroomItems,
   collectFeedItems,
@@ -3592,6 +3599,181 @@ test("matching canonical links preserve renamed article body matches", async () 
     if (originalScan === undefined) delete process.env.RSS_ARTICLE_SCAN;
     else process.env.RSS_ARTICLE_SCAN = originalScan;
   }
+});
+
+test("article-body snippets center on the brand passage in multi-story briefs", async () => {
+  const originalScan = process.env.RSS_ARTICLE_SCAN;
+  process.env.RSS_ARTICLE_SCAN = "true";
+  const link = "https://example.com/briefs";
+  const filler = "The volunteers sorted donated coats and winter boots. ".repeat(12);
+
+  try {
+    const [item] = await enrichAndFilterItems(
+      [{
+        sourceName: "Example Outlet",
+        title: "Community briefs for the week",
+        link,
+        feedContent: "Community briefs.",
+        articleScanMode: "always",
+      }],
+      new Map(),
+      {
+        articleCache: {},
+        now: new Date("2026-07-12T12:00:00Z"),
+        fetchText: async () => ({
+          text: `<html><body><main><h1>Community briefs</h1><p>The Green Mountain Care Board thrift store drive opens Saturday. ${filler}</p><p>Blue Cross VT announced a new wellness grant for rural clinics.</p></main></body></html>`,
+          url: link,
+          notModified: false,
+          etag: "",
+          lastModified: "",
+        }),
+        throttleRequest: async () => {},
+      },
+    );
+
+    assert.match(item.snippet, /Blue Cross VT announced a new wellness grant/);
+    assert.doesNotMatch(item.snippet, /thrift store drive/);
+  } finally {
+    if (originalScan === undefined) delete process.env.RSS_ARTICLE_SCAN;
+    else process.env.RSS_ARTICLE_SCAN = originalScan;
+  }
+});
+
+test("brandExcerptRebuildCandidates picks free brand items whose snippet omits the brand", () => {
+  const base = { relevant: true, category: CATEGORY_BRAND, pubDate: "2026-09-01T00:00:00Z" };
+  const items = [
+    { ...base, title: "Rates set", link: "https://example.com/a", snippet: "The Green Mountain Care Board set rates." },
+    { ...base, title: "Named", link: "https://example.com/b", snippet: "Blue Cross VT asked for less." },
+    { ...base, title: "Topic", link: "https://example.com/c", snippet: "Hospital budgets.", category: CATEGORY_TOPIC },
+    { ...base, title: "Rejected", link: "https://example.com/d", snippet: "Other news.", relevant: false },
+    { ...base, title: "Paywalled", link: "https://www.statnews.com/2026/09/01/x/", snippet: "Rates." },
+    { ...base, title: "Undecoded", link: "https://news.google.com/rss/articles/abc", snippet: "Rates." },
+  ];
+
+  assert.deepEqual(
+    brandExcerptRebuildCandidates(items).map((item) => item.title),
+    ["Rates set"],
+  );
+});
+
+test("rebuildBrandExcerpts replaces a brand-less snippet and the cached copy", async () => {
+  const link = "https://example.com/rates";
+  const filler = "Regulators heard hours of testimony about hospital costs. ".repeat(10);
+  const item = {
+    relevant: true,
+    category: CATEGORY_BRAND,
+    title: "Regulators set 2027 health insurance rates",
+    link,
+    snippet: "The Green Mountain Care Board set rates late Monday.",
+  };
+  const articleCache = { [link]: { snippet: item.snippet, matchedTerms: ["Blue Cross VT"] } };
+  const html = `<html><head><title>Regulators set 2027 health insurance rates</title></head><body><main><h1>Regulators set 2027 health insurance rates</h1><p>The Green Mountain Care Board set rates late Monday. ${filler}</p><p>Blue Cross VT said the approved increase was smaller than it requested.</p></main></body></html>`;
+
+  const result = await rebuildBrandExcerpts([item], {
+    articleCache,
+    fetchText: async () => ({ text: html, url: link }),
+    throttleRequest: async () => {},
+  });
+
+  assert.deepEqual(result, { candidates: 1, rebuilt: 1, unchanged: 0, failed: 0 });
+  assert.match(item.snippet, /Blue Cross VT said the approved increase/);
+  assert.equal(articleCache[link].snippet, item.snippet);
+});
+
+test("rebuildBrandExcerpts keeps the snippet when the page does not match the title", async () => {
+  const item = {
+    relevant: true,
+    category: CATEGORY_BRAND,
+    title: "Regulators set 2027 health insurance rates",
+    link: "https://example.com/moved",
+    snippet: "The Green Mountain Care Board set rates.",
+  };
+
+  const result = await rebuildBrandExcerpts([item], {
+    fetchText: async () => ({
+      text: "<html><head><title>Subscribe today</title></head><body><p>Blue Cross VT sponsors our newsletter.</p></body></html>",
+      url: "https://example.com/subscribe",
+    }),
+    throttleRequest: async () => {},
+  });
+
+  assert.equal(result.unchanged, 1);
+  assert.equal(item.snippet, "The Green Mountain Care Board set rates.");
+});
+
+test("itemSection splits stories into the clip email's three sections", () => {
+  assert.equal(
+    itemSection({ title: "Blue Cross VT helps combat food insecurity", matchedTerms: ["Blue Cross VT"] }),
+    SECTION_BRAND,
+  );
+  assert.equal(
+    itemSection({ title: "Two local adult day service centers face closure in Vermont", matchedTerms: ["Senior & long-term care"] }),
+    SECTION_VERMONT,
+  );
+  assert.equal(
+    itemSection({ title: "CMS freezes exchange broker enrollment", matchedTerms: ["ACA & marketplace"] }),
+    SECTION_NATIONAL,
+  );
+  // A Vermont publisher's name on a syndicated national story is not local.
+  assert.equal(
+    itemSection({
+      title: "Review finds millionaires on Ohio's Medicaid roles - Vermont Community Newspaper Group",
+      matchedTerms: ["Medicaid"],
+    }),
+    SECTION_NATIONAL,
+  );
+});
+
+test("applyDeterministicRelevance includes Blue Cross Blue Shield Association news", () => {
+  for (const title of [
+    "BCBSA Names Dan Serrano Senior Vice President and Chief Financial Officer",
+    "Hospitals' use of AI coding tools cost BCBSA plans $942M more for similar care: analysis",
+  ]) {
+    const result = applyDeterministicRelevance({
+      title,
+      link: "https://www.fiercehealthcare.com/payers/example",
+      sourceName: "Fierce Healthcare",
+      matchedTerms: ["Health care AI"],
+      relevant: false,
+      reason: "Low-priority health mention outside Vermont or New England.",
+    });
+    assert.equal(result.relevant, true, title);
+    assert.match(result.reason, /BCBSVT is a member/);
+  }
+
+  const directory = applyDeterministicRelevance({
+    title: "Transplant Static List - Blue Cross Blue Shield",
+    link: "https://www.bcbs.com/media/pdf/transplant-static-list.pdf",
+    matchedTerms: ["Blue Cross"],
+  });
+  assert.equal(directory.relevant, false);
+});
+
+test("clip-email seed rows keep their section and skip reference-only rows", () => {
+  const items = parseMediaTrackerSeedItems(
+    {
+      articles: [
+        { url: "https://vtdigger.org/brand", title: "Blue Cross VT volunteers", outlet: "VT Digger" },
+        { url: "https://www.wcax.com/vt", title: "Two adult day centers face closure", outlet: "WCAX", section: "vermont" },
+        { url: "https://www.nbcnews.com/national", title: "Drinking finally slows", outlet: "NBC News", section: "national", referenceOnly: true },
+      ],
+    },
+    { name: "Media Tracker Backfill", homepage: "https://www.bluecrossvt.org/" },
+  );
+
+  assert.deepEqual(items.map((item) => item.link), ["https://vtdigger.org/brand", "https://www.wcax.com/vt"]);
+  const [brand, vermont] = items;
+  assert.equal(brand.trackerSection, undefined);
+  assert.equal(itemCategory(brand), CATEGORY_BRAND);
+  assert.equal(itemSection(brand), SECTION_BRAND);
+
+  // A Vermont clip is must-include but is not brand coverage, so it is filed
+  // under Vermont news and never scored for sentiment.
+  assert.equal(vermont.trackerSection, "vermont");
+  assert.equal(itemCategory(vermont), CATEGORY_TOPIC);
+  assert.equal(itemSection(vermont), SECTION_VERMONT);
+  assert.equal(shouldScoreSentiment({ ...vermont, relevant: true }), false);
+  assert.equal(applyDeterministicRelevance({ ...vermont, relevant: false }).relevant, true);
 });
 
 test("isLikelyPaywalled matches exact publisher hosts and their subdomains", () => {

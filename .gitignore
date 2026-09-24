@@ -6,6 +6,8 @@ node_modules/
 npm-debug.log*
 # Hand-kept clip log; lives in the MEDIA_TRACKER_SEED_B64 secret, never in git
 data/media-tracker-seed.json
+# Clip-email rows; only the encrypted data/clip-emails.json.gpg is committed
+data/clip-emails.json
 
 # Local Worker dev secrets
 .dev.vars

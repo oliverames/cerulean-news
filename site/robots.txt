@@ -1,0 +1,7 @@
+# Everything on the public site may be crawled. The *.pages.dev copies of the
+# site are kept out of the index by an X-Robots-Tag header in _headers, not
+# here, so crawlers can still fetch them and see the noindex.
+User-agent: *
+Allow: /
+
+Sitemap: https://cerulean.news/sitemap.xml

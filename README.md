@@ -11,7 +11,7 @@
 <p align="center">
   <code>97 default sources</code> &bull;
   <code>RSS + JSON Feed</code> &bull;
-  <code>Cloudflare Pages refresh every 4 hours</code>
+  <code>Cloudflare Pages refresh every 30 minutes</code>
 </p>
 
 <p align="center">
@@ -151,7 +151,7 @@ Each story can include:
 
 When several outlets report one event, the reader and RSS feed show it once, led by the newest report. An "Also covered by" line beneath it links each other outlet's report by name, with that report's headline on hover. `src/story-groups.js` compares headlines and summaries published within three days, including shared figures such as "760,000." An article joins a group only when it matches more than half of the group's articles. Blue Cross VT coverage, letters, columns, and roundups are not grouped, and one outlet's own articles group only when their headlines are nearly identical. Grouping is display only. The JSON Feed keeps every article and marks group members with a shared `storyGroupId`, so coverage counts and the trends page are unchanged. Search runs before grouping, so a search for one outlet still finds its report.
 
-The browser does not recrawl sources. GitHub Actions does the collection and deploys the latest feed every four hours; reloading the page loads the latest published feed.
+The browser does not recrawl sources. GitHub Actions does the collection and deploys the latest feed about every 30 minutes; reloading the page loads the latest published feed.
 
 ## Sentiment
 
@@ -404,7 +404,7 @@ RSS_ARTICLE_SCAN=false \
 npm run generate
 ```
 
-The publish workflow runs on pushes to `main`, manual dispatches, and a schedule of every four hours. Every run installs dependencies and runs the test suite. Scheduled and manual runs then generate the feed. Pushes that only change static reader or documentation files reuse the live feed seeded into `site/` and deploy the static artifact without crawling every source again.
+The publish workflow runs on pushes to `main`, manual dispatches, and a schedule of every 30 minutes (at :17 and :47). Every run installs dependencies and runs the test suite. Scheduled and manual runs then generate the feed. Pushes that only change static reader or documentation files reuse the live feed seeded into `site/` and deploy the static artifact without crawling every source again.
 
 ## License
 

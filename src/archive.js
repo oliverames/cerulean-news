@@ -210,6 +210,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
           sentimentReason,
           fromMediaTracker: item.fromMediaTracker || undefined,
           trackerOutlet: item.trackerOutlet || undefined,
+          trackerSection: item.trackerSection || undefined,
           firstSeenAt,
           jevBaseline: normalizeJevBaseline(item.jevBaseline),
           comments: Array.isArray(item.comments) ? item.comments : [],
@@ -235,6 +236,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
           sentimentReason,
           fromMediaTracker: item.fromMediaTracker || undefined,
           trackerOutlet: item.trackerOutlet || undefined,
+          trackerSection: item.trackerSection || undefined,
           firstSeenAt,
           jevBaseline: normalizeJevBaseline(item.jevBaseline),
           comments: Array.isArray(item.comments) ? item.comments : [],
@@ -529,6 +531,7 @@ function mergeEquivalentStoryItems(
       curated.trackerOutlet ||
       primary?.trackerOutlet ||
       fallback?.trackerOutlet;
+    merged.trackerSection = curated.trackerSection;
     merged.matchSource = curated.matchSource || "mediaTracker";
   }
 

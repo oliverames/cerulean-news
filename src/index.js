@@ -9,6 +9,7 @@ import { collectFeedItems } from "./fetching.js";
 import {
   enrichAndFilterItems,
   previewBackfillCandidates,
+  rebuildBrandExcerpts,
   selectPreviewBackfillItems,
 } from "./enrich.js";
 import { applyDeterministicRelevance } from "./relevance.js";
@@ -208,6 +209,17 @@ export async function generateFeed({
       sortItemsByDate(mergeWithArchive(currentMatched, archivedItems, now)),
     ).map(applyDeterministicRelevance),
   );
+  // Opt-in one-time repair from the workflow's manual dispatch. It runs before
+  // summaries and Jev so both see the rebuilt excerpts.
+  if (process.env.REBUILD_BRAND_EXCERPTS === "true") {
+    crawlMetrics.excerptRebuild = await rebuildBrandExcerpts(mergedItems, {
+      articleCache: crawlState.articleCache,
+      limit: parsePositiveInteger(process.env.REBUILD_BRAND_EXCERPTS_MAX, 150),
+    });
+    console.log(
+      `Brand excerpt rebuild: ${crawlMetrics.excerptRebuild.rebuilt} rebuilt, ${crawlMetrics.excerptRebuild.unchanged} unchanged, ${crawlMetrics.excerptRebuild.failed} failed of ${crawlMetrics.excerptRebuild.candidates} candidates.`,
+    );
+  }
   await measurePhase(crawlMetrics, "summarize", () =>
     summarizeItems(mergedItems),
   );
@@ -368,8 +380,10 @@ export {
 export { freshUntilFromHeaders, isNoCrawlUrl, politenessPolicyFor } from "./politeness.js";
 export { isObituaryItem } from "./filters.js";
 export {
+  brandExcerptRebuildCandidates,
   enrichAndFilterItems,
   previewBackfillCandidates,
+  rebuildBrandExcerpts,
   selectPreviewBackfillItems,
 } from "./enrich.js";
 export {
@@ -380,7 +394,11 @@ export {
   isSocialVideoItem,
   itemCategory,
   itemOutletName,
+  itemSection,
   namesBlueCrossVermont,
+  SECTION_BRAND,
+  SECTION_NATIONAL,
+  SECTION_VERMONT,
 } from "./relevance.js";
 export {
   applyJevRelevance,
