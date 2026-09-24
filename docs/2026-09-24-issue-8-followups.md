@@ -6,7 +6,7 @@ This report covers the seven open items in [#8](https://github.com/oliverames/ce
 
 | Item | Status | Needs |
 | --- | --- | --- |
-| Prospective human inclusion decisions, including exclusions | Review page built | Oliver's labels |
+| Prospective human inclusion decisions, including exclusions | 47 labeled; out-of-state rule added | Live re-check after deploy |
 | Neutral and negative sentiment evidence | Review page built | Oliver's labels |
 | Excerpts that omit the Blue Cross VT passage | Fixed for new articles, with a one-time repair for existing ones | Oliver runs the repair once |
 | Review of historical additions and removals | Deferred by Oliver | A local session on the Mac |
@@ -23,6 +23,20 @@ The [Cerulean Label Desk](https://claude.ai/artifact/EQH9mfaJk5FcPuGXTmP9wE) is 
 - **Answer key:** `docs/review/2026-09-24-label-desk-key.json` maps each item to the current decision and the pre-Jev baseline. Score against it only after labeling.
 
 Report both direct Jev agreement and baseline agreement, split by Jev-changed and unchanged items. Items with a generated summary (33 inclusion, 13 sentiment) or no excerpt (19) should be reported separately, because the reviewer and the model saw less source text.
+
+## Label results and the out-of-state rule
+
+Oliver labeled 47 inclusion items on 2026-09-24: 26 include, 17 exclude, and 4 unsure. On the 43 decided items, the current feed agreed with him on 35 (81%) and the pre-Jev baseline on 34 (79%). A one-item gap on 43 items is not a measurable difference.
+
+Jev had added 10 of the labeled items, and Oliver rejected 4. All 4 were single-state stories from outside New England: Ohio Medicaid (two outlets), Missouri marketplace premiums, and Duke's employee plan. Jev had removed 1 labeled item, which Oliver would keep. Oliver would also include 3 items that neither pipeline selected.
+
+Oliver judged the original tracker lists the best reference data and stopped labeling there. The tracker is richer, but it records only inclusions. The labels supplied the missing exclusion signal, and that signal pointed at one rule.
+
+The inclusion rules now exclude another state's own Medicaid administration, marketplace premiums, rate filings, or single-employer plan outside New England. The exception keeps a Blue Cross or Blue Shield plan, a national insurer or industry trend, and federal or multi-state policy. That exception preserves all seven out-of-region tracker picks: five Michigan Blue Cross business stories, a Washington Post national coverage story, and a UVM story with a New York angle.
+
+The rule sits in the shared `INCLUSION_RULES` and the `relevance-v2` exclusion criteria, so Gemini and Jev apply the same policy. Jev's cache key hashes the full request, so new-cohort articles are re-evaluated automatically at up to 25 per run. That is roughly 250 extra requests over about five hours. The likely removals in the current feed are the Colorado, Missouri, Ohio, and Duke stories. Curated tracker clips stay protected.
+
+Validation happens live, because this session has no TypeSafe key. After the cohort is re-evaluated, score the 43 labels again against the new decisions, and check that federal and industry stories such as the Florida PBM suit and the Medicaid work-requirement lawsuit stayed in.
 
 ## Excerpts
 

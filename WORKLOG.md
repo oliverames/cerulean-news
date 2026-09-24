@@ -1,6 +1,6 @@
 ## Open items
 
-- Label the 207 inclusion and 35 sentiment articles in the [Cerulean Label Desk](https://claude.ai/artifact/EQH9mfaJk5FcPuGXTmP9wE), then score against `docs/review/2026-09-24-label-desk-key.json` (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
+- After PR #9 deploys and the new cohort is re-evaluated (about five hours at 25 per run), re-score Oliver's 43 decided labels in the [Label Desk](https://claude.ai/artifact/EQH9mfaJk5FcPuGXTmP9wE) against the key, and confirm federal and industry stories stayed in (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Run the publish workflow once with `rebuild_brand_excerpts` and `rescore_sentiment` checked, after PR #9 merges (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Sample the 451 proposed additions and 234 removals from `artifacts/jev-evaluation/` into the Label Desk from a Mac session (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
@@ -29,9 +29,11 @@
 - Logs show 305 successful Jev requests from 2026-09-21 to 09-24. The 30-minute schedule raises the daily cap to 1,200.
 - Oliver dropped the two orphan workbook records and deferred the historical sample to a Mac session.
 
+**Labels and rule change**: Oliver labeled 47 items and judged the original tracker lists the best reference. On 43 decided items the feed agreed 35 times and the pre-Jev baseline 34 times. All 4 Jev additions he rejected were single-state stories from outside New England, so the shared inclusion rules now exclude another state's own Medicaid, premiums, rate filings, or single-employer plan unless the story involves a Blues plan, a national industry trend, or federal or multi-state policy. All seven out-of-region tracker picks fit the exception.
+
 **SEO**: The site gained robots.txt, a sitemap, a real 404 page, and noindex on pages.dev hosts and the audit JSON. Metadata and structured data were tightened, and the feeds now point at canonical URLs. The audit is `docs/2026-09-24-seo-audit.md`. The README now states the 30-minute cadence.
 
-**Verification**: `npm test` passes 267 of 267. Nothing here is verified in production yet.
+**Verification**: `npm test` passes 268 of 268. Nothing here is verified in production yet.
 
 ---
 
