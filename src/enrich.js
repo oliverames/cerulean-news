@@ -825,11 +825,18 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
       matchSource = fallback.matchSource;
     }
 
+    // When the body names the brand, center on that passage. Otherwise an
+    // earlier topic term in a multi-story brief pulls the window onto an
+    // unrelated story and the Blue Cross VT sentence never reaches readers
+    // or the Jev excerpt.
     const snippetSource =
       articleBrandMatches.length > 0 ? articleText : item.feedContent;
+    const snippetTerms =
+      articleBrandMatches.length > 0
+        ? MENTION_TERMS
+        : [...MENTION_TERMS, ...TOPIC_TERMS];
     const snippet = cleanStorySnippet(
-      inheritedCache?.snippet ||
-        buildSnippet(snippetSource, [...MENTION_TERMS, ...TOPIC_TERMS]),
+      inheritedCache?.snippet || buildSnippet(snippetSource, snippetTerms),
       item.title,
     );
     const comments = mergeComments(

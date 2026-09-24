@@ -3594,6 +3594,44 @@ test("matching canonical links preserve renamed article body matches", async () 
   }
 });
 
+test("article-body snippets center on the brand passage in multi-story briefs", async () => {
+  const originalScan = process.env.RSS_ARTICLE_SCAN;
+  process.env.RSS_ARTICLE_SCAN = "true";
+  const link = "https://example.com/briefs";
+  const filler = "The volunteers sorted donated coats and winter boots. ".repeat(12);
+
+  try {
+    const [item] = await enrichAndFilterItems(
+      [{
+        sourceName: "Example Outlet",
+        title: "Community briefs for the week",
+        link,
+        feedContent: "Community briefs.",
+        articleScanMode: "always",
+      }],
+      new Map(),
+      {
+        articleCache: {},
+        now: new Date("2026-07-12T12:00:00Z"),
+        fetchText: async () => ({
+          text: `<html><body><main><h1>Community briefs</h1><p>The Green Mountain Care Board thrift store drive opens Saturday. ${filler}</p><p>Blue Cross VT announced a new wellness grant for rural clinics.</p></main></body></html>`,
+          url: link,
+          notModified: false,
+          etag: "",
+          lastModified: "",
+        }),
+        throttleRequest: async () => {},
+      },
+    );
+
+    assert.match(item.snippet, /Blue Cross VT announced a new wellness grant/);
+    assert.doesNotMatch(item.snippet, /thrift store drive/);
+  } finally {
+    if (originalScan === undefined) delete process.env.RSS_ARTICLE_SCAN;
+    else process.env.RSS_ARTICLE_SCAN = originalScan;
+  }
+});
+
 test("isLikelyPaywalled matches exact publisher hosts and their subdomains", () => {
   assert.equal(isLikelyPaywalled({ link: "https://www.statnews.com/story" }), true);
   assert.equal(isLikelyPaywalled({ link: "https://news.timesargus.com/story" }), true);

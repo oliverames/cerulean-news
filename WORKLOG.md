@@ -13,6 +13,14 @@
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
 
+## 2026-09-24 - Brand-centered snippets for multi-story briefs
+
+**Request**: Resolve the open issues. Issue #4 is a GA4 admin change and #8 is ongoing quality monitoring, so neither closes from code. The one code-fixable #8 item was the excerpt that missed the Blue Cross VT passage.
+
+**Change**: When the fetched article body names the brand, the snippet now centers on the brand mention only. Before, it centered on the earliest mention or topic term, so a topic term in an earlier brief pulled the window onto an unrelated story. Jev receives this snippet as its excerpt. A regression test covers a brief with an earlier topic term. All 253 tests pass.
+
+**Limits**: Cached snippets are reused, so only newly fetched articles change. The rate-summary case, where the source text lacks the details, is not addressed. Not yet verified in production.
+
 ## 2026-09-23 - Grouped story coverage and specific Jev inclusion notes
 
 **Request**: Combine duplicate coverage such as the six reader entries for the 760,000 ACA enrollee removal, and replace the generic "Jev judged this relevant" note.
