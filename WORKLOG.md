@@ -1,25 +1,39 @@
 ## Open items
 
-- Monitor live Jev inclusion and sentiment: prospective human review, rare sentiment labels, better brand excerpts, review of proposed article changes, and threshold validation (since 2026-09-21; [#8](https://github.com/oliverames/cerulean-news/issues/8))
-- Decide whether keyword-miss rescue is worth building; an article with no keyword hit never becomes a Jev candidate, so only the filtering direction works (since 2026-09-21; [#8](https://github.com/oliverames/cerulean-news/issues/8))
-- Decide whether to move publishing from four hours to three (about 1,512 of Pro's 3,000 minutes a month) (since 2026-09-18) (unverified)
+- Label the 207 inclusion and 35 sentiment articles in the [Cerulean Label Desk](https://claude.ai/artifact/EQH9mfaJk5FcPuGXTmP9wE), then score against `docs/review/2026-09-24-label-desk-key.json` (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
+- Run the publish workflow once with `rebuild_brand_excerpts` and `rescore_sentiment` checked, after PR #9 merges (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
+- Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
+- Sample the 451 proposed additions and 234 removals from `artifacts/jev-evaluation/` into the Label Desk from a Mac session (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
+- Decide on keyword-miss rescue; the 2026-09-24 analysis recommends against it (since 2026-09-21; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Watch the small September Actions storage charge (about $0.44 net), the kind of overage that can re-trip a zero spending limit (since 2026-09-18) (unverified)
 - Decide whether the six projects whose Mac builds were disabled get self-hosted runners on the MacBook Pro and home-server, or stay manual (since 2026-09-16) (unverified)
 - Establish why `xcode-27` appears as a `runs-on` label with no registered runner before that label is reused (since 2026-09-16)
 - `ames-plugins-local/marketplace-validation.yml` is still on `macos-latest`, which bills at 10x if it fires (since 2026-09-16)
-- The GA4 cross-domain list still names bluenews.online and oliverames.github.io, harmless since both redirect (since 2026-09-04; [#4](https://github.com/oliverames/cerulean-news/issues/4))
+- Remove bluenews.online and oliverames.github.io from the GA4 cross-domain list; steps are on the issue (since 2026-09-04; [#4](https://github.com/oliverames/cerulean-news/issues/4))
+- After the SEO deploy: submit the sitemap in Search Console and Bing, change the `/trends/` redirect rule from 302 to 301 in Cloudflare, and check that an unknown path returns 404 (since 2026-09-24)
 - Prove the `data/coverage-context.json` VT Basic storyline in production with a re-score sweep that completes (`rescore_sentiment` with a small `summary_max_requests`) (since 2026-08-27) (unverified)
 - The calendar and briefs recall gap is a product decision that needs Oliver's call before any matcher work (since 2026-08-27) (unverified)
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
 
-## 2026-09-24 - Brand-centered snippets for multi-story briefs
+## 2026-09-24 - Issue #8 follow-ups, GA4 steps, and an SEO pass
 
-**Request**: Resolve the open issues. Issue #4 is a GA4 admin change and #8 is ongoing quality monitoring, so neither closes from code. The one code-fixable #8 item was the excerpt that missed the Blue Cross VT passage.
+**Request**: Resolve all open issues, read as #4 plus the seven open items in #8, and add a comprehensive SEO pass. Oliver chose GA4 steps rather than code, a review page for human labels, and repo-wide SEO scope.
 
-**Change**: When the fetched article body names the brand, the snippet now centers on the brand mention only. Before, it centered on the earliest mention or topic term, so a topic term in an earlier brief pulled the window onto an unrelated story. Jev receives this snippet as its excerpt. A regression test covers a brief with an earlier topic term. All 253 tests pass.
+**#4**: GA4 admin steps are on the issue. It closes once Oliver confirms the change.
 
-**Limits**: Cached snippets are reused, so only newly fetched articles change. The rate-summary case, where the source text lacks the details, is not addressed. Not yet verified in production.
+**#8**: The full account is in `docs/2026-09-24-issue-8-followups.md`.
+- The Label Desk is a private, blinded review page with 207 new-cohort inclusion items and 35 non-tracker sentiment items. The answer key is committed.
+- Snippets now center on the brand mention when the fetched body names it. That fixes the multi-story brief case and the rate-review stories that opened on the Green Mountain Care Board. A manual `rebuild_brand_excerpts` dispatch option repairs the 112 existing candidates.
+- The keyword-miss analysis recommends against general rescue. Only 13 of 186 human clips match no term in their title or excerpt.
+- Logs show 305 successful Jev requests from 2026-09-21 to 09-24. The 30-minute schedule raises the daily cap to 1,200.
+- Oliver dropped the two orphan workbook records and deferred the historical sample to a Mac session.
+
+**SEO**: The site gained robots.txt, a sitemap, a real 404 page, and noindex on pages.dev hosts and the audit JSON. Metadata and structured data were tightened, and the feeds now point at canonical URLs. The audit is `docs/2026-09-24-seo-audit.md`. The README now states the 30-minute cadence.
+
+**Verification**: `npm test` passes 267 of 267. Nothing here is verified in production yet.
+
+---
 
 ## 2026-09-23 - Grouped story coverage and specific Jev inclusion notes
 
