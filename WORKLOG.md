@@ -10,12 +10,27 @@
 - Decide whether the six projects whose Mac builds were disabled get self-hosted runners on the MacBook Pro and home-server, or stay manual (since 2026-09-16) (unverified)
 - Establish why `xcode-27` appears as a `runs-on` label with no registered runner before that label is reused (since 2026-09-16)
 - `ames-plugins-local/marketplace-validation.yml` is still on `macos-latest`, which bills at 10x if it fires (since 2026-09-16)
-- Finish the Gemini sentiment re-score of the pre-boundary archive: approved; since #11 each dispatch resumes where the last stopped, but runs on 2026-09-24 hit the Gemini quota (HTTP 429 on flash and flash-lite). Dispatch `rescore_sentiment` with `summary_max_requests=40` again after the quota resets (since 2026-09-24)
+- Finish sentiment scoring: the Jev 0-100 odds backfill (244 entries left on 2026-09-24, runs on spare cap) and the Gemini archive re-score after its quota resets (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
+- Remaining discoverability work: client-rendered stories, a 1200x630 share image, and URL Inspection once Google crawls the new property (since 2026-09-24; [#13](https://github.com/oliverames/cerulean-news/issues/13))
 - Decide whether Jev should re-judge the pre-boundary archive (inclusion and sentiment) at a raised cap; it spends TypeSafe credits and changes historical decisions (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Prove the `data/coverage-context.json` VT Basic storyline in production with a re-score sweep that completes (`rescore_sentiment` with a small `summary_max_requests`) (since 2026-08-27) (unverified)
 - The calendar and briefs recall gap is a product decision that needs Oliver's call before any matcher work (since 2026-08-27) (unverified)
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
+
+## 2026-09-24 - Jev 0-100 sentiment score
+
+**Request**: Show sentiment more granularly than five labels, using Jev. Oliver chose a 0-100 scale with 50 neutral, derived from Jev's label odds, and a sentiment-only Jev rescore of older brand coverage.
+
+**What changed** (9d88b09): Jev's choice answer already returns a probability for each label. The cache now keeps those odds, and `sentimentScoreFromProbabilities` turns them into the probability-weighted position on the five-point scale (0 negative, 50 neutral, 100 positive). `sentimentScore` is published only beside the Jev label it came from; a new Gemini label or an unconfident Jev answer clears it, and archive merges take the score from whichever copy supplied the label. Sentiment now applies on both sides of `JEV_ENFORCE_AFTER`; inclusion is still enforced only after it. Eligible coverage without odds gets a sentiment-only request from the cap left after new articles, keeping any cached include answer. The reader shows "Sentiment: 72 · neutral to positive" and the explainer describes the scale without naming the model. README updated.
+
+**Verification**: `npm test` 276 pass, including score math, spare-cap backfill, inclusion unchanged before the boundary, and stale-score removal; the pre-boundary test fails with the old gate restored. Deploy run 36039401322 succeeded and logged `0 sentiment backfills (244 left)` because 25 new articles used the cap with 26 still pending, so no scores were live yet.
+
+**Also**: Oliver asked whether sentiment shows under All news. It does for Blue Cross VT posts (checked live); unscored posts under All are related coverage in other sections, such as the BCBSA billing story under National. Oliver asked whether the SEO pass was complete; the open remainder is tracked in #13.
+
+**Left off at**: #14 (score backfill and Gemini re-score) and #13 (discoverability).
+
+---
 
 ## 2026-09-24 - Admin follow-ups, re-score resume, and clip grouping
 
