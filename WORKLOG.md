@@ -1,10 +1,8 @@
 ## Open items
 
 - After PR #9 deploys and the new cohort is re-evaluated (about five hours at 25 per run), re-score Oliver's 43 decided labels in the [Label Desk](https://claude.ai/artifact/EQH9mfaJk5FcPuGXTmP9wE) against the key, and check the keep and drop lists in `docs/2026-09-24-issue-8-followups.md` (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
-- Run the publish workflow once with `rebuild_brand_excerpts` and `rescore_sentiment` checked, after PR #9 merges (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Sample the 451 proposed additions and 234 removals from `artifacts/jev-evaluation/` into the Label Desk from a Mac session (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
-- Oliver: create the clip-email passphrase in 1Password, add it as the `CLIP_EMAILS_PASSPHRASE` repo secret, encrypt `clip-emails.json` with gpg, and commit only `data/clip-emails.json.gpg` (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - After the clip-email seed is live: rewrite the broad-national code rule against the 967 national rows, measure Jev on held-out recent digests, then re-judge the archive with Jev at a raised cap (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Decide on the missing-article fixes in `docs/2026-09-24-missing-articles.md` (topic terms, replacement Google News queries, new sources, two body-scan changes) (since 2026-09-24)
 - Decide on keyword-miss rescue; the 2026-09-24 analysis recommends against it (since 2026-09-21; [#8](https://github.com/oliverames/cerulean-news/issues/8))
@@ -13,11 +11,26 @@
 - Establish why `xcode-27` appears as a `runs-on` label with no registered runner before that label is reused (since 2026-09-16)
 - `ames-plugins-local/marketplace-validation.yml` is still on `macos-latest`, which bills at 10x if it fires (since 2026-09-16)
 - Remove bluenews.online and oliverames.github.io from the GA4 cross-domain list; steps are on the issue (since 2026-09-04; [#4](https://github.com/oliverames/cerulean-news/issues/4))
-- After the SEO deploy: submit the sitemap in Search Console and Bing, change the `/trends/` redirect rule from 302 to 301 in Cloudflare, and check that an unknown path returns 404 (since 2026-09-24)
+- Submit the sitemap in Search Console and Bing, and change the `/trends/` redirect rule from 302 to 301 in Cloudflare; the 404, robots, sitemap, and pages.dev noindex checks passed live on 2026-09-24 (since 2026-09-24)
+- Finish the sentiment re-score: the one-time run reached 100 of 486 pending items (oldest first), and scheduled runs do not continue it. Needs Oliver's go-ahead for a `rescore_sentiment` dispatch with `summary_max_requests` about 40 (since 2026-09-24)
 - Prove the `data/coverage-context.json` VT Basic storyline in production with a re-score sweep that completes (`rescore_sentiment` with a small `summary_max_requests`) (since 2026-08-27) (unverified)
 - The calendar and briefs recall gap is a product decision that needs Oliver's call before any matcher work (since 2026-08-27) (unverified)
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
+
+## 2026-09-24 - Clip-email seed rollout and section filter layout
+
+**Request**: Finish the clip-email seed rollout from PR #9 on this Mac, fold in the newer media tracker workbook, and fix any bugs found on the way.
+
+**Seed**: Created the 1Password item "Cerulean News clip-email passphrase" (Development) and set `CLIP_EMAILS_PASSPHRASE` from it. `clip-emails.json` had 1,560 rows (127 brand, 466 Vermont, 967 national reference-only, 593 must-include), no email addresses, and no token query parameters. Committed only `data/clip-emails.json.gpg` (e3a5712); the round trip decrypted to 1,560. The push run logged `Seed has 1654 articles, 689 must-include` (186 tracker rows plus 1,560 clip rows, less 92 shared URLs). The plaintext went to the iCloud Trash.
+
+**Tracker refresh**: `Media Tracker.xlsx` now has 205 unique coverage links across its five coverage sheets. Its contact-list sheets were excluded. The 19 new rows (2026-08-25 to 09-23) were all already clip rows; 18 carry a human sentiment score, which raises the labeled set from 99 to 117. No existing label changed after normalization. `MEDIA_TRACKER_SEED_B64` was re-set (205 rows, 27.9 KB encoded). The workbook stays out of the repo.
+
+**One-time run** (36020157438): `Brand excerpt rebuild: 51 rebuilt, 22 unchanged, 40 failed of 113 candidates.` The failures are publisher blocks (32 HTTP 403, mostly Becker's and VermontBiz; 4 HTTP 429), 3 bluecrossvt.org by policy, and 1 redirect loop; those keep their old excerpts. Jev: `25/25 successful, 20 cached, 131 pending ... 0 inclusion and 0 sentiment disagreements.` The sentiment re-score covered 100 of 486 pending items; see open items.
+
+**Live checks**: `/nope` returns 404; robots.txt and sitemap.xml are real files; pages.dev sends `X-Robots-Tag: noindex` and cerulean.news does not. The feed has 287 brand, 1,280 Vermont, and 652 national items. The audit holds all 593 must-include clips; 685 items carry `fromMediaTracker`, the 464 Vermont clips have `trackerSection: "vermont"` and no `sentimentEligible`, and all three BCBSA stories are relevant. Becker's "5 states finalize 2027 ACA rates", previously rejected, is now in as a tracker clip.
+
+**Section filter**: The four full-name buttons wrapped into three uneven rows in the 560px column. They are now one bordered strip of equal cells with a short label over the count, and a 2x2 grid under 420px (8c093c8), checked in headless Chrome at 1200, 375, and 320px. A restore of the BlueCrossVT.org view (5742b39) was a misreading: those posts were switched off on purpose on 2026-09-03. It was reverted before deploying, and #10 is closed as not planned. Vermont-outlet stories on national topics stay in the Vermont section, which matches how the clip emails file them.
 
 ## 2026-09-24 - Issue #8 follow-ups, GA4 steps, and an SEO pass
 
