@@ -122,25 +122,32 @@ test("a request asks all three questions over title and excerpt only", async () 
   assert.ok(!serialized.includes("SECRET FEED CONTENT"));
 });
 
-test("inclusion rules exclude another state's own program, market, or employer plan", async () => {
+test("inclusion rules exclude another state's own program, market, lawsuit, or employer plan", async () => {
   const rubric = await loadRelevanceRubric();
   const request = buildJevRequest(
-    { title: "Missouri premiums could rise 26% in 2027", description: "State regulators posted filings." },
+    { title: "Florida AG sues PBMs, pharmas over rise in insulin prices", description: "The state is suing three PBMs." },
     rubric,
   );
   const include = request.questions.include;
 
   // Oliver rejected Ohio Medicaid, Missouri premium, and Duke employee-plan
-  // stories that Jev had added as national policy (2026-09-24 Label Desk).
-  // The exception keeps the tracker's out-of-region picks: other Blues plans,
-  // national insurer trends, and federal or multi-state policy.
+  // stories that Jev had added as national policy (2026-09-24 Label Desk),
+  // then ruled out a single state's PBM lawsuit: national stories count only
+  // when the outcome would matter to a Vermont health insurer. Blue plans and
+  // the Blue Cross Blue Shield Association, which BCBSVT belongs to, stay in.
   for (const text of [include.instructions.rules, include.criteria.false]) {
     assert.match(text, /another state's own Medicaid/i);
+    assert.match(text, /lawsuits/);
+    assert.match(text, /even when it names national companies/);
     assert.match(text, /single[- ]employer/i);
-    assert.match(text, /Blue Cross or Blue Shield plan/);
+    assert.match(text, /Blue Cross Blue Shield Association/);
     assert.match(text, /federal or multi-state policy/);
+    assert.doesNotMatch(text, /national insurer or industry trend/);
   }
-  assert.match(include.instructions.priorities, /single state's own program, market, or employer/);
+  assert.match(include.instructions.priorities, /outcome would matter to a Vermont health insurer/);
+  assert.match(include.instructions.priorities, /Blue Cross Blue Shield Association \(BCBSVT is a member\)/);
+  assert.match(include.instructions.question, /outcome must plausibly affect a Vermont health insurer/);
+  assert.doesNotMatch(include.instructions.question, /Do not demand a Vermont consequence/);
 });
 
 test("excerpt prefers the snippet and is length-capped", async () => {
