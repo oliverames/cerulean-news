@@ -18,6 +18,10 @@ on:
         description: "Gemini requests this run (10 items each). Raise to sweep the archive in one pass."
         type: string
         default: ""
+      rebuild_brand_excerpts:
+        description: "Refetch brand articles whose excerpt never names Blue Cross VT, and rebuild those excerpts (one-time repair)"
+        type: boolean
+        default: false
       backfill_after:
         description: "Backfill gap start, YYYY-MM-DD. With backfill_before, sweeps only those days."
         type: string
@@ -185,6 +189,8 @@ jobs:
           SUMMARY_REJUDGE_ALL: ${{ inputs.rejudge_all }}
           # Empty on scheduled runs, so the default cap applies there.
           SUMMARY_MAX_REQUESTS_PER_RUN: ${{ inputs.summary_max_requests }}
+          # One-time excerpt repair; empty (off) on scheduled runs.
+          REBUILD_BRAND_EXCERPTS: ${{ inputs.rebuild_brand_excerpts }}
           # A stall leaves days that no later run can reach: Google News search
           # ranks by recency and each source keeps only its newest maxItems, so
           # the stalled days are crowded out of every `when:30d` result for

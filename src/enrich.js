@@ -434,6 +434,82 @@ export function selectPreviewBackfillItems(
     }));
 }
 
+// Brand articles whose stored snippet never names the brand. Snippets used to
+// center on the earliest mention or topic term, so a rate-review story's
+// excerpt could open on the Green Mountain Care Board and stop before the
+// Blue Cross VT sentence. Cached snippets are reused forever, so those
+// excerpts only change when the page is fetched again.
+export function brandExcerptRebuildCandidates(items, limit = 150) {
+  const boundedLimit = Number.isFinite(Number(limit)) && Number(limit) > 0
+    ? Math.floor(Number(limit))
+    : 150;
+  return items
+    .filter(
+      (item) =>
+        item.relevant !== false &&
+        item.category === CATEGORY_BRAND &&
+        /^https?:\/\//i.test(item.link || "") &&
+        !item.link.includes("news.google.com/") &&
+        !isLikelyPaywalled(item) &&
+        findMentionTerms(item.snippet || "", MENTION_TERMS).length === 0,
+    )
+    .sort(
+      (left, right) =>
+        (parseDate(right.pubDate)?.valueOf() || 0) -
+        (parseDate(left.pubDate)?.valueOf() || 0),
+    )
+    .slice(0, boundedLimit);
+}
+
+// One-time repair, run from the workflow's manual dispatch. Refetches each
+// candidate through the same fetcher, throttle, and page-identity check as
+// enrichment, and replaces the snippet only when the rebuilt one names the
+// brand. Items are updated in place; matching article-cache entries get the
+// same snippet so a later run cannot restore the old one.
+export async function rebuildBrandExcerpts(items, options = {}) {
+  const fetchArticleText = options.fetchText || fetchText;
+  const throttleArticleRequest = options.throttleRequest || throttleRequest;
+  const articleCache = options.articleCache || {};
+  const candidates = brandExcerptRebuildCandidates(items, options.limit);
+  const result = { candidates: candidates.length, rebuilt: 0, unchanged: 0, failed: 0 };
+
+  await mapWithConcurrency(candidates, CONCURRENCY, async (item) => {
+    try {
+      await throttleArticleRequest(item.link);
+      const { text: html, url: finalUrl } = await fetchArticleText(
+        item.link,
+        "text/html, application/xhtml+xml, */*",
+        { beforeRetry: () => throttleArticleRequest(item.link) },
+      );
+      const articleUrl = finalUrl || item.link;
+      if (!articlePageMatchesTitle(html, item.title, { requireEvidence: true })) {
+        result.unchanged += 1;
+        return;
+      }
+      const snippet = cleanStorySnippet(
+        buildSnippet(htmlToArticleText(html, articleUrl), MENTION_TERMS),
+        item.title,
+      );
+      if (findMentionTerms(snippet, MENTION_TERMS).length === 0) {
+        result.unchanged += 1;
+        return;
+      }
+      item.snippet = snippet;
+      for (const key of new Set([item.link, item.url, articleUrl].filter(Boolean))) {
+        if (articleCache[key]) {
+          articleCache[key] = { ...articleCache[key], snippet };
+        }
+      }
+      result.rebuilt += 1;
+    } catch (error) {
+      result.failed += 1;
+      console.warn(`Excerpt rebuild failed for ${item.link}: ${error.message}`);
+    }
+  });
+
+  return result;
+}
+
 function articleUrlMateriallyChanged(originalUrl, finalUrl) {
   return !articleUrlsMatch(originalUrl, finalUrl);
 }

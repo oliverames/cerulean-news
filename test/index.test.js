@@ -26,6 +26,8 @@ import {
   triggerWebhooks,
   webhookTargetId,
   selectPreviewBackfillItems,
+  brandExcerptRebuildCandidates,
+  rebuildBrandExcerpts,
   canonicalizeMatchedTerms,
   categorizeTerms,
   CATEGORY_BRAND,
@@ -3630,6 +3632,68 @@ test("article-body snippets center on the brand passage in multi-story briefs", 
     if (originalScan === undefined) delete process.env.RSS_ARTICLE_SCAN;
     else process.env.RSS_ARTICLE_SCAN = originalScan;
   }
+});
+
+test("brandExcerptRebuildCandidates picks free brand items whose snippet omits the brand", () => {
+  const base = { relevant: true, category: CATEGORY_BRAND, pubDate: "2026-09-01T00:00:00Z" };
+  const items = [
+    { ...base, title: "Rates set", link: "https://example.com/a", snippet: "The Green Mountain Care Board set rates." },
+    { ...base, title: "Named", link: "https://example.com/b", snippet: "Blue Cross VT asked for less." },
+    { ...base, title: "Topic", link: "https://example.com/c", snippet: "Hospital budgets.", category: CATEGORY_TOPIC },
+    { ...base, title: "Rejected", link: "https://example.com/d", snippet: "Other news.", relevant: false },
+    { ...base, title: "Paywalled", link: "https://www.statnews.com/2026/09/01/x/", snippet: "Rates." },
+    { ...base, title: "Undecoded", link: "https://news.google.com/rss/articles/abc", snippet: "Rates." },
+  ];
+
+  assert.deepEqual(
+    brandExcerptRebuildCandidates(items).map((item) => item.title),
+    ["Rates set"],
+  );
+});
+
+test("rebuildBrandExcerpts replaces a brand-less snippet and the cached copy", async () => {
+  const link = "https://example.com/rates";
+  const filler = "Regulators heard hours of testimony about hospital costs. ".repeat(10);
+  const item = {
+    relevant: true,
+    category: CATEGORY_BRAND,
+    title: "Regulators set 2027 health insurance rates",
+    link,
+    snippet: "The Green Mountain Care Board set rates late Monday.",
+  };
+  const articleCache = { [link]: { snippet: item.snippet, matchedTerms: ["Blue Cross VT"] } };
+  const html = `<html><head><title>Regulators set 2027 health insurance rates</title></head><body><main><h1>Regulators set 2027 health insurance rates</h1><p>The Green Mountain Care Board set rates late Monday. ${filler}</p><p>Blue Cross VT said the approved increase was smaller than it requested.</p></main></body></html>`;
+
+  const result = await rebuildBrandExcerpts([item], {
+    articleCache,
+    fetchText: async () => ({ text: html, url: link }),
+    throttleRequest: async () => {},
+  });
+
+  assert.deepEqual(result, { candidates: 1, rebuilt: 1, unchanged: 0, failed: 0 });
+  assert.match(item.snippet, /Blue Cross VT said the approved increase/);
+  assert.equal(articleCache[link].snippet, item.snippet);
+});
+
+test("rebuildBrandExcerpts keeps the snippet when the page does not match the title", async () => {
+  const item = {
+    relevant: true,
+    category: CATEGORY_BRAND,
+    title: "Regulators set 2027 health insurance rates",
+    link: "https://example.com/moved",
+    snippet: "The Green Mountain Care Board set rates.",
+  };
+
+  const result = await rebuildBrandExcerpts([item], {
+    fetchText: async () => ({
+      text: "<html><head><title>Subscribe today</title></head><body><p>Blue Cross VT sponsors our newsletter.</p></body></html>",
+      url: "https://example.com/subscribe",
+    }),
+    throttleRequest: async () => {},
+  });
+
+  assert.equal(result.unchanged, 1);
+  assert.equal(item.snippet, "The Green Mountain Care Board set rates.");
 });
 
 test("isLikelyPaywalled matches exact publisher hosts and their subdomains", () => {
