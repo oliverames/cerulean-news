@@ -122,6 +122,27 @@ test("a request asks all three questions over title and excerpt only", async () 
   assert.ok(!serialized.includes("SECRET FEED CONTENT"));
 });
 
+test("inclusion rules exclude another state's own program, market, or employer plan", async () => {
+  const rubric = await loadRelevanceRubric();
+  const request = buildJevRequest(
+    { title: "Missouri premiums could rise 26% in 2027", description: "State regulators posted filings." },
+    rubric,
+  );
+  const include = request.questions.include;
+
+  // Oliver rejected Ohio Medicaid, Missouri premium, and Duke employee-plan
+  // stories that Jev had added as national policy (2026-09-24 Label Desk).
+  // The exception keeps the tracker's out-of-region picks: other Blues plans,
+  // national insurer trends, and federal or multi-state policy.
+  for (const text of [include.instructions.rules, include.criteria.false]) {
+    assert.match(text, /another state's own Medicaid/i);
+    assert.match(text, /single[- ]employer/i);
+    assert.match(text, /Blue Cross or Blue Shield plan/);
+    assert.match(text, /federal or multi-state policy/);
+  }
+  assert.match(include.instructions.priorities, /single state's own program, market, or employer/);
+});
+
 test("excerpt prefers the snippet and is length-capped", async () => {
   const rubric = await loadRelevanceRubric();
   const request = buildJevRequest(
