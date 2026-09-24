@@ -1,9 +1,10 @@
 ## Open items
 
-- After PR #9 deploys and the new cohort is re-evaluated (about five hours at 25 per run), re-score Oliver's 43 decided labels in the [Label Desk](https://claude.ai/artifact/EQH9mfaJk5FcPuGXTmP9wE) against the key, and confirm federal and industry stories stayed in (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
+- After PR #9 deploys and the new cohort is re-evaluated (about five hours at 25 per run), re-score Oliver's 43 decided labels in the [Label Desk](https://claude.ai/artifact/EQH9mfaJk5FcPuGXTmP9wE) against the key, and check the keep and drop lists in `docs/2026-09-24-issue-8-followups.md` (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Run the publish workflow once with `rebuild_brand_excerpts` and `rescore_sentiment` checked, after PR #9 merges (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Sample the 451 proposed additions and 234 removals from `artifacts/jev-evaluation/` into the Label Desk from a Mac session (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
+- Decide whether to re-judge the two pre-boundary BCBSA AI-billing stories and the BCBSA CFO item under the new rule (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Decide on keyword-miss rescue; the 2026-09-24 analysis recommends against it (since 2026-09-21; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Watch the small September Actions storage charge (about $0.44 net), the kind of overage that can re-trip a zero spending limit (since 2026-09-18) (unverified)
 - Decide whether the six projects whose Mac builds were disabled get self-hosted runners on the MacBook Pro and home-server, or stay manual (since 2026-09-16) (unverified)
@@ -29,7 +30,7 @@
 - Logs show 305 successful Jev requests from 2026-09-21 to 09-24. The 30-minute schedule raises the daily cap to 1,200.
 - Oliver dropped the two orphan workbook records and deferred the historical sample to a Mac session.
 
-**Labels and rule change**: Oliver labeled 47 items and judged the original tracker lists the best reference. On 43 decided items the feed agreed 35 times and the pre-Jev baseline 34 times. All 4 Jev additions he rejected were single-state stories from outside New England, so the shared inclusion rules now exclude another state's own Medicaid, premiums, rate filings, or single-employer plan unless the story involves a Blues plan, a national industry trend, or federal or multi-state policy. All seven out-of-region tracker picks fit the exception.
+**Labels and rule change**: Oliver labeled 47 items and judged the original tracker lists the best reference. On 43 decided items the feed agreed 35 times and the pre-Jev baseline 34 times. All 4 Jev additions he rejected were single-state stories from outside New England, so the shared inclusion rules now exclude another state's own Medicaid, premiums, rate filings, lawsuits, or single-employer plan unless the story involves a Blues plan, BCBSA, or federal or multi-state policy. Oliver then set the national standard: a trend story counts only when its outcome would matter to BCBSVT as a Vermont insurer, and BCBSA news counts as Blue Cross coverage. All seven out-of-region tracker picks still fit. Two older BCBSA stories on AI billing costs were wrongly rejected and sit before the enforcement boundary.
 
 **SEO**: The site gained robots.txt, a sitemap, a real 404 page, and noindex on pages.dev hosts and the audit JSON. Metadata and structured data were tightened, and the feeds now point at canonical URLs. The audit is `docs/2026-09-24-seo-audit.md`. The README now states the 30-minute cadence.
 

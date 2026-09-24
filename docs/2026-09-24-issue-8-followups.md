@@ -32,11 +32,19 @@ Jev had added 10 of the labeled items, and Oliver rejected 4. All 4 were single-
 
 Oliver judged the original tracker lists the best reference data and stopped labeling there. The tracker is richer, but it records only inclusions. The labels supplied the missing exclusion signal, and that signal pointed at one rule.
 
-The inclusion rules now exclude another state's own Medicaid administration, marketplace premiums, rate filings, or single-employer plan outside New England. The exception keeps a Blue Cross or Blue Shield plan, a national insurer or industry trend, and federal or multi-state policy. That exception preserves all seven out-of-region tracker picks: five Michigan Blue Cross business stories, a Washington Post national coverage story, and a UVM story with a New York angle.
+The inclusion rules now exclude another state's own Medicaid administration, marketplace premiums, rate filings, lawsuits, or single-employer plan outside New England, even when the story names national companies. The exception keeps a Blue Cross or Blue Shield plan, the Blue Cross Blue Shield Association, and federal or multi-state policy. That exception preserves all seven out-of-region tracker picks: five Michigan Blue Cross business stories, a Washington Post national coverage story, and a UVM story with a New York angle.
 
-The rule sits in the shared `INCLUSION_RULES` and the `relevance-v2` exclusion criteria, so Gemini and Jev apply the same policy. Jev's cache key hashes the full request, so new-cohort articles are re-evaluated automatically at up to 25 per run. That is roughly 250 extra requests over about five hours. The likely removals in the current feed are the Colorado, Missouri, Ohio, and Duke stories. Curated tracker clips stay protected.
+On review, Oliver set the standard for national stories: include a general health insurance or health industry trend only when its outcome would matter to BCBSVT as a Vermont health insurer. He also asked that BCBSA news count as Blue Cross coverage, because BCBSVT is a member. The rules now say both, and the old instruction not to demand a Vermont consequence is gone. Against the 47 Jev additions, that standard:
 
-Validation happens live, because this session has no TypeSafe key. After the cohort is re-evaluated, score the 43 labels again against the new decisions, and check that federal and industry stories such as the Florida PBM suit and the Medicaid work-requirement lawsuit stayed in.
+- **Keeps** federal ACA enrollment removals, Medicaid work-requirement rules and the lawsuits over them, Medicare Advantage policy (BCBSVT sells Vermont Blue Advantage), federal drug pricing, large payers contesting Medicare rules, NCQA plan ratings, and BCBSA statements.
+- **Drops** the Florida attorney general's PBM suit, the Colorado and Missouri premium stories, both Ohio Medicaid copies, the Duke plan, a California law-firm appellate release, a St. Lawrence County Medicare session, a Medicare Advantage denial how-to, and a Cotiviti product announcement.
+- **Leaves to the model** the medical-debt surveys and a reintroduced hospital cybersecurity bill, which sit near the line.
+
+It should also recover two wrongly rejected BCBSA stories: the association's analysis of AI billing tools, and Fierce Healthcare's report that those tools cost Blue plans $942 million. The association's CFO appointment would qualify too. Those are older than the enforcement boundary, so Jev will not revisit them. A separate archive-wide decision would be needed.
+
+The rule sits in the shared `INCLUSION_RULES` and `INCLUSION_PRIORITIES` and in the `relevance-v2` question and criteria, so Gemini and Jev apply the same policy. Jev's cache key hashes the full request, so new-cohort articles are re-evaluated automatically at up to 25 per run. That is roughly 250 extra requests over about five hours. Curated tracker clips stay protected.
+
+Validation happens live, because this session has no TypeSafe key. After the cohort is re-evaluated, score the 43 labels again against the new decisions, and check the keep and drop lists above.
 
 ## Excerpts
 
