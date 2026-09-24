@@ -10,13 +10,24 @@
 - Decide whether the six projects whose Mac builds were disabled get self-hosted runners on the MacBook Pro and home-server, or stay manual (since 2026-09-16) (unverified)
 - Establish why `xcode-27` appears as a `runs-on` label with no registered runner before that label is reused (since 2026-09-16)
 - `ames-plugins-local/marketplace-validation.yml` is still on `macos-latest`, which bills at 10x if it fires (since 2026-09-16)
-- Remove bluenews.online and oliverames.github.io from the GA4 cross-domain list; steps are on the issue (since 2026-09-04; [#4](https://github.com/oliverames/cerulean-news/issues/4))
-- Submit the sitemap in Search Console and Bing, and change the `/trends/` redirect rule from 302 to 301 in Cloudflare; the 404, robots, sitemap, and pages.dev noindex checks passed live on 2026-09-24 (since 2026-09-24)
-- Finish the sentiment re-score: the one-time run reached 100 of 486 pending items (oldest first), and scheduled runs do not continue it. Needs Oliver's go-ahead for a `rescore_sentiment` dispatch with `summary_max_requests` about 40 (since 2026-09-24)
+- Finish the Gemini sentiment re-score of the pre-boundary archive: approved; since #11 each dispatch resumes where the last stopped, but runs on 2026-09-24 hit the Gemini quota (HTTP 429 on flash and flash-lite). Dispatch `rescore_sentiment` with `summary_max_requests=40` again after the quota resets (since 2026-09-24)
+- Decide whether Jev should re-judge the pre-boundary archive (inclusion and sentiment) at a raised cap; it spends TypeSafe credits and changes historical decisions (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Prove the `data/coverage-context.json` VT Basic storyline in production with a re-score sweep that completes (`rescore_sentiment` with a small `summary_max_requests`) (since 2026-08-27) (unverified)
 - The calendar and briefs recall gap is a product decision that needs Oliver's call before any matcher work (since 2026-08-27) (unverified)
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
+
+## 2026-09-24 - Admin follow-ups, re-score resume, and clip grouping
+
+**Request**: Do the approved admin follow-ups (GA4, sitemap, `/trends/` redirect), finish the sentiment re-score, and fix bugs found on the way.
+
+**Admin**: Cloudflare rule 2 on cerulean.news (`/sentiment`, `/sentiment/`, `/trends/` to `/trends`) is now 301; `/rss` and `/json` stay 302. GA4 stream G-X1CZ0X5LMG now lists only `cerulean.news` for cross-domain measurement; the pages.dev suggestion was left unaccepted; #4 closed. Search Console had no property for oliverames@gmail.com, so a `cerulean.news` Domain property was created and verified with a `google-site-verification` TXT record added by hand in Cloudflare DNS (Google's offer to take Cloudflare account access was declined). Keep that TXT record. The sitemap was submitted successfully. Bing Webmaster Tools was skipped at Oliver's request.
+
+**Re-score (#11)**: Capped re-score runs restarted on the same oldest items every time, so they could never finish. Gemini now stamps each scored brand item with `SENTIMENT_RUBRIC_VERSION` ("2026-09-24"), the stamp persists through the archive and audit feed, and a re-score selects only items not yet on that version (02b9ef1). The resumed run logged 417 pending, down from 486, and stopped after 40 items on a Gemini HTTP 429 quota error, as did the push run before it. Jev scores sentiment only for items first seen after `JEV_ENFORCE_AFTER` (2026-09-21T18:13:31Z) and runs after Gemini, so its confident calls win there; the Gemini re-score matters for the older archive.
+
+**Grouping (#12)**: `isGroupableStory` skipped every media tracker item, so the 464 Vermont clip-email rows sat beside crawled reprints (the North Star Health pharmacy story showed twice). The exclusion was dropped; brand clips stay ungrouped through the category check (12300e3). On the live archive 79 Vermont clips join a group, 37 as lead.
+
+**Sentiment on the reader**: Checked after Oliver's question. It renders: every story on the Blue Cross VT page shows it (239 of 287 brand items are scored). On All news it is rare because only brand coverage is scored and the new Vermont clips dilute the page.
 
 ## 2026-09-24 - Clip-email seed rollout and section filter layout
 
