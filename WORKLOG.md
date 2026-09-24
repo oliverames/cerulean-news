@@ -4,7 +4,9 @@
 - Run the publish workflow once with `rebuild_brand_excerpts` and `rescore_sentiment` checked, after PR #9 merges (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Sample the 451 proposed additions and 234 removals from `artifacts/jev-evaluation/` into the Label Desk from a Mac session (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
-- When Oliver's larger clip-email export arrives: rewrite the national inclusion rule and the broad-national code rule against it, add the emails' Blue Cross VT and Vermont articles to the tracker seed, then re-judge the archive with Jev at a raised cap (about 1,000 requests) (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
+- Oliver: create the clip-email passphrase in 1Password, add it as the `CLIP_EMAILS_PASSPHRASE` repo secret, encrypt `clip-emails.json` with gpg, and commit only `data/clip-emails.json.gpg` (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
+- After the clip-email seed is live: rewrite the broad-national code rule against the 967 national rows, measure Jev on held-out recent digests, then re-judge the archive with Jev at a raised cap (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
+- Decide on the missing-article fixes in `docs/2026-09-24-missing-articles.md` (topic terms, replacement Google News queries, new sources, two body-scan changes) (since 2026-09-24)
 - Decide on keyword-miss rescue; the 2026-09-24 analysis recommends against it (since 2026-09-21; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Watch the small September Actions storage charge (about $0.44 net), the kind of overage that can re-trip a zero spending limit (since 2026-09-18) (unverified)
 - Decide whether the six projects whose Mac builds were disabled get self-hosted runners on the MacBook Pro and home-server, or stay manual (since 2026-09-16) (unverified)
@@ -34,9 +36,11 @@
 
 **Clip emails, BCBSA, and sections**: Oliver shared five daily clip emails (85 articles) and wants every one in the feed. Only 23 of the 85 are included today. Most national rejections come from the broad-national code rule, which rejects 998 archived items. The rule rewrite and a Jev re-judge of the archive wait for his larger export. BCBSA coverage is now a code-level include; a dry run over 4,602 archived items changed exactly the three BCBSA stories. The reader has a section filter (All, Blue Cross VT News, Vermont Healthcare News, National Healthcare News) driven by a new `section` field, and the selection stays in the URL.
 
+**Clip-email corpus**: Oliver's export of Kristina's emails yielded 112 digests with 1,560 unique articles after link cleaning (per-recipient tokens removed). Blue Cross VT (127) and Vermont (466, including Industry News Vermont items) rows are must-include through the tracker backfill; national rows (967) are Jev references only. The list is too large for a secret, so the workflow decrypts a committed `data/clip-emails.json.gpg` with a passphrase secret. An offline build published all 593 must-include rows under the right section.
+
 **SEO**: The site gained robots.txt, a sitemap, a real 404 page, and noindex on pages.dev hosts and the audit JSON. Metadata and structured data were tightened, and the feeds now point at canonical URLs. The audit is `docs/2026-09-24-seo-audit.md`. The README now states the 30-minute cadence.
 
-**Verification**: `npm test` passes 270 of 270. Nothing here is verified in production yet.
+**Verification**: `npm test` passes 271 of 271. Nothing here is verified in production yet.
 
 ---
 

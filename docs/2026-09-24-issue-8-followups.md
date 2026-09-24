@@ -69,6 +69,28 @@ The model rules were widened at the same time, because the earlier "outcome must
 
 Done now: BCBSA coverage is a code-level include, so the association's AI-billing analysis, Fierce Healthcare's report on it, and the CFO appointment are included. A dry run over all 4,602 archived articles changed exactly those three. Jev already skips articles a code rule includes.
 
+## Clip-email corpus
+
+Later on 2026-09-24 Oliver supplied an export of Kristina's emails. It held 125 daily clip digests from March 5 to September 24, 2026, plus about 200 unrelated internal emails. Only the digests were used; recipient lists, message text, and the unrelated emails were discarded, and the raw export was never written to the repository. Thirteen March digests carried no article list. The other 112 yielded 1,589 article rows, and 1,560 remained after link cleaning and deduplication.
+
+Links were stripped of every query parameter except the few that identify a page, which removed per-recipient newsletter tokens such as `_hsenc`, `user_id`, and `mc_eid`. Two email-security redirect wrappers and four paywall lead-capture links were unwrapped to the article URL.
+
+Sections before mid-September used a single "Industry News" heading. Its Vermont items were separated by outlet (a Vermont or New England outlet, unless the headline names another state or a national subject) or by a Vermont place or institution in the headline. Oliver approved treating those as Vermont news.
+
+| Section | Rows | Role |
+| --- | --- | --- |
+| Blue Cross VT News | 127 | Must-include; Jev reference |
+| Vermont Healthcare News, including Industry News Vermont items | 466 | Must-include; Jev reference |
+| National Healthcare News and Industry News national items | 967 | Jev reference only |
+
+Against the live audit, before the change: 115 of the 130 Blue Cross VT rows and 44 of the 86 explicit Vermont rows were already included. An offline build with the merged seed put all 593 must-include rows in the published feed under the right section. No Vermont clip was scored for sentiment, and the visible feed grew from 1,830 to 2,212 articles.
+
+Jev cannot be fine-tuned; TypeSafe documents shared weights with reference material as the customization path. "Training" therefore means the reference library: every seed row is an inclusion example, and each request retrieves the eight most similar. The library grows from about 190 tracker rows to about 1,750.
+
+Storage follows GitHub's documented method for secrets over 48 KB. Only `data/clip-emails.json.gpg` is committed. The `CLIP_EMAILS_PASSPHRASE` secret decrypts it in Actions, the rows merge into the materialized tracker seed, and the plaintext is deleted. Without the file or the secret, the step does nothing.
+
+Next, in order: Oliver encrypts and commits the file and adds the secret; a run confirms the counts; the broad-national code rule is rewritten against the national rows; a held-out set of recent digests measures Jev's inclusion agreement; then Jev re-judges the archive at a raised cap. Missing-article fixes are in `docs/2026-09-24-missing-articles.md`.
+
 ## Excerpts
 
 Of 219 brand-eligible articles, 109 give Jev an excerpt with no Blue Cross mention. Most are rate-review and hospital-budget stories. Their stored snippets start at an earlier topic term, such as the Green Mountain Care Board, because `buildSnippet` centered on the earliest mention or topic match. PR #9 centers on the brand mention whenever the fetched body names the brand.
