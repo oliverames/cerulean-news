@@ -82,6 +82,7 @@ Renderers must not add their own unsubscribe link or disclaimer. The Worker appe
 ```
 
 - Written by `buildMonthlyReportPages` in `src/monthly-report.js`, beside the report pages, for the last complete Eastern month. `month` is `YYYY-MM` and must be the current or previous UTC month. On day 1 it is the month that just ended.
+- The body carries a short "What stood out" section after the summary when Gemini findings exist for the month. It is labeled AI-generated and is left out without a key or on any failure, so the contract is unchanged: `html` and `text` are the same fields either way. The Vermont figure reads "n/a" for a month whose total is not available.
 - Dedupe key: `month`. Publish it before 13:05 UTC on day 1. Ticks retry through day 3.
 
 Each body (`html` plus `text`) may be up to 2 MiB. Cloudflare's own message limit is 5 MiB.

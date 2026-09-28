@@ -3,6 +3,7 @@
 import { readText } from "./fsx.js";
 import { normalizeJevCache, normalizeJevBaseline } from "./jev-relevance.js";
 import { normalizeBrandAlertState } from "./brand-alerts.js";
+import { normalizeMonthlyReportState } from "./monthly-report-state.js";
 import {
   cleanStorySnippet,
   cleanText,
@@ -128,6 +129,7 @@ export function normalizeCrawlState(value = {}) {
     articleCache: normalizeArticleCache(value.articleCache),
     jevCache: normalizeJevCache(value.jevCache),
     brandAlerts: normalizeBrandAlertState(value.brandAlerts),
+    monthlyReports: normalizeMonthlyReportState(value.monthlyReports),
   };
 }
 
@@ -283,7 +285,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
 
 // Stories stay in the archive even after they fall out of their source
 // feeds, so the page can look back in time. Bounded to keep the JSON sane.
-const ARCHIVE_MAX_AGE_DAYS = parsePositiveInteger(
+export const ARCHIVE_MAX_AGE_DAYS = parsePositiveInteger(
   process.env.ARCHIVE_MAX_AGE_DAYS,
   92,
 );
