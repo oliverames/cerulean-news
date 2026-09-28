@@ -27,6 +27,7 @@ import {
 } from "./relevance.js";
 import { groupRelatedStories } from "./story-groups.js";
 import { shouldScoreSentiment } from "./summaries.js";
+import { quotedSpokespeopleForItem, spokespersonTitles } from "./quotes.js";
 
 const SITE_URL = process.env.SITE_URL?.trim() || "";
 const FEED_URL = resolveFeedUrl();
@@ -301,6 +302,21 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
   // The audit archive keeps no grouping; it is recomputed on every run.
   const groups = includeRejected ? new Map() : groupVisibleStories(items);
   const homeUrl = siteHomeUrl(options.siteUrl ?? SITE_URL);
+  // feature: spokesperson-quotes
+  // Brand coverage only. The names come from the item's own text and from the
+  // article body scan kept by enrichment.
+  const quotedByItem = new Map(
+    outputItems.map((item) => [
+      item,
+      itemCategory({
+        ...item,
+        matchedTerms: canonicalizeMatchedTerms(item.matchedTerms || []),
+      }) === CATEGORY_BRAND
+        ? quotedSpokespeopleForItem(item)
+        : undefined,
+    ]),
+  );
+  // /feature: spokesperson-quotes
 
   return {
     version: "https://jsonfeed.org/version/1.1",
@@ -320,6 +336,12 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
     totalItemCount: items.length,
     visibleItemCount: items.length - rejectedItemCount,
     rejectedItemCount,
+    // feature: spokesperson-quotes
+    // Titles for the names quoted in this feed, so the reader can show them.
+    spokespeopleTitles: spokespersonTitles([
+      ...new Set([...quotedByItem.values()].flatMap((names) => names || [])),
+    ]),
+    // /feature: spokesperson-quotes
     audit: includeRejected || undefined,
     // Persist successful deliveries without exposing webhook platform names
     // in the publicly deployed audit archive.
@@ -442,6 +464,14 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
         // Items sharing an id report the same event; the reader shows the
         // newest one and lists the rest beneath it as other coverage.
         storyGroupId: groups.get(item)?.id,
+        // Blue Cross VT staff quoted in the story's text, brand items only.
+        quotedSpokespeople: quotedByItem.get(item),
+        // Names found in the article body, which is not kept. Audit only, so
+        // the next run's archive still has them.
+        bodyQuotedSpokespeople:
+          includeRejected && item.bodyQuotedSpokespeople?.length
+            ? item.bodyQuotedSpokespeople
+            : undefined,
       };
     }),
   };

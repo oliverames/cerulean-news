@@ -1,0 +1,29 @@
+[
+  {
+    "name": "Beth Roberts",
+    "aliases": ["Beth Ann Roberts", "Beth-Ann Roberts"],
+    "title": "President and CEO",
+    "since": "2026-01-10"
+  },
+  {
+    "name": "Don George",
+    "aliases": [],
+    "title": "President and CEO",
+    "until": "2026-01-10"
+  },
+  {
+    "name": "Kristina Massari",
+    "aliases": ["Kristina Masseri"],
+    "title": "Spokesperson"
+  },
+  {
+    "name": "Andrew Garland",
+    "aliases": [],
+    "title": "Vice President, Client Relations and External Affairs"
+  },
+  {
+    "name": "Ruth Greene",
+    "aliases": [],
+    "title": "Chief Financial Officer"
+  }
+]

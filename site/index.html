@@ -650,6 +650,19 @@
       const searchInputEl = document.getElementById("search-input");
 
       let allItems = [];
+      // feature: spokesperson-quotes
+      // "Quotes: Name (title)" for the meta line, from the feed's own titles.
+      let spokespersonTitles = {};
+      function quotesLabel(item) {
+        const names = Array.isArray(item.quotedSpokespeople)
+          ? item.quotedSpokespeople
+          : [];
+        if (names.length === 0) return "";
+        return `Quotes: ${names.map((name) => (
+          spokespersonTitles[name] ? `${name} (${spokespersonTitles[name]})` : name
+        )).join(", ")}`;
+      }
+      // /feature: spokesperson-quotes
       let resultsAnnouncementTimer = null;
       const pageSize = 25;
       const previewPromotionPattern =
@@ -1004,6 +1017,7 @@
             date,
             item.sourceName,
             item.access,
+            quotesLabel(item), // feature: spokesperson-quotes
           ].filter(Boolean).join(" · ");
           li.appendChild(meta);
 
@@ -1176,6 +1190,7 @@
           }
           const data = await response.json();
           allItems = data.items || [];
+          spokespersonTitles = data.spokespeopleTitles || {}; // feature: spokesperson-quotes
           const generatedDate = new Date(data.generatedAt);
           const generated = Number.isNaN(generatedDate.valueOf())
             ? ""
