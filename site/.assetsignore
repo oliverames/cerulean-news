@@ -5,3 +5,5 @@ feed.json
 feed.rss
 feed-audit.json
 .nojekyll
+# Source for share-card.png, not a page.
+share-card.html

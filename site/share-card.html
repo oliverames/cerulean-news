@@ -1,0 +1,74 @@
+<!doctype html>
+<!-- Source for share-card.png, the 1200x630 link-preview image named by og:image.
+     Not deployed (see .assetsignore). Rebuild with:
+       node scripts/render-share-card.mjs
+     Text only, in the site's accent blue. No insurer marks. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex">
+    <title>Cerulean News share card</title>
+    <style>
+      html, body { margin: 0; }
+      body {
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        position: relative;
+        background: #0033a0;
+        color: #fff;
+        font-family: Helvetica, Arial, sans-serif;
+      }
+      .copy {
+        position: absolute;
+        left: 96px;
+        right: 96px;
+        top: 150px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 132px;
+        line-height: 1.02;
+        font-weight: 700;
+        letter-spacing: -2px;
+      }
+      p.tagline {
+        margin: 28px 0 0;
+        font-size: 42px;
+        line-height: 1.25;
+        max-width: 1000px;
+        color: #dbe6f7;
+      }
+      p.domain {
+        position: absolute;
+        left: 96px;
+        bottom: 64px;
+        margin: 0;
+        font-size: 30px;
+        letter-spacing: 1px;
+        color: #b7cbe9;
+      }
+      /* The reader's tricolor rule, at poster scale. */
+      .tricolor {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 22px;
+        display: flex;
+      }
+      .tricolor span { flex: 1; }
+      .tricolor .c1 { background: #fff; }
+      .tricolor .c2 { background: #111; }
+      .tricolor .c3 { background: #418fde; }
+    </style>
+  </head>
+  <body>
+    <div class="copy">
+      <h1>Cerulean News</h1>
+      <p class="tagline">Vermont health care and health insurance news</p>
+    </div>
+    <p class="domain">cerulean.news</p>
+    <div class="tricolor"><span class="c1"></span><span class="c2"></span><span class="c3"></span></div>
+  </body>
+</html>

@@ -28,6 +28,7 @@ import {
   triggerWebhooks,
 } from "./alerts.js";
 import { buildJsonSummary, buildRss, writeOutput } from "./outputs.js";
+import { prerenderIndex } from "./prerender.js";
 
 function resolveRssOutputPath() {
   if (process.env.RSS_OUTPUT_PATH) {
@@ -265,6 +266,17 @@ export async function generateFeed({
     jsonOutputPath,
     auditJsonOutputPath,
   );
+  // Fill the reader's first page into site/index.html next to the feed, so
+  // crawlers see stories. Best-effort: a prerender problem must not fail a run
+  // whose feeds are already written.
+  try {
+    await prerenderIndex(
+      path.join(path.dirname(jsonOutputPath), "index.html"),
+      jsonSummary.items,
+    );
+  } catch (error) {
+    console.warn("Prerender failed:", String(error));
+  }
   if (articleCacheStore) {
     await articleCacheStore.persist(
       crawlState.articleCache,

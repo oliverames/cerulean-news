@@ -305,6 +305,14 @@ jobs:
           fetch_live feed.json json
           fetch_live feed.rss rss
 
+      # Full runs prerender the reader's first page during generation. A
+      # static-only deploy skips generation, so fill the committed page's
+      # empty markers from the live feed just reused above; otherwise the
+      # deploy would ship the reader with no stories in its HTML.
+      - name: Prerender reader for static deploy
+        if: steps.mode.outputs.full != 'true'
+        run: node src/prerender.js site/index.html site/feed.json
+
       # The site moved from GitHub Pages to Cloudflare Pages on 2026-09-03 so
       # the repo could go private (GitHub Free only serves Pages from a public
       # repo). Direct upload from the runner; the custom domain cerulean.news
