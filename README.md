@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <code>97 default sources</code> &bull;
+  <code>146 default sources</code> &bull;
   <code>RSS + JSON Feed</code> &bull;
   <code>Cloudflare Pages refresh several times a day</code>
 </p>
@@ -63,11 +63,14 @@ The default source list combines Vermont outlets, official Blue Cross and health
 | Category | Coverage | Notes |
 | --- | --- | --- |
 | Vermont news outlets | WCAX, VTDigger, Vermont Public, Seven Days, MyNBC5, MyChamplainValley, Burlington Free Press, The Rake Vermont, Poultney Journal, Magic 96.7, The Vermont Cynic, Addison Independent, Valley News, Caledonian-Record, The Chronicle/Barton Chronicle, The Commons, The Bridge, Community News Service, Waterbury Roundabout, and more | RSS, Atom, first-party sitemaps, outlet search feeds, or site-scoped Google News depending on what each outlet exposes; blocked primary feeds can fall back to site-scoped Google News |
+| State health agencies and officials | Green Mountain Care Board, Department of Financial Regulation, Department of Vermont Health Access, Vermont Health Connect, Department of Health, Agency of Human Services, Department of Mental Health, DAIL, Governor, Attorney General, Joint Fiscal Office, Office of the Health Care Advocate | Their own RSS feeds, except the Joint Fiscal Office, which is a site-scoped Google News search. Added 2026-09-28 |
+| Hospitals and health organizations | Northwestern Medical Center, NVRH, Copley, Gifford, Springfield, Grace Cottage, Brattleboro Memorial, Brattleboro Retreat, Rutland Regional, SVMC, North Country Hospital, White River Junction VA, Dartmouth Health, UVM News, Vermont Medical Society, Vermont Care Partners | WordPress feeds where they work; site-scoped Google News where a site refuses direct fetches or has no feed. Rarely updated sites use a 90-day window |
+| Other Vermont and neighboring outlets | Compass Vermont, Vermont Political Observer, Public Assets Institute, Daybreak, WVMT, WDEV, ORCA Media, Vermont Chamber of Commerce; New Hampshire Public Radio, The Keene Sentinel, Press-Republican, WAMC, and The Berkshire Eagle | Neighboring outlets are searched with Vermont in the query |
 | Official pages | UVM Health Newsroom, BCBSA Association News | Public listing pages are parsed because normal RSS feeds are not available. The site does not request anything from bluecrossvt.org (policy in `src/politeness.js`) |
 | Curated backfill | A hand-kept clip log, read from `data/media-tracker-seed.json` | 186 clips. The file is not committed: the workflow materializes it from the `MEDIA_TRACKER_SEED_B64` secret (gzip + base64), and a local run needs a copy on disk. Re-emitted every run so the archive self-heals. Most of the list predates this crawler or sits behind outlets that block us, so no crawl can recover it |
 | Search feeds | Blue Cross VT brand searches (site-, phrase-, Boolean-, and full-name-scoped), Vermont health searches, health insurance search, single-site health searches for NYT, the Washington Post, WSJ, AP, Axios, NBC News, and Becker's Payer Issues, outlet fallbacks | Google News degrades long OR queries, so each brand search is split into small homogeneous chunks, and the national searches are one site each (the long OR versions returned mostly off-topic results on 2026-09-24); search feeds are capped and bounded to avoid turning the reader into generic health news |
 | National health feeds | ABC Health, CBS Health, CNN Health, STAT, Fierce Healthcare, Healthcare Dive, KFF Health News, The Hill, NPR Health | Broad national items are filtered unless they have a payer, policy, coverage, or regional angle |
-| Payer trade press | Becker's Payer Issues, Becker's Hospital Review, Modern Healthcare, Health Payer Specialist | All three block direct crawling (403, or a redirect to a login), so each is a Google News search naming Blue Cross VT explicitly. Scoping to "Vermont" alone was measurably too loose. Health Payer Specialist is barely indexed and normally returns nothing |
+| Payer trade press | Becker's Payer Issues, Becker's Hospital Review, Becker's ASC Review, Modern Healthcare, Health Payer Specialist | All three block direct crawling (403, or a redirect to a login), so each is a Google News search naming Blue Cross VT explicitly. Scoping to "Vermont" alone was measurably too loose. Health Payer Specialist is barely indexed and normally returns nothing |
 | Social surfaces | Public Facebook pages for selected Vermont outlets | Parked by default; set `ENABLE_SOCIAL_SOURCES=true` for a deliberate one-off Facebook collection run |
 
 Direct Blue Cross VT mentions are kept indefinitely. Other stories are kept for three months. (The 2026 backfill search that covered Jan. 1 through June 13, 2026 has been retired; its items remain in the archive.)

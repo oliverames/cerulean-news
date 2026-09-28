@@ -218,7 +218,7 @@ test("default sources cover recurring clip-log outlets", () => {
         .join(" "),
     ).join(" "),
   ).replaceAll("+", " ");
-  assert.equal(DEFAULT_SOURCES.length, 104);
+  assert.equal(DEFAULT_SOURCES.length, 146);
 
   const expectedHosts = [
     "bcbs.com",
@@ -244,14 +244,14 @@ test("default sources cover recurring clip-log outlets", () => {
     "northstarmonthly.com",
     "countycourier.net",
     "essexreporter.com",
-    "hardwickgazette.com",
+    "hardwickgazette.org",
     "hinesburgrecord.org",
     "vermontjournal.com",
     "manchesterjournal.com",
     "vtnewsguide.com",
     "suncommunitynews.com",
     "miltonindependent.com",
-    "montpelierbridge.org",
+    "thebridgevt.org",
     "thenorthfieldnews.com",
     "theislandernewspaper.com",
     "nyvtmedia.com",
@@ -260,7 +260,7 @@ test("default sources cover recurring clip-log outlets", () => {
     "mtngazettevt.com",
     "valleyreporter.com",
     "willistonobserver.com",
-    "dvalnews.com",
+    "deerfieldvalleynews.org",
     "thevermontstandard.com",
     "vtcommunitynews.org",
     "waterburyroundabout.org",
@@ -385,6 +385,7 @@ test("default sources cover recurring clip-log outlets", () => {
     "Manchester Journal",
     "Milton Independent",
     "Williston Observer",
+    "The Berkshire Eagle",
   ]);
   for (const sourceName of townNewsSourceNames) {
     const source = DEFAULT_SOURCES.find((candidate) => candidate.name === sourceName);
@@ -4934,6 +4935,12 @@ test("every curated source is either a registered Vermont outlet or an explicit 
     "Google News Health Insurance Search",
     "Google News Health Trade Search",
     "Google News National Health Policy Search",
+    // Neighboring outlets, searched with Vermont in the query.
+    "New Hampshire Public Radio",
+    "The Keene Sentinel",
+    "Press-Republican",
+    "WAMC Northeast Public Radio",
+    "The Berkshire Eagle",
     // A curated backfill spans every outlet the team logged, so it has no
     // single home region of its own.
     "Media Tracker Backfill",
