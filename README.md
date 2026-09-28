@@ -151,8 +151,17 @@ Each story can include:
 | Why it is here | Short relevance reason for a reader who wants to skim quickly |
 | Also covered by | Other outlets' reports of the same event, linked by outlet name under the newest one |
 | Comments | Publicly parseable article or post comments, hidden by default |
+| Quotes | `Quotes: Name (title)` on the meta line of press coverage that quotes Blue Cross VT staff |
 
 When several outlets report one event, the reader and RSS feed show it once, led by the newest report. An "Also covered by" line beneath it links each other outlet's report by name, with that report's headline on hover. `src/story-groups.js` compares headlines and summaries published within three days, including shared figures such as "760,000." An article joins a group only when it matches more than half of the group's articles. Blue Cross VT coverage, letters, columns, and roundups are not grouped, and one outlet's own articles group only when their headlines are nearly identical. Grouping is display only. The JSON Feed keeps every article and marks group members with a shared `storyGroupId`, so coverage counts and the trends page are unchanged. Search runs before grouping, so a search for one outlet still finds its report.
+
+### Spokesperson quotes
+
+`src/quotes.js` flags Blue Cross VT coverage that quotes the insurer's staff. `data/spokespeople.json` lists each person as `name`, `aliases`, `title`, and optional `since` and `until` dates (`YYYY-MM-DD`, inclusive). Add someone only after they have been quoted in press coverage, and keep at least two article links as evidence in the commit message. A story counts only when a listed name sits beside attribution language in its snippet, feed description, or publisher preview, or in the article body read during enrichment. Attribution means "said", "told", "according to", "spokesperson", or a closing quote mark directly before the name. A bare mention such as "Beth Roberts took over on Saturday" is not a quote, and neither is model-written summary text.
+
+Collisions with common names are handled three ways. A last name alone counts only after the full name has appeared in the same text. A name tied to another organization ("Mayor Beth Roberts", "Beth Roberts, a nurse at UVM") is skipped. A person with `since` or `until` is matched only on stories published inside that window, and an undated story cannot match a dated role.
+
+The result is published as `quotedSpokespeople` on Blue Cross VT items in `feed.json`, with the titles in a top-level `spokespeopleTitles` map for the reader. The article body is not kept after enrichment, so its result is stored as `bodyQuotedSpokespeople` in the article cache and the audit JSON, and the public feed omits it.
 
 The browser does not recrawl sources. GitHub Actions does the collection and deploys the latest feed several times a day; reloading the page loads the latest published feed.
 

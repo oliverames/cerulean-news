@@ -22,6 +22,7 @@ import {
 import { parseFacebookRelativeDate } from "./parsers.js";
 import { itemCategory, itemOutletName } from "./relevance.js";
 import { isSocialSourceItem, socialSourcesEnabled } from "./sources.js";
+import { bodyQuoteField } from "./quotes.js";
 
 const CRAWL_STATE_VERSION = 1;
 
@@ -111,6 +112,7 @@ function normalizeArticleCache(value) {
       articleError: normalizeString(entry.articleError),
       comments: Array.isArray(entry.comments) ? entry.comments : [],
       matchSource: normalizeString(entry.matchSource),
+      ...bodyQuoteField(entry.bodyQuotedSpokespeople),
       articleHeaders: normalizeHeaderState({ article: entry.articleHeaders })
         .article || {},
     };
@@ -223,6 +225,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
           comments: Array.isArray(item.comments) ? item.comments : [],
           articleError: item.articleError || "",
           matchSource: item.matchSource || "",
+          ...bodyQuoteField(item.bodyQuotedSpokespeople),
         });
         archivedItems.push({
           sourceName: item.sourceName,
@@ -251,6 +254,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
           comments: Array.isArray(item.comments) ? item.comments : [],
           articleError: item.articleError || "",
           matchSource: item.matchSource || "",
+          ...bodyQuoteField(item.bodyQuotedSpokespeople),
         });
       }
       loadedPath = jsonOutputPath;

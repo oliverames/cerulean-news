@@ -31,6 +31,7 @@ import {
 import { fetchText, throttleRequest } from "./fetching.js";
 import { decodeViaRelay, shouldProxy } from "./egress.js";
 import { isLikelyPaywalled, itemCategory } from "./relevance.js";
+import { bodyQuoteField, detectQuotedSpokespeople } from "./quotes.js";
 
 const googleDecoder = new GoogleDecoder();
 
@@ -224,6 +225,7 @@ function writeArticleCache(articleCache, keys, item, resolvedLink, details, now)
     articleError: details.articleError || "",
     comments: Array.isArray(details.comments) ? details.comments : [],
     matchSource: details.matchSource || "",
+    ...bodyQuoteField(details.bodyQuotedSpokespeople),
     articleHeaders: {
       etag: details.articleHeaders?.etag || "",
       lastModified: details.articleHeaders?.lastModified || "",
@@ -300,6 +302,7 @@ function itemFromArticleCache(
     comments: mergeComments(item.comments, cached.comments),
     articleError: cached.articleError || "",
     matchSource,
+    ...bodyQuoteField(cached.bodyQuotedSpokespeople),
   };
 }
 
@@ -640,6 +643,7 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
         comments: mergeComments(item.comments, cached.comments),
         articleError: cached.articleError,
         matchSource,
+        ...bodyQuoteField(cached.bodyQuotedSpokespeople),
       };
       matchedCachedItem = cachedItem;
       if (!previewRequested || cachedItem.previewChecked === true) {
@@ -827,6 +831,11 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
     // terms scan feed title/description only — article bodies mention
     // "health care" too incidentally for body-matching to stay precise.
     const articleBrandMatches = findMentionTerms(articleText, MENTION_TERMS);
+    // The body is not kept, so quotes are read from it now and the names are
+    // carried in the cache and the archive.
+    const bodyQuotes = articleText
+      ? detectQuotedSpokespeople(articleText, { at: item.pubDate })
+      : inheritedCache?.bodyQuotedSpokespeople || [];
 
     // Facebook posts (and any source flagged requireBrandMatch) are only
     // kept when they mention Blue Cross itself — outlets post dozens of
@@ -940,6 +949,7 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
           comments,
           articleError,
           matchSource,
+          bodyQuotedSpokespeople: bodyQuotes,
           articleHeaders: item.articleHeaders,
         },
         now,
@@ -987,6 +997,7 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
       comments,
       articleError,
       matchSource,
+      ...bodyQuoteField(bodyQuotes),
     };
   });
 
