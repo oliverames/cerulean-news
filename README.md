@@ -349,6 +349,8 @@ The [storylines page](https://cerulean.news/storylines) follows ongoing subjects
 | `JEV_RELEVANCE_MAX_ITEMS` | No | `25` | Maximum new article evaluations per run; cached evaluations do not consume this cap. At about five scheduled runs a day, the default allows roughly 125 evaluations a day. The publish workflow's `jev_max_items` dispatch input raises it for one manual run |
 | `JEV_RELEVANCE_CONCURRENCY` | No | `2` | Jev requests in flight at once. Each request takes about 25 seconds, so a raised cap needs more in flight to fit the 30-minute job; the `jev_concurrency` dispatch input sets it for one run |
 | `JEV_RELEVANCE_TIMEOUT_MS` | No | `30000` | Timeout for a single Jev request |
+| `FEEDBACK_EXPORT_URL` | No | empty | The mail Worker's vote export, `https://cerulean.news/api/mail/feedback/export`. The publish workflow sets it. See Team feedback below |
+| `FEEDBACK_EXPORT_TOKEN` | For team feedback | empty | Bearer token for the export, from the Actions secret of the same name. With either variable unset the run ignores team feedback |
 
 ### Jev article evaluation
 
@@ -373,6 +375,18 @@ The v2 inclusion question shares the existing Gemini policy: brand coverage, Ver
 Successful evaluations are cached by the exact request, rubric versions, and model in the audit feed's `crawlState.jevCache`. Cached answers are reapplied after summaries, and the default 25-call cap advances to unevaluated articles. Changed input or rubric invalidates the matching cache entry. The cache retains typed signals only, and entries for departed candidates are pruned. Reader JSON and RSS do not contain the cache.
 
 `crawlMetrics.jev` and Actions logs report successful calls, failures, cached evaluations, remaining candidates, and inclusion/sentiment disagreements with the decision each article had before Jev first changed it (`jevBaseline`), so an applied answer is not counted as agreeing with itself. Missing credentials, failed requests, or malformed answers preserve the existing decisions and remain observable. Failed evaluations retry on a future run. TypeSafe overload and rate-limit responses receive one bounded retry, respecting short `Retry-After` delays.
+
+### Team feedback
+
+Signed-in team members can vote on each story from the reader, and the votes feed Jev continuously. Each story's meta line gains "Keep · Drop · Sentiment is wrong" for a team member, and the public reader is unchanged. Anyone at bcbsvt.com can sign in with an emailed link, with no subscription needed, and Oliver's own addresses sign in as admins. Sign-in, sessions, and votes live in the mail Worker. See `mail/README.md` for the routes and the setup steps. Admins can list every vote and undo any of them at `/feedback-admin`, which is behind the password gate and out of the sitemap.
+
+A run fetches the current votes early, before summaries and Jev, and applies them on that run (`src/feedback.js`):
+
+- **Drop** excludes the story with the reason "Excluded by team feedback." Jev skips it, and it becomes an exclusion reference for Jev beside the editorial rejections. A tracker clip keeps its inclusion.
+- **Keep** keeps the story even if a model would drop it, and it becomes an inclusion reference. Deterministic rules such as obituaries and job boards still win, and an editorial rejection outranks a keep.
+- **Sentiment** replaces the published label with the corrected one. Jev's label and its 0-100 score do not overwrite it. It becomes a sentiment reference.
+
+Where people disagree, the latest vote wins on each question, and a tie keeps the story. Undoing a vote restores the story as it was before the vote on the next run. The record that makes that possible is `crawlState.feedback` in the audit file, which holds story hashes and label names and no names of people. A failed fetch keeps what is applied and reverts nothing. `crawlMetrics.feedback` counts the votes, applications, reverts, and votes that could not apply. A new reference can change which examples Jev retrieves for similar stories, so a vote can make Jev re-evaluate some cached stories at the normal per-run cap.
 
 ### Offline archive comparison
 
@@ -427,6 +441,7 @@ src/prerender.js   Prerenders the reader's first page and an ItemList into site/
 src/fsx.js         Indirection over file reads and writes, so the generator can
                    run somewhere without a filesystem
 src/egress.js      Routes hosts that refuse the runtime's IP range through a relay
+src/feedback.js    Fetches the team's votes from the mail Worker and applies them before Jev
 site/index.html    Static text reader
 site/trends.html   Sentiment-over-time and share-of-voice charts
 site/share-of-voice.js  Share-of-voice counting, shared by the page and tests
@@ -475,7 +490,7 @@ The Node CLI and the test suite behave exactly as they always did.
 
 ## Email subscriptions
 
-Readers can subscribe at [/subscribe](https://cerulean.news/subscribe) to a daily digest, brand-mention alerts, or a monthly leadership report. Sign-up is double opt-in and every email carries a personal unsubscribe link. `mail/` is a separate Worker, `cerulean-news-mail`, that keeps subscribers in D1 and sends through Cloudflare Email Service. It fetches the content it mails from `digest.json`, `alerts.json`, and `reports/latest-email.json` on the public site. It is deployed by the dispatch-only `deploy-mail.yml` workflow and needs a few one-time account steps. See `mail/README.md` for the setup steps, the content contracts, and the sending limits.
+Readers can subscribe at [/subscribe](https://cerulean.news/subscribe) to a daily digest, brand-mention alerts, or a monthly leadership report. Sign-up is double opt-in and every email carries a personal unsubscribe link. `mail/` is a separate Worker, `cerulean-news-mail`, that keeps subscribers in D1 and sends through Cloudflare Email Service. It fetches the content it mails from `digest.json`, `alerts.json`, and `reports/latest-email.json` on the public site. It is deployed by the dispatch-only `deploy-mail.yml` workflow and needs a few one-time account steps. See `mail/README.md` for the setup steps, the content contracts, and the sending limits. The same Worker runs team sign-in and the reader's feedback votes (see Team feedback above).
 
 ## Development
 

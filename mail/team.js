@@ -188,7 +188,8 @@ const unauthorized = (ctx, request) =>
       extraHtml: `<p><a href="${escapeHtml(ctx.cfg.apiBase)}/team/signin">Team sign-in</a></p>`,
       json: { error: "unauthorized" },
     },
-    { "set-cookie": sessionCookie("", 0) },
+    // Clear a stale cookie, but send nothing to a visitor who has none.
+    readCookie(request, SESSION_COOKIE) ? { "set-cookie": sessionCookie("", 0) } : {},
   );
 
 // ------------------------------------------------------------------ sign-in

@@ -475,6 +475,9 @@ test("the vote routes need a valid team session", needsSqlite, async () => {
     assert.equal(response.status, 401, `${attempt.method} ${new URL(attempt.url).pathname}`);
   }
   assert.equal(rows(t, "SELECT * FROM feedback").length, 0);
+  // A visitor with no cookie is sent none, and a stale cookie is cleared.
+  assert.equal((await call(t, req("/feedback"))).headers.get("set-cookie"), null);
+  assert.match((await call(t, req("/feedback", { cookie: `${SESSION_COOKIE}=stale` }))).headers.get("set-cookie"), /Max-Age=0/);
   // Nothing about the export's or the sign-in's existence changes this.
   assert.equal((await call(t, req("/feedback", { cookie: `${SESSION_COOKIE}=garbage` }))).status, 401);
 });

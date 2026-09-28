@@ -718,6 +718,31 @@
       }
     </style>
     <!-- /feature: search-upgrades -->
+    <!-- feature: feedback -->
+    <style>
+      .feedback-link {
+        appearance: none;
+        background: none;
+        border: 0;
+        padding: 0;
+        color: var(--muted);
+        cursor: pointer;
+        font: inherit;
+        text-decoration: underline;
+      }
+
+      .feedback-link:hover { color: var(--fg); }
+      .feedback-link:disabled { cursor: default; text-decoration: none; }
+
+      ul.stories .feedback-picker {
+        margin: 0 0 2px;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .site-notes [hidden] { display: none; }
+    </style>
+    <!-- /feature: feedback -->
     <!-- feature: password-gate -->
     <link rel="stylesheet" href="gate.css">
     <script>
@@ -802,6 +827,9 @@
           aria-live="polite"
           aria-atomic="true"
         ></p>
+        <!-- feature: feedback -->
+        <p class="visually-hidden" id="feedback-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        <!-- /feature: feedback -->
 
         <ul class="stories" id="stories">
           <!-- feature: prerender. src/prerender.js fills this block at build time
@@ -839,6 +867,10 @@
           <dt>Email</dt>
           <dd><a href="subscribe">Get a daily digest, brand-mention alerts, or a monthly report by email</a>.</dd>
           <!-- /feature: email-subscribe -->
+          <!-- feature: feedback. Hidden unless feedback.js finds a team session. -->
+          <dt hidden>Team</dt>
+          <dd id="team-note" hidden></dd>
+          <!-- /feature: feedback -->
         </dl>
         <p class="copyright">&copy; <span id="copyright-year">2026</span> Ames Consulting, LLC. The site's source code is released under the <a href="https://opensource.org/license/mit">MIT License</a>; email <a href="mailto:oliver@ames.consulting">oliver@ames.consulting</a> for a copy.</p>
         <script>
@@ -850,6 +882,9 @@
     <!-- feature: search-upgrades -->
     <script src="search-tools.js"></script>
     <!-- /feature: search-upgrades -->
+    <!-- feature: feedback -->
+    <script src="feedback.js"></script>
+    <!-- /feature: feedback -->
     <script>
       const storiesEl = document.getElementById("stories");
       const sectionLinksEl = document.getElementById("section-links");
@@ -1235,6 +1270,9 @@
             quotesLabel(item), // feature: spokesperson-quotes
           ].filter(Boolean).join(" · ");
           li.appendChild(meta);
+          // feature: feedback (team members only; a no-op for everyone else)
+          if (window.CeruleanFeedback) CeruleanFeedback.decorate(li, item);
+          // /feature: feedback
 
           const headline = document.createElement("h2");
           headline.className = "headline";
@@ -1499,6 +1537,9 @@
         window.scrollTo(0, 0);
         readerTitleEl.focus({ preventScroll: true });
       });
+      // feature: feedback
+      if (window.CeruleanFeedback) CeruleanFeedback.start();
+      // /feature: feedback
       load();
     </script>
   </body>

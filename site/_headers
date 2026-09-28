@@ -15,3 +15,8 @@ https://:version.:project.pages.dev/*
 # state), public only because the workflow seeds from it. Not a search result.
 /feed-audit.json
   X-Robots-Tag: noindex
+
+# Team feedback votes, for admins. Behind the password gate and the Worker's
+# admin check, and never a search result. Not in the sitemap.
+/feedback-admin
+  X-Robots-Tag: noindex

@@ -10,6 +10,8 @@ Anyone can subscribe at [cerulean.news/subscribe](https://cerulean.news/subscrib
 
 This is a separate Worker, `cerulean-news-mail`, so the parked `worker/` build is untouched. It owns `cerulean.news/api/mail/*`, keeps subscribers in D1, sends through the Cloudflare Email Service `send_email` binding, and fetches the content it mails from the public site.
 
+The same Worker also runs team sign-in and the Keep, Drop, and "Sentiment is wrong" votes that feed Jev. That has its own section below, [Team feedback](#team-feedback).
+
 Email Sending is in public beta. It needs the Workers Paid plan and `cerulean.news` onboarded as a sending domain.
 
 ## Files
@@ -17,11 +19,18 @@ Email Sending is in public beta. It needs the Workers Paid plan and `cerulean.ne
 | File | Purpose |
 | --- | --- |
 | `worker.js` | The Worker: endpoints, delivery, cron handlers. Pure functions are exported for tests |
+| `team.js` | Team sign-in, sessions, votes, and the pipeline export. Imported by `worker.js` |
 | `wrangler.toml` | Name, bindings, route, cron triggers. `database_id` is a marked placeholder |
-| `migrations/0001_init.sql` | D1 schema |
+| `migrations/0001_init.sql` | D1 schema for subscriptions |
+| `migrations/0002_team_feedback.sql` | Team members, used sign-in links, and votes |
 | `../site/subscribe.html` | The signup page |
+| `../site/feedback.js` | The reader's feedback controls and the admin page's logic |
+| `../site/feedback-admin.html` | Admin list of every vote, behind the site's password gate |
+| `../src/feedback.js` | The pipeline side: fetches the export and applies the votes |
 | `../.github/workflows/deploy-mail.yml` | Dispatch-only deploy |
-| `../test/mail.test.js` | Tests, run by `npm test` |
+| `../test/mail.test.js` | Subscription tests, run by `npm test` |
+| `../test/team-feedback.test.js` | Sign-in, session, vote, and export tests |
+| `../test/feedback.test.js`, `../test/feedback-ui.test.js` | Pipeline and reader tests |
 
 ## Setup (Oliver)
 
@@ -109,6 +118,104 @@ Tokens are `base64url(payload).base64url(HMAC-SHA256)` signed with `MAIL_SIGNING
 
 Unsubscribing removes every list, not just the list of the email it came from. The preferences page is the way to drop one list.
 
+## Team feedback
+
+Team members give each story a vote in the reader, and the pipeline applies the votes to the next run. The public reader shows no change. Only a signed-in team member sees the controls.
+
+### Who can sign in
+
+- **Anyone at `bcbsvt.com`.** The part of the address after the last `@` must equal `bcbsvt.com` exactly, after lowercasing and trimming. A subdomain, `evilbcbsvt.com`, and `bcbsvt.com.example.org` all fail. The local part is limited to letters, digits, and `. _ ' + -`, so a `%` or `!` cannot route the message elsewhere. A `+tag` is dropped, so every alias of one mailbox is one person.
+- **Admins.** Any address on the `ADMIN_EMAILS` secret, at any domain. Nobody is an admin while it is unset.
+
+No subscription is needed. The emailed link is the proof of control, and a row is created in `team_members` at the first sign-in.
+
+### Sign-in
+
+1. The person opens `https://cerulean.news/api/mail/team/signin` and enters their address. The page is small and matches the Worker's other pages. The reader's footer shows a "Team sign-in" link after a browser has been signed in once, so hand the URL to new team members.
+2. The Worker answers the same way for every well-formed address, whether or not it can sign in. The lookup and the email run after the response, so the timing is alike too. Only a team-domain or admin address is mailed a link.
+3. The link is single use and expires in 15 minutes (`SIGNIN_LINK_MINUTES`). Opening it shows a page with a button, and only the button signs in. Mail scanners open links but never press buttons, so a scanner cannot use one up.
+4. The button sets the session cookie and lands on the reader. The cookie is `__Secure-cerulean_team`, `HttpOnly`, `Secure`, `SameSite=Lax`, scoped to `/api/mail`, and lasts 14 days (`SESSION_DAYS`).
+
+The session token is signed with `MAIL_SIGNING_SECRET` like the mail tokens, with its own purpose (`team-session`), so a confirm, unsubscribe, or sign-in token can never act as a session and a session can never act as a link. Every request re-checks the database: the address must still qualify, must not be blocked, and its `session_epoch` must match. Signing out raises the epoch, which ends every session for that address.
+
+Abuse controls on sign-in reuse the subscribe limits: 5 requests per hour per connection, one link per address per 10 minutes, and a site-wide ceiling of 100 sign-in requests a day (`MAX_SIGNINS_PER_DAY`). Every well-formed request counts against the ceiling and the cooldown whoever it names, so hitting a limit reveals nothing about a particular address. A filled honeypot field looks like success. Every state-changing team request must carry the site's own `Origin`. The Worker's forms set `Referrer-Policy: same-origin` so the browser sends it.
+
+### Routes
+
+The team routes stay under the existing `/api/mail/*` route, so there is no new route to deploy. All paths below are under `/api/mail`.
+
+| Request | What it does |
+| --- | --- |
+| `GET /team/signin` | The sign-in form |
+| `POST /team/signin` | Body `{ "email": "..." }`. Mails a link to an eligible address, with the same answer for all |
+| `GET /team/link?token=` | The page with the sign-in button. Consumes nothing |
+| `POST /team/link` | Form field `token`. Consumes the link, sets the cookie, redirects to the reader |
+| `POST /team/signout` | Clears the cookie and ends every session for the address |
+| `GET /feedback` | My votes and whether I am an admin. `401` without a session, which is how the reader detects one |
+| `PUT /feedback/{item}` | Cast or replace my vote. Body `{ "vote": "keep" }`, `{ "vote": "drop" }`, or `{ "vote": "sentiment", "label": "neutral" }` |
+| `DELETE /feedback/{item}` | Undo my vote |
+| `GET /feedback/admin` | Admin only. Every current vote with the voter's address |
+| `DELETE /feedback/admin/{id}` | Admin only. Removes any vote by its id |
+| `GET /feedback/export` | The pipeline's feed of votes, with a bearer token |
+
+`{item}` is the story's SHA-256 URL hash, the same scheme as the editorial `rejectedIds` (`exampleId` in `src/jev-examples.js`), 64 lowercase hex characters. The reader computes it in the browser and a test checks the two agree. Bodies are strict JSON: only `vote` and `label`, `label` exactly when the vote is `sentiment`, and one of the five labels (`positive`, `neutral to positive`, `neutral`, `neutral to negative`, `negative`). There is one current vote per person and story, so a new vote replaces the old one. Votes are limited to 60 writes a minute per person and 5,000 per person. Votes older than 200 days are deleted by the daily housekeeping, since the story has long left the archive.
+
+### The pipeline export
+
+`GET /api/mail/feedback/export` with `Authorization: Bearer <FEEDBACK_EXPORT_TOKEN>` returns
+
+```json
+{ "ok": true, "generatedAt": "2026-09-29T10:00:00.000Z", "votes": [{ "item": "<64 hex>", "vote": "drop", "label": null, "updatedAt": "2026-09-29T09:41:00.000Z" }] }
+```
+
+Nothing identifies a voter: no address, no id, one row per vote. The token is compared in constant time, and the route answers `404` until a token of at least 32 characters is set. Votes from a blocked address are left out. Each run of the publish workflow fetches it early, and `src/feedback.js` applies the votes before summaries and Jev. Drop excludes the story, keep protects it from the models, and a sentiment vote replaces the label. On a disagreement the latest vote wins for each question, and a tie keeps the story. Undoing a vote restores the story on the next run. Any failure to fetch is logged and the run continues.
+
+### Setup for Oliver
+
+Do these after the mail Worker's own setup above, or as part of it.
+
+1. **The migration.** It applies by itself. The deploy workflow runs `wrangler d1 migrations apply cerulean-news-mail --remote`, which applies `0002_team_feedback.sql` after `0001`. To apply it by hand, run `npx wrangler@4 d1 migrations apply cerulean-news-mail --remote` from `mail/`. It only adds tables.
+2. **Admins.** Set `ADMIN_EMAILS` to a comma-separated list of the addresses that may sign in as admins, whatever their domain. Keep the canonical copy in 1Password, as the item "Cerulean News admin emails". Trimming and lowercasing are automatic, and matching is exact.
+
+   ```bash
+   op read "op://Private/Cerulean News admin emails/password" | npx wrangler@4 secret put ADMIN_EMAILS --name cerulean-news-mail
+   ```
+
+   An admin can sign in, vote, list every vote, and undo any vote. There is no admin column in the database. To remove an admin, edit the secret. The change ends that session on the next request.
+3. **The export token.** Generate it once, keep it in 1Password as "Cerulean News feedback export token", and put the same value in both places:
+
+   ```bash
+   openssl rand -base64 48        # save the output in 1Password
+   op read "op://Private/Cerulean News feedback export token/password" | npx wrangler@4 secret put FEEDBACK_EXPORT_TOKEN --name cerulean-news-mail
+   op read "op://Private/Cerulean News feedback export token/password" | gh secret set FEEDBACK_EXPORT_TOKEN
+   ```
+
+   The GitHub secret is `FEEDBACK_EXPORT_TOKEN`. The publish workflow also reads an optional `FEEDBACK_EXPORT_URL` secret and otherwise uses `https://cerulean.news/api/mail/feedback/export`. Until the token secret exists the pipeline does not fetch anything and nothing changes.
+4. **Deploy.** Run "Deploy mail Worker" (step 6 above). No new route, cron, or binding is added.
+5. **Try it.** Open `https://cerulean.news/api/mail/team/signin` with an admin address, follow the emailed link, and reload the reader. Each story's meta line gains "Keep · Drop · Sentiment is wrong". Cast a vote, check that `https://cerulean.news/feedback-admin` (behind the site's password gate) lists it, and undo it there.
+6. **Tell the team** to sign in at `https://cerulean.news/api/mail/team/signin` with their `bcbsvt.com` address.
+
+### Managing people and votes
+
+```bash
+# Who has signed in, and how many votes each has cast
+npx wrangler@4 d1 execute cerulean-news-mail --remote --command "SELECT m.email, m.blocked, COUNT(f.id) AS votes FROM team_members m LEFT JOIN feedback f ON f.member_id = m.id GROUP BY m.id"
+# Block a person. Their session ends and their votes leave the export
+npx wrangler@4 d1 execute cerulean-news-mail --remote --command "UPDATE team_members SET blocked = 1 WHERE email = 'person@bcbsvt.com'"
+# Unblock
+npx wrangler@4 d1 execute cerulean-news-mail --remote --command "UPDATE team_members SET blocked = 0 WHERE email = 'person@bcbsvt.com'"
+# End every session for one person, without blocking
+npx wrangler@4 d1 execute cerulean-news-mail --remote --command "UPDATE team_members SET session_epoch = session_epoch + 1 WHERE email = 'person@bcbsvt.com'"
+# End every session for everyone
+npx wrangler@4 d1 execute cerulean-news-mail --remote --command "UPDATE team_members SET session_epoch = session_epoch + 1"
+```
+
+Blocking applies to `bcbsvt.com` members. An admin is controlled by the secret. Admins undo any vote on the `/feedback-admin` page.
+
+### Possible future hardening
+
+Cloudflare Turnstile on the sign-in form and passkey accounts are tabled as possible future hardening. Neither is built.
+
 ## Delivery
 
 - **Every email** carries a personal unsubscribe link and preferences link (HTML and text), `List-Unsubscribe` and `List-Unsubscribe-Post: List-Unsubscribe=One-Click` headers, a plain-text part, and the line "You subscribed at cerulean.news. Cerulean News is not affiliated with Blue Cross and Blue Shield of Vermont." The confirmation email included. Only headers on Email Service's allowlist are used.
@@ -132,7 +239,7 @@ To keep the digest near 7:05 a.m. year-round, change `5 11 * * *` to `5 12 * * *
 
 ## What is stored
 
-Only the email address, the chosen lists, and a send log (which content went to whom, when, and the outcome). The rate limiter stores a salted hash of the visitor's IP address for at most two days. Addresses that never confirm are deleted after 30 days. Send-log rows are deleted after about 400 days. An address that unsubscribes stays on file as `unsubscribed` so a later sign-up needs a fresh confirmation.
+Only the email address, the chosen lists, and a send log (which content went to whom, when, and the outcome). Team feedback adds the address of each person who signed in, a used-link log, and one row per current vote (story hash, vote, corrected label, times). The pipeline's export and the audit file carry the votes without any address. The rate limiter stores a salted hash of the visitor's IP address for at most two days. Addresses that never confirm are deleted after 30 days. Send-log rows are deleted after about 400 days. An address that unsubscribes stays on file as `unsubscribed` so a later sign-up needs a fresh confirmation.
 
 ## Operations
 
@@ -151,4 +258,4 @@ Replies to the emails go nowhere because the Worker sets no reply address and no
 
 ## Tests
 
-`npm test` runs `test/mail.test.js`. D1 is an in-memory SQLite database (`node:sqlite`, Node 22.5 or newer) that runs the real migration behind the D1 `prepare`, `bind`, `first`, `all`, `run`, and `batch` methods. `EMAIL` and `fetch` are fakes. On older Node the database tests skip and the pure-function tests still run.
+`npm test` runs `test/mail.test.js` and `test/team-feedback.test.js`. D1 is an in-memory SQLite database (`node:sqlite`, Node 22.5 or newer) that runs every migration in order behind the D1 `prepare`, `bind`, `first`, `all`, `run`, and `batch` methods. `EMAIL` and `fetch` are fakes. On older Node the database tests skip and the pure-function tests still run.
