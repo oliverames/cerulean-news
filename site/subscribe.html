@@ -28,23 +28,6 @@
         --bad: #b02a1f;
       }
 
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --fg: #e8e8e8;
-          --muted: #a8a8a8;
-          --link: #8ab4ff;
-          --visited: #c3a6ee;
-          --rule: #444;
-          --surface: #161c26;
-          --bg: #0f1115;
-          --bar-1: #4a7fe0;
-          --bar-2: #e8e8e8;
-          --bar-3: #418fde;
-          --ok: #8ab4ff;
-          --bad: #ff8a80;
-        }
-      }
-
       body {
         margin: 0;
         background: var(--bg);
@@ -238,9 +221,10 @@
   <body>
     <div class="page">
       <div class="topbar">
-        <a class="button" href="./">Reader</a>
+        <a class="button" href="./">Back to stories</a>
         <a class="button" href="trends">Trends</a>
         <a class="button" href="feed.rss">RSS Feed</a>
+        <a class="button" href="feed.json">JSON Feed</a>
       </div>
 
       <main aria-labelledby="subscribe-title">
@@ -341,6 +325,9 @@
           if (response.ok) {
             show(body.message || "Check your inbox for a confirmation email.", false);
             form.elements.email.value = "";
+          } else if (response.status === 404 || response.status === 405) {
+            // The mail Worker is not deployed yet, so the static site answers.
+            show("Email signup is not open yet. Please check back soon.", true);
           } else {
             show(body.message || "Something went wrong. Please try again.", true);
           }

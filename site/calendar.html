@@ -66,7 +66,6 @@
     <link rel="alternate" type="application/feed+json" title="Cerulean News JSON Feed" href="feed.json">
     <link rel="alternate" type="text/calendar" title="Cerulean News calendar" href="calendar.ics">
     <meta name="theme-color" content="#0033a0">
-    <meta name="color-scheme" content="light dark">
     <style>
       :root {
         --bg: #fff;
@@ -80,22 +79,6 @@
         --bar-1: #0033a0;
         --bar-2: #111;
         --bar-3: #418fde;
-      }
-
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg: #111418;
-          --fg: #ececec;
-          --muted: #a8adb3;
-          --link: #8ab4ff;
-          --visited: #c4a6ea;
-          --rule: #3a3f45;
-          --rule-soft: #2a2e33;
-          --surface: #1a2029;
-          --bar-1: #418fde;
-          --bar-2: #ececec;
-          --bar-3: #0033a0;
-        }
       }
 
       body {
@@ -175,9 +158,7 @@
 
       .subscribe {
         margin: 0 0 22px;
-        padding: 10px 12px;
-        border: 1px solid var(--rule);
-        background: var(--surface);
+        color: var(--muted);
         font-size: 0.92rem;
       }
 
@@ -221,7 +202,7 @@
 
       .event:last-child { border-bottom: 0; }
 
-      .event .title { margin: 0; font-weight: 700; }
+      .event .title { margin: 0; }
       .event .body { margin: 2px 0 0; font-size: 0.92rem; }
 
       .event .meta {
@@ -305,8 +286,9 @@
     <div class="page" id="calendar-page">
       <div class="topbar">
         <a class="button" href="./">Back to stories</a>
-        <a class="button" href="calendar.ics" id="subscribe-button">Subscribe (ICS)</a>
-        <a class="button" href="calendar.json">JSON</a>
+        <a class="button" href="trends">Trends</a>
+        <a class="button" href="calendar.ics" id="subscribe-button">ICS Feed</a>
+        <a class="button" href="calendar.json">JSON Feed</a>
       </div>
 
       <main aria-labelledby="calendar-title">
@@ -413,15 +395,15 @@
         const item = el("li", "event");
         const title = el("p", "title");
         const timeText = event.time
-          ? formatTime(event.time) + (event.endTime ? " to " + formatTime(event.endTime) : "") + ". "
+          ? formatTime(event.time) + (event.endTime ? " to " + formatTime(event.endTime) : "")
           : "";
-        if (timeText) title.append(timeText);
         const link = el("a", "", event.title);
         link.href = event.url;
         title.append(link);
         item.append(title);
         if (event.body) item.append(el("p", "body", event.body));
-        item.append(el("p", "meta", (KIND_LABELS[event.kind] || "Meeting") + " · " + event.source));
+        const meta = [timeText, KIND_LABELS[event.kind] || "Meeting", event.source].filter(Boolean);
+        item.append(el("p", "meta", meta.join(" · ")));
         return item;
       }
 

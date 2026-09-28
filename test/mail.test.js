@@ -1026,7 +1026,8 @@ test("the subscribe page has the form, the honeypot, the three lists, and a priv
   assert.match(page, /only your email address, the lists you chose, and a log of what we sent you/);
   assert.match(page, /<strong>Not affiliated\.<\/strong>/);
   assert.match(page, /max-width: 560px/);
-  assert.match(page, /prefers-color-scheme: dark/);
+  // The site is light only, like the reader.
+  assert.doesNotMatch(page, /prefers-color-scheme/);
 });
 
 test("the reader and trends footers link to the subscribe page inside marked blocks", () => {

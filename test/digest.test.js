@@ -376,9 +376,9 @@ test("generateFeed writes the digest next to the RSS output", async () => {
   await readFile(path.join(workdir, "rss", "digest.html"), "utf8");
 });
 
-test("the reader links to the digest in one marked block", async () => {
+test("the reader's footer notes link to the digest", async () => {
   const html = await readFile(new URL("../site/index.html", import.meta.url), "utf8");
-  const block = /<!-- feature: clip-email-digest -->([\s\S]*?)<!-- \/feature: clip-email-digest -->/.exec(html);
-  assert.ok(block, "marked block present");
-  assert.match(block[1], /href="digest"/);
+  const notes = /<dl class="site-notes">([\s\S]*?)<\/dl>/.exec(html);
+  assert.ok(notes, "footer notes present");
+  assert.match(notes[1], /href="digest"/);
 });

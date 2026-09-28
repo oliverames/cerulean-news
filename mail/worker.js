@@ -721,7 +721,6 @@ export async function runScheduled(ctx, cron) {
 
 const PAGE_CSS = `
 :root{--fg:#111;--muted:#555;--link:#00c;--visited:#551a8b;--rule:#ccc;--surface:#f5f8fc;--bar-1:#0033a0;--bar-2:#111;--bar-3:#418fde;--bg:#fff}
-@media (prefers-color-scheme:dark){:root{--fg:#e8e8e8;--muted:#a8a8a8;--link:#8ab4ff;--visited:#c3a6ee;--rule:#444;--surface:#161c26;--bar-1:#4a7fe0;--bar-2:#e8e8e8;--bar-3:#418fde;--bg:#0f1115}}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 Helvetica,Arial,sans-serif}
 .page{max-width:560px;margin:0 auto;padding:18px 16px 48px}
 .topbar{font-size:.9rem;margin-bottom:24px}

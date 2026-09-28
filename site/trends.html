@@ -468,17 +468,13 @@
     <!-- feature: share-of-voice -->
     <style>
       :root {
-        /* Categorical series for the share-of-voice charts. Kept apart from
-           the sentiment ramp (blues, grey, orange, red) and the magnitude
-           blue so no colour on this page means two things. Validated with the
-           dataviz checker on the white page, all pairs: colour-vision
-           separation 14.6, normal-vision 18.8, each at least 3:1 on white,
-           and at least 15 dE from every sentiment and magnitude colour. The
-           page has no dark theme. If one is added, the checked dark steps are
-           #9c78e0, #008300, #d55181 on #1a1a19. */
-        --sov-bcvt: #8a3fb5;
-        --sov-mvp: #008300;
-        --sov-uvm: #dc5a93;
+        /* Share-of-voice series use the site's own tricolor: the insurer
+           keeps the brand blue it has on every other chart, and the two
+           other organizations are neutral black and grey. The page has no
+           dark theme. */
+        --sov-bcvt: #0033a0;
+        --sov-mvp: #8c8c8c;
+        --sov-uvm: #111;
       }
 
       .sov h2 { margin: 34px 0 6px; font-size: 1.3rem; }
@@ -507,6 +503,9 @@
         <!-- feature: storylines -->
         <a class="button" href="storylines">Storylines</a>
         <!-- /feature: storylines -->
+        <!-- feature: regulatory-calendar -->
+        <a class="button" href="calendar">Calendar</a>
+        <!-- /feature: regulatory-calendar -->
         <a class="button" href="feed.rss">RSS Feed</a>
         <a class="button" href="feed.json">JSON Feed</a>
       </div>

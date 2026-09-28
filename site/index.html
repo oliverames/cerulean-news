@@ -571,10 +571,20 @@
     <!-- feature: search-upgrades -->
     <style>
       .search-tools {
-        margin: 0 0 22px;
+        margin: -8px 0 22px;
         padding: 0 0 14px;
         border-bottom: 1px solid var(--rule);
         font-size: 0.9rem;
+      }
+
+      .search-tools summary {
+        cursor: pointer;
+        color: var(--link);
+        font-size: 0.85rem;
+      }
+
+      .search-tools[open] summary {
+        margin-bottom: 12px;
       }
 
       .search-tools .st-row {
@@ -723,12 +733,6 @@
     <div class="page" id="reader-page">
       <div class="topbar">
         <a class="button" href="trends">Trends</a>
-        <!-- feature: storylines -->
-        <a class="button" href="storylines">Storylines</a>
-        <!-- /feature: storylines -->
-        <!-- feature: regulatory-calendar -->
-        <a class="button" href="calendar">Calendar</a>
-        <!-- /feature: regulatory-calendar -->
         <a class="button" href="feed.rss">RSS Feed</a>
         <a class="button" href="feed.json">JSON Feed</a>
         <label class="search" for="search-input">
@@ -760,7 +764,8 @@
         </nav>
 
         <!-- feature: search-upgrades -->
-        <section class="search-tools" id="search-tools" aria-label="Date range, saved searches, and export">
+        <details class="search-tools" id="search-tools">
+          <summary>Dates, saved searches, and CSV export</summary>
           <div class="st-row" role="group" aria-label="Publication date range">
             <label for="date-from">
               <span>From date</span>
@@ -787,7 +792,7 @@
             <span class="st-note" id="export-help">All stories matching the search, section, and dates.</span>
           </div>
           <p class="visually-hidden" id="search-tools-status" role="status" aria-live="polite" aria-atomic="true"></p>
-        </section>
+        </details>
         <!-- /feature: search-upgrades -->
 
         <p
@@ -828,10 +833,8 @@
           <dd>Scored only for press coverage that names the insurer. Where a number appears, it runs from 0 (negative) through 50 (neutral) to 100 (positive). The number and the label are separate readings, so a mixed or uncertain story can show a number that leans differently from its label. <a href="trends">See volume, sentiment, and themes over time</a>.</dd>
           <dt>Feeds</dt>
           <dd><a href="feed.rss">RSS</a> or <a href="feed.json">JSON</a>. Summaries are AI-generated.</dd>
-          <!-- feature: clip-email-digest -->
-          <dt>Clip email</dt>
-          <dd>A <a href="digest">draft of the daily clip email</a>, grouped by section, ready to copy.</dd>
-          <!-- /feature: clip-email-digest -->
+          <dt>More</dt>
+          <dd><a href="storylines">Storylines</a> follow ongoing subjects week by week. The <a href="calendar">calendar</a> lists upcoming board meetings, hearings, and comment deadlines. <a href="reports/">Monthly reports</a> summarize each month&rsquo;s insurer coverage, and the <a href="digest">clip email draft</a> is ready to copy.</dd>
           <!-- feature: email-subscribe -->
           <dt>Email</dt>
           <dd><a href="subscribe">Get a daily digest, brand-mention alerts, or a monthly report by email</a>.</dd>
@@ -1381,6 +1384,13 @@
         // feature: search-upgrades (copy search and dates from the address)
         if (window.CeruleanSearchTools) {
           CeruleanSearchTools.syncControls();
+          // A linked date range opens the tools so the filter is visible.
+          const searchTools = document.getElementById("search-tools");
+          const dateFrom = document.getElementById("date-from");
+          const dateTo = document.getElementById("date-to");
+          if (searchTools && ((dateFrom && dateFrom.value) || (dateTo && dateTo.value))) {
+            searchTools.open = true;
+          }
         }
         // /feature: search-upgrades
         renderSections();

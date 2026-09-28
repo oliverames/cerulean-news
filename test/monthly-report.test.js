@@ -509,7 +509,8 @@ test("a report page matches the reader's look and prints cleanly", () => {
   assert.equal($(".tag").text(), "to date");
   assert.match(html, /max-width: 560px/);
   assert.match(html, /Helvetica, Arial, sans-serif/);
-  assert.match(html, /prefers-color-scheme: dark/);
+  // The site is light only, like the reader.
+  assert.doesNotMatch(html, /prefers-color-scheme/);
   assert.match(html, /<strong>Not affiliated\.<\/strong>/);
   assert.match(html, /@page \{[^}]*margin/);
   assert.match(html, /@media print/);

@@ -627,13 +627,6 @@ const PAGE_STYLE = `
         --bar-1: #0033a0; --bar-2: #111; --bar-3: #418fde;
         --s-pos: #0d4c9e; --s-npos: #4a90d9; --s-neu: #dcdcd9; --s-nneg: #e8883a; --s-neg: #b02a1f;
       }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg: #101216; --fg: #eee; --muted: #a9adb5; --link: #8ab4ff; --visited: #c3a6ff;
-          --rule: #3a3f48; --rule-soft: #2a2e36; --surface: #171b22;
-          --bar-1: #6f9dff; --bar-2: #eee; --bar-3: #418fde;
-        }
-      }
       body { margin: 0; background: var(--bg); color: var(--fg); font-family: Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.45; }
       .page { max-width: 560px; margin: 0 auto; padding: 18px 16px 48px; }
       .topbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 0.9rem; margin-bottom: 24px; }
@@ -642,20 +635,20 @@ const PAGE_STYLE = `
       h1 { margin: 0 0 6px; font-size: 1.65rem; font-weight: 700; }
       h2 { margin: 26px 0 6px; padding: 0 0 3px; border-bottom: 1px solid var(--rule); font-size: 1rem; font-weight: 700; }
       .title-row { display: flex; align-items: baseline; gap: 24px; margin: 0 0 6px; }
-      .title-row h1 { flex: 0 0 auto; margin: 0; }
+      .title-row h1 { flex: 1 1 auto; margin: 0; }
       .tricolor { display: flex; height: 5px; margin: 0 0 18px; }
       .tricolor span { flex: 1; }
       .tricolor .c1 { background: var(--bar-1); }
       .tricolor .c2 { background: var(--bar-2); }
       .tricolor .c3 { background: var(--bar-3); }
-      .dateline { font-style: italic; margin: 0 0 0 auto; text-align: right; }
+      .dateline { font-style: italic; margin: 0 0 0 auto; text-align: right; white-space: nowrap; }
       @media (max-width: 640px) { .title-row { display: block; } .title-row h1 { margin-bottom: 4px; } .dateline { margin: 0; text-align: left; } }
       a { color: var(--link); }
       a:visited { color: var(--visited); }
       a:focus-visible, button:focus-visible { outline: 3px solid var(--bar-3); outline-offset: 2px; }
       .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
       .summary { margin: 0 0 20px; }
-      .tag { display: inline-block; margin-left: 6px; padding: 0 6px; border: 1px solid var(--bar-1); color: var(--bar-1); font-size: 0.75rem; font-weight: 700; vertical-align: middle; }
+      .tag { margin-left: 8px; color: var(--muted); font-size: 0.8rem; font-style: italic; font-weight: 400; }
       .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin: 0 0 8px; background: var(--rule-soft); border: 1px solid var(--rule-soft); }
       .tile { background: var(--bg); padding: 10px 12px; }
       .tile .value { display: block; font-size: 1.5rem; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
@@ -821,9 +814,9 @@ export function renderMonthlyReportPage(report) {
       : ` That is ${vermont.distinctStories} distinct stories once repeated reports of one event are grouped.`;
 
   const body = `      <div class="topbar">
-        <a class="button" href="./">All reports</a>
-        <a class="button" href="../trends">Coverage trends</a>
         <a class="button" href="../">Back to stories</a>
+        <a class="button" href="../trends">Trends</a>
+        <a class="button" href="./">All reports</a>
         <button class="button" type="button" onclick="window.print()">Print or save as PDF</button>
       </div>
 
@@ -901,8 +894,8 @@ export function renderReportsIndex(reports) {
     })
     .join("\n          ");
   const body = `      <div class="topbar">
-        <a class="button" href="../trends">Coverage trends</a>
         <a class="button" href="../">Back to stories</a>
+        <a class="button" href="../trends">Trends</a>
       </div>
 
       <main>

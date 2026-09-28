@@ -345,6 +345,22 @@ export function buildDigest(items, { now = new Date(), windowHours = 24, timeZon
 // A copy-ready page around the email: the email renders in a frame exactly as
 // a mail client would show it, and the button puts the HTML (with a plain
 // text alternative) on the clipboard for pasting into a new message.
+// "Sep 28, 2026, 7:04 PM" in Eastern time, the reader's dateline format.
+function formatGeneratedAt(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value || "");
+  }
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: DEFAULT_TIME_ZONE,
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export function buildDigestPage(digest, { generatedAt }) {
   const frameHtml = escapeXml(digest.html);
   return `<!doctype html>
@@ -367,18 +383,6 @@ export function buildDigestPage(digest, { generatedAt }) {
         --bar-1: #0033a0;
         --bar-2: #111;
         --bar-3: #418fde;
-      }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --fg: #eee;
-          --muted: #aaa;
-          --link: #8ab4ff;
-          --rule: #444;
-          --surface: #1b2230;
-          --bg: #10141c;
-          --bar-1: #6ea0ff;
-          --bar-2: #eee;
-        }
       }
       body {
         margin: 0;
@@ -441,15 +445,15 @@ export function buildDigestPage(digest, { generatedAt }) {
     <script src="gate.js"></script>
     <div class="page">
       <div class="topbar">
-        <a href="./">Reader</a>
+        <a href="./">Back to stories</a>
         <button type="button" id="copy-email">Copy email</button>
-        <a href="digest.json">digest.json</a>
+        <a href="digest.json">JSON Feed</a>
       </div>
       <main>
         <h1>Clip email draft</h1>
         <div class="tricolor" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span></div>
         <p class="note"><strong>${escapeXml(digest.subject)}</strong></p>
-        <p class="note">Generated ${escapeXml(generatedAt)} from the last 24 hours of stories. Press Copy email, then paste into a new message. Review it before sending.</p>
+        <p class="note">Generated ${escapeXml(formatGeneratedAt(generatedAt))} from the last 24 hours of stories. Press Copy email, then paste into a new message. Review it before sending.</p>
         <p id="status" role="status" aria-live="polite"></p>
         <iframe id="preview" title="Email preview" sandbox="allow-same-origin" srcdoc="${frameHtml}"></iframe>
         <textarea id="digest-text" readonly>${escapeXml(digest.text)}</textarea>
