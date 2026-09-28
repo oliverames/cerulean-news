@@ -467,8 +467,9 @@ function mergeEquivalentStoryItems(
       merged[field] = fallback[field];
     }
   }
-  // A score only means something beside the label it came from, so take it
-  // from whichever copy supplied the label.
+  // Keep the score with the copy that supplied the label, so a merge cannot
+  // pair one article's score with another copy's label. Jev reapplies the
+  // score from its cache on the next pass.
   const scoreSource = [primary, fallback].find((candidate) =>
     candidate?.sentiment && candidate.sentiment === merged.sentiment && Number.isFinite(candidate.sentimentScore));
   if (scoreSource) merged.sentimentScore = scoreSource.sentimentScore;

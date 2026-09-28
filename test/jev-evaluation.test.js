@@ -287,7 +287,7 @@ test("the sentiment score reads Jev's label odds on a 0-100 scale", () => {
   }
 });
 
-test("an applied Jev label carries its score, and a score never outlives its label", async () => {
+test("an applied Jev label carries its score, and a score never outlives its odds", async () => {
   const cache = {};
   const [scored] = await applyJevRelevance([brand()], { mode: "enforce", cache, callJev: async () => leaningAnswer() });
   assert.equal(scored.sentiment, "positive");
@@ -295,11 +295,18 @@ test("an applied Jev label carries its score, and a score never outlives its lab
   assert.ok(Object.values(cache)[0].sentimentProbabilities);
   const json = buildJsonSummary([scored], [], now);
   assert.equal(json.items[0].sentimentScore, 90);
-  // An unconfident answer keeps the existing label and drops a stale score.
+  // An unconfident answer keeps the existing label but still publishes the
+  // score its odds give, replacing a stale one.
   const [kept] = await applyJevRelevance([brand({ sentimentScore: 90 })], { mode: "enforce",
     callJev: async () => answer(0.99, "negative", 0.6) });
   assert.equal(kept.sentiment, "neutral");
-  assert.equal(kept.sentimentScore, undefined);
+  assert.equal(kept.sentimentReason, "Old assessment");
+  assert.equal(kept.sentimentScore, 0);
+  assert.equal(buildJsonSummary([kept], [], now).items[0].sentimentScore, 0);
+  // Coverage that is no longer eligible for sentiment drops its score.
+  const [topic] = await applyJevRelevance([article(3, { sentiment: "positive", sentimentScore: 90 })], { mode: "enforce",
+    callJev: async () => answer(0.99) });
+  assert.equal(topic.sentimentScore, undefined);
 });
 
 test("older brand coverage gets Jev sentiment from spare capacity without changing inclusion", async () => {

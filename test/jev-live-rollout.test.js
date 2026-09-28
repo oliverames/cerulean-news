@@ -59,7 +59,12 @@ test("invalid activation dates fail closed and low confidence preserves sentimen
   }
   const result = await applyJevRelevance([fresh], { env: {}, mode: "enforce", enforceAfter: cutoff, alignment,
     referenceExamples: references, callJev: async () => answer(0.5, 0.6) });
-  assert.equal(result[0], fresh);
+  // Uncertain inclusion and low-confidence sentiment keep the decisions; only
+  // the score derived from the odds is added.
+  assert.equal(result[0].relevant, fresh.relevant);
+  assert.equal(result[0].sentiment, "neutral");
+  assert.equal(result[0].sentimentReason, "Existing assessment");
+  assert.equal(result[0].sentimentScore, 95);
 });
 
 test("dated history stays before activation across audit migrations and rediscovery", async () => {

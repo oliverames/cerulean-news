@@ -420,8 +420,8 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
         sentimentRubric: eligibleForSentiment
           ? item.sentimentRubric || undefined
           : undefined,
-        // Jev's 0-100 reading of its label odds (50 neutral), published only
-        // beside the Jev label it came from.
+        // Jev's 0-100 reading of its label odds (50 neutral), published
+        // whenever Jev returned odds, beside whichever label is current.
         sentimentScore:
           eligibleForSentiment && item.sentiment && Number.isFinite(item.sentimentScore)
             ? item.sentimentScore

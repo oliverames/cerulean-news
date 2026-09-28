@@ -720,14 +720,19 @@ export async function applyJevRelevance(items, options = {}) {
           relevanceScore: classification.relevanceScore, decision: classification.decision },
       };
     }
+    // The label changes only on a confident answer. The 0-100 score is
+    // published whenever Jev returned odds, confident or not, because the
+    // uncertain answers are where it says more than the label: it can then
+    // sit beside the earlier label rather than Jev's.
+    const sentimentScore = shouldScoreSentiment(result)
+      ? sentimentScoreFromProbabilities(classification.sentimentProbabilities) : null;
     if (classification.sentiment && classification.sentimentConfidence >= SENTIMENT_CONFIDENCE_THRESHOLD && shouldScoreSentiment(result)) {
-      // The score travels only with the label it came from, so the two agree.
-      const sentimentScore = sentimentScoreFromProbabilities(classification.sentimentProbabilities);
-      result = { ...result, sentiment: classification.sentiment, sentimentReason: "",
-        ...(sentimentScore === null ? {} : { sentimentScore }) };
-      if (sentimentScore === null) delete result.sentimentScore;
+      result = { ...result, sentiment: classification.sentiment, sentimentReason: "" };
+    }
+    if (sentimentScore !== null && result.sentiment) {
+      if (result.sentimentScore !== sentimentScore) result = { ...result, sentimentScore };
     } else if (result.sentimentScore !== undefined) {
-      // A score from an earlier Jev label must not outlive that label.
+      // A score whose odds are gone must not linger.
       result = { ...result };
       delete result.sentimentScore;
     }
