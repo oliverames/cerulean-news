@@ -162,6 +162,16 @@ jobs:
           seed "$LIVE_SITE_URL/feed-audit.json" "live audit feed" \
             || { echo "::error::Durable live audit unavailable; refusing to replace it with a public or stale seed"; exit 1; }
 
+          # The calendar keeps a failed source's last known events from the
+          # previous run's calendar.json, so start from the live copy.
+          if curl -fsSL --compressed --retry 3 --max-time 60 "$LIVE_SITE_URL/calendar.json" -o /tmp/calendar.json \
+            && jq -e '.events | type == "array"' /tmp/calendar.json > /dev/null 2>&1; then
+            mv /tmp/calendar.json site/calendar.json
+            echo "Seeded calendar from live site"
+          else
+            echo "::warning::No live calendar.json to seed; using the committed copy"
+          fi
+
       # The media tracker seed is the communications team's hand-kept clip
       # log and is not committed (it was scrubbed from history 2026-09-03).
       # It lives in the MEDIA_TRACKER_SEED_B64 secret as gzip + base64 and is
@@ -311,6 +321,11 @@ jobs:
           fetch_live digest.json json || echo "::warning::No live digest.json to reuse"
           curl -fsSL --compressed --retry 3 --max-time 60 "$LIVE_SITE_URL/digest.html" -o site/digest.html \
             || echo "::warning::No live digest.html to reuse"
+          for name in storylines.json calendar.json calendar.ics; do
+            curl -fsSL --compressed --retry 3 --max-time 60 "$LIVE_SITE_URL/$name" -o "/tmp/$name" \
+              && mv "/tmp/$name" "site/$name" \
+              || echo "::warning::No live $name to reuse; deploying the committed copy"
+          done
 
       # Full runs prerender the reader's first page during generation. A
       # static-only deploy skips generation, so fill the committed page's
@@ -319,6 +334,11 @@ jobs:
       - name: Prerender reader for static deploy
         if: steps.mode.outputs.full != 'true'
         run: node src/prerender.js site/index.html site/feed.json
+
+      # The monthly report pages are generated, not committed.
+      - name: Build monthly reports for static deploy
+        if: steps.mode.outputs.full != 'true'
+        run: node scripts/build-monthly-reports.js site
 
       # The site moved from GitHub Pages to Cloudflare Pages on 2026-09-03 so
       # the repo could go private (GitHub Free only serves Pages from a public

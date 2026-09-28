@@ -1,0 +1,169 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-28T22:55:38.065Z",
+  "timeZone": "America/New_York",
+  "windowDays": 60,
+  "from": "2026-09-28",
+  "to": "2026-11-27",
+  "sources": [
+    {
+      "id": "gmcb-meetings",
+      "name": "GMCB meetings",
+      "url": "https://gmcboard.vermont.gov/2026-meetings",
+      "ok": true,
+      "lastOkAt": "2026-09-28T22:55:38.065Z",
+      "eventCount": 3
+    },
+    {
+      "id": "gmcb-hospital-budget",
+      "name": "GMCB hospital budget hearings",
+      "url": "https://gmcboard.vermont.gov/hospital-budget-review-schedule",
+      "ok": true,
+      "lastOkAt": "2026-09-28T22:55:38.065Z",
+      "eventCount": 0
+    },
+    {
+      "id": "gmcb-public-comment",
+      "name": "GMCB public comment",
+      "url": "https://gmcboard.vermont.gov/board/comment",
+      "ok": true,
+      "lastOkAt": "2026-09-28T22:55:38.065Z",
+      "eventCount": 1
+    },
+    {
+      "id": "vt-legislature",
+      "name": "Vermont Legislature",
+      "url": "https://legislature.vermont.gov/committee/meetings/2026",
+      "ok": true,
+      "lastOkAt": "2026-09-28T22:55:38.065Z",
+      "eventCount": 3
+    },
+    {
+      "id": "vt-state-meetings",
+      "name": "Vermont state agency meetings",
+      "url": "https://libraries.vermont.gov/public-meeting-calendar-state-agencies",
+      "ok": true,
+      "lastOkAt": "2026-09-28T22:55:38.065Z",
+      "eventCount": 6
+    }
+  ],
+  "events": [
+    {
+      "date": "2026-10-05",
+      "title": "Public comment closes: AHS 2026 Health Care Workforce Development Strategic Plan",
+      "body": "Public comments will be accepted until Monday, October 5, 2026.",
+      "source": "GMCB public comment",
+      "url": "https://gmcboard.vermont.gov/board/comment",
+      "kind": "deadline"
+    },
+    {
+      "date": "2026-10-06",
+      "title": "GMCB: Data Governance Council meeting",
+      "body": "",
+      "source": "GMCB meetings",
+      "url": "https://gmcboard.vermont.gov/data-and-analytics/data-governance/data-governance-council",
+      "kind": "committee"
+    },
+    {
+      "date": "2026-10-07",
+      "title": "GMCB: Board meeting",
+      "body": "Public meeting with Microsoft Teams and phone participation. Details are on the meeting page.",
+      "source": "GMCB meetings",
+      "url": "https://gmcboard.vermont.gov/2026-meetings",
+      "kind": "board"
+    },
+    {
+      "date": "2026-10-07",
+      "time": "13:00",
+      "endTime": "14:00",
+      "title": "Blueprint Payment Implementation Workgroup",
+      "body": "Agency of Human Services Vermont Blueprint for Health",
+      "source": "Vermont state agency meetings",
+      "url": "https://blueprintforhealth.vermont.gov/",
+      "kind": "agency"
+    },
+    {
+      "date": "2026-10-09",
+      "title": "House Committee on Human Services",
+      "body": "Room 11 (Large Hearing Room), State House",
+      "source": "Vermont Legislature",
+      "url": "https://legislature.vermont.gov/committee/detail/2026/16",
+      "kind": "legislature"
+    },
+    {
+      "date": "2026-10-09",
+      "title": "Senate Committee on Health and Welfare",
+      "body": "Room 11 (Large Hearing Room), State House",
+      "source": "Vermont Legislature",
+      "url": "https://legislature.vermont.gov/committee/detail/2026/27",
+      "kind": "legislature"
+    },
+    {
+      "date": "2026-10-13",
+      "time": "16:00",
+      "endTime": "17:30",
+      "title": "VSCCPHC Payment Reform Subcommittee",
+      "body": "Agency of Human Services Vermont Blueprint for Health",
+      "source": "Vermont state agency meetings",
+      "url": "https://blueprintforhealth.vermont.gov/vermont-steering-committee-comprehensive-primary-health-care",
+      "kind": "agency"
+    },
+    {
+      "date": "2026-10-15",
+      "time": "10:00",
+      "title": "Legislative Committee on Administrative Rules (LCAR)",
+      "body": "Room 10 (Small Hearing Room), State House",
+      "source": "Vermont Legislature",
+      "url": "https://legislature.vermont.gov/committee/detail/2026/39",
+      "kind": "legislature"
+    },
+    {
+      "date": "2026-10-20",
+      "time": "16:00",
+      "endTime": "17:30",
+      "title": "Vermont Steering Committee for Comprehensive Primary Health Care",
+      "body": "Agency of Human Services Vermont Blueprint for Health",
+      "source": "Vermont state agency meetings",
+      "url": "https://blueprintforhealth.vermont.gov/vermont-steering-committee-comprehensive-primary-health-care",
+      "kind": "agency"
+    },
+    {
+      "date": "2026-10-21",
+      "title": "GMCB: Board meeting",
+      "body": "Public meeting with Microsoft Teams and phone participation. Details are on the meeting page.",
+      "source": "GMCB meetings",
+      "url": "https://gmcboard.vermont.gov/2026-meetings",
+      "kind": "board"
+    },
+    {
+      "date": "2026-11-10",
+      "time": "16:00",
+      "endTime": "17:30",
+      "title": "VSCCPHC Payment Reform Subcommittee",
+      "body": "Agency of Human Services Vermont Blueprint for Health",
+      "source": "Vermont state agency meetings",
+      "url": "https://blueprintforhealth.vermont.gov/vermont-steering-committee-comprehensive-primary-health-care",
+      "kind": "agency"
+    },
+    {
+      "date": "2026-11-17",
+      "time": "16:00",
+      "endTime": "17:30",
+      "title": "Vermont Steering Committee for Comprehensive Primary Health Care",
+      "body": "Agency of Human Services Vermont Blueprint for Health",
+      "source": "Vermont state agency meetings",
+      "url": "https://blueprintforhealth.vermont.gov/vermont-steering-committee-comprehensive-primary-health-care",
+      "kind": "agency"
+    },
+    {
+      "date": "2026-11-19",
+      "time": "08:30",
+      "endTime": "10:00",
+      "title": "Blueprint Executive Committee",
+      "body": "Agency of Human Services Vermont Blueprint for Health",
+      "source": "Vermont state agency meetings",
+      "url": "https://blueprintforhealth.vermont.gov/",
+      "kind": "agency"
+    }
+  ]
+}

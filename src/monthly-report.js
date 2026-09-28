@@ -741,8 +741,13 @@ function pageShell({ title, description, body, notes }) {
     <meta name="theme-color" content="#0033a0">
     <style>${PAGE_STYLE}
     </style>
+    <link rel="stylesheet" href="../gate.css">
+    <script>
+      try { if (localStorage.getItem("blueNewsAuth") === "true") document.documentElement.classList.add("authenticated"); } catch (e) {}
+    </script>
   </head>
   <body>
+    <script src="../gate.js"></script>
     <div class="page">
 ${body}
 ${PAGE_FOOTER.replace("FOOTER_NOTES", notes)}

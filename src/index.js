@@ -36,6 +36,7 @@ import {
   writeStorylinesSummary,
 } from "./storylines.js";
 import { prerenderIndex } from "./prerender.js";
+import { generateCalendar } from "./calendar.js";
 
 function resolveRssOutputPath() {
   if (process.env.RSS_OUTPUT_PATH) {
@@ -317,7 +318,12 @@ export async function generateFeed({
 }
 
 async function main() {
-  const result = await generateFeed();
+  // The calendar fetches a handful of state pages while collection runs. It
+  // records its own failures and never throws, so it cannot fail the run.
+  const [result] = await Promise.all([
+    generateFeed(),
+    generateCalendar({ outputDir: path.dirname(resolveRssOutputPath()) }),
+  ]);
   // Skipped sources are ok-by-definition; don't let them mask a run where
   // every real fetch failed.
   const healthySources = result.sourceResults.filter(

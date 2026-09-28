@@ -515,7 +515,8 @@ test("a report page matches the reader's look and prints cleanly", () => {
   assert.match(html, /@media print/);
   assert.match(html, /\.topbar \{ display: none; \}/);
   assert.match(html, /print-color-adjust: exact/);
-  assert.equal($("script[src]").length, 0);
+  // The only external script is the shared password gate.
+  assert.deepEqual($("script[src]").map((_, el) => $(el).attr("src")).get(), ["../gate.js"]);
   assert.match($('meta[name="robots"]').attr("content"), /noindex/);
   // The page carries every section a leader looks for.
   const headings = $("h2").map((_, h) => $(h).text()).get();

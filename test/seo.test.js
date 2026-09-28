@@ -11,6 +11,7 @@ const PAGES = [
   { file: "../site/index.html", url: `${SITE}/` },
   { file: "../site/trends.html", url: `${SITE}/trends` },
   { file: "../site/storylines.html", url: `${SITE}/storylines` },
+  { file: "../site/calendar.html", url: `${SITE}/calendar` },
 ];
 
 function readSite(relative) {
@@ -97,7 +98,7 @@ test("each page advertises both feeds and exactly one h1", async () => {
 test("internal links point at canonical URLs, not redirecting .html paths", async () => {
   for (const { file } of PAGES) {
     const html = await readSite(file);
-    assert.doesNotMatch(html, /href="(?:\.\/)?(?:index|trends|storylines)\.html"/, file);
+    assert.doesNotMatch(html, /href="(?:\.\/)?(?:index|trends|storylines|calendar)\.html"/, file);
   }
 });
 
