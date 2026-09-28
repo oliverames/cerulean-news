@@ -353,3 +353,19 @@ test("an entry cached before odds were stored refreshes only its sentiment", asy
   assert.equal(refreshed.sentiment, "positive");
   assert.equal(refreshed.sentimentScore, 90);
 });
+
+test("disagreements are measured against the decision before Jev, not Jev's own applied answer", async () => {
+  const removed = article(20, { relevant: false, reason: "Outside the feed's editorial scope.",
+    jevBaseline: { capturedAt: "2026-09-22T00:00:00Z", relevant: true, reason: "Hospital budgets.", sentiment: null, sentimentReason: "" } });
+  const agreed = article(21, { relevant: true });
+  const metrics = {};
+  await applyJevRelevance([removed, agreed], { mode: "enforce", metrics,
+    callJev: async (request) => answer(request.state.article.title === removed.title ? 0.05 : 0.95) });
+  // Jev still excludes the article it removed earlier; that is one disagreement with the original verdict.
+  assert.equal(metrics.inclusionDisagreements, 1);
+  const rescored = {};
+  await applyJevRelevance([brand({ sentiment: "positive",
+    jevBaseline: { capturedAt: "2026-09-22T00:00:00Z", relevant: true, reason: "", sentiment: "neutral", sentimentReason: "Old" } })],
+  { mode: "enforce", metrics: rescored, callJev: async () => answer(0.99, "positive") });
+  assert.equal(rescored.sentimentDisagreements, 1);
+});

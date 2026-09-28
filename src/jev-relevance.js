@@ -693,9 +693,15 @@ export async function applyJevRelevance(items, options = {}) {
   });
   metrics.pending = eligiblePending.length - metrics.succeeded;
   if (metrics.failed) metrics.status = "partial_failure";
+  // Compared with the decision before Jev first touched the article. The
+  // item's current fields already hold Jev's earlier applied answers, so a
+  // comparison against them would count Jev agreeing with itself.
   for (const [item, classification] of classifications) {
-    if (!item.fromMediaTracker && !classification.agreesWithKeyword) metrics.inclusionDisagreements += 1;
-    if (classification.sentiment && item.sentiment && classification.sentiment !== item.sentiment) metrics.sentimentDisagreements += 1;
+    const baseline = normalizeJevBaseline(item.jevBaseline);
+    const priorRelevant = baseline ? baseline.relevant !== false : keywordVerdict(item);
+    const priorSentiment = baseline ? baseline.sentiment : item.sentiment;
+    if (!item.fromMediaTracker && classification.decision !== DECISION_KEYWORD && classification.relevant !== priorRelevant) metrics.inclusionDisagreements += 1;
+    if (classification.sentiment && priorSentiment && classification.sentiment !== priorSentiment) metrics.sentimentDisagreements += 1;
   }
   console.log(`Jev evaluation (${mode}): ${metrics.succeeded}/${metrics.requested} successful, ${metrics.cached} cached, ${metrics.pending} pending, ${metrics.scopeBackfilled} scope backfills (${metrics.scopeBackfillPending} left), ${metrics.sentimentBackfilled ?? 0} sentiment backfills (${metrics.sentimentBackfillPending ?? 0} left); ${metrics.inclusionDisagreements} inclusion and ${metrics.sentimentDisagreements} sentiment disagreements. Status: ${metrics.status}.`);
   if (mode === JEV_MODE_SHADOW) return items;

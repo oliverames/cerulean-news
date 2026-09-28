@@ -289,7 +289,7 @@ The v2 inclusion question shares the existing Gemini policy: brand coverage, Ver
 
 Successful evaluations are cached by the exact request, rubric versions, and model in the audit feed's `crawlState.jevCache`. Cached answers are reapplied after summaries, and the default 25-call cap advances to unevaluated articles. Changed input or rubric invalidates the matching cache entry. The cache retains typed signals only, and entries for departed candidates are pruned. Reader JSON and RSS do not contain the cache.
 
-`crawlMetrics.jev` and Actions logs report successful calls, failures, cached evaluations, remaining candidates, and inclusion/sentiment disagreements. Missing credentials, failed requests, or malformed answers preserve the existing decisions and remain observable. Failed evaluations retry on a future run. TypeSafe overload and rate-limit responses receive one bounded retry, respecting short `Retry-After` delays.
+`crawlMetrics.jev` and Actions logs report successful calls, failures, cached evaluations, remaining candidates, and inclusion/sentiment disagreements with the decision each article had before Jev first changed it (`jevBaseline`), so an applied answer is not counted as agreeing with itself. Missing credentials, failed requests, or malformed answers preserve the existing decisions and remain observable. Failed evaluations retry on a future run. TypeSafe overload and rate-limit responses receive one bounded retry, respecting short `Retry-After` delays.
 
 ### Offline archive comparison
 
