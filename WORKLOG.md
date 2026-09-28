@@ -1,7 +1,6 @@
 ## Open items
 
-- Three how-to or out-of-region items survived the #15 re-check: "St. Lawrence County hosts Medicare info sessions," the Cotiviti platform announcement, and an ElderLawAnswers Medicare Advantage denial how-to. If they should go, add them to the Label Desk as exclusions, or tighten the scope wording. "Sens. Sanders and Welch asked about AI development" is the one decided label still missed (Oliver: include; Jev: exclude) (since 2026-09-28; [#15](https://github.com/oliverames/cerulean-news/issues/15))
-- Decide the publish cadence. GitHub drops most scheduled runs (about five a day against the 48 the cron asks for). Options: accept it and correct the docs; have each run dispatch the next with `GITHUB_TOKEN` (the documented `workflow_dispatch` exception); or add a small external cron, such as a Cloudflare Worker, that dispatches the workflow with a fine-grained token. The last two need Oliver's approval (since 2026-09-28)
+- "Sens. Sanders and Welch asked about AI development" is the one decided Label Desk item the feed still misses (Oliver: include; Jev: exclude). Decide whether it matters before touching the regional scope wording (since 2026-09-28; [#15](https://github.com/oliverames/cerulean-news/issues/15))
 - Finish sentiment scoring. The v2 profile invalidated every cached Jev answer. After the re-check, 184 of 246 eligible brand stories still need fresh odds from the cap left after new articles. The score now shows whenever odds exist. The Gemini archive re-score still waits on its quota (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
 - Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Sample the 451 proposed additions and 234 removals from `artifacts/jev-evaluation/` into the Label Desk from a Mac session (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
@@ -18,6 +17,23 @@
 - The calendar and briefs recall gap is a product decision that needs Oliver's call before any matcher work (since 2026-08-27) (unverified)
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
+
+## 2026-09-28 - Human exclusions decide their own articles; cadence accepted
+
+**Request**: Drop the St. Lawrence County Medicare sessions, the Cotiviti announcement, and the ElderLawAnswers Medicare Advantage denial how-to, and add them as rejections. Accept the real publishing cadence and fix the docs.
+
+**What changed** (c294a7d): A rejection reference cannot drop its own article, because an article never sees its own label, so Jev judged all three afresh and kept them. `applyHumanRejections` now excludes every article on the profile's `rejectedIds` list, with the reason "Excluded by editorial review." It runs after Gemini and before Jev, which skips those articles, and tracker clips keep their inclusion. The profile now lists 20 rejections, adding the three to the 17 from the Label Desk.
+
+**Cadence** (a12c513): Oliver accepted about five scheduled runs a day. The reader now says "several times a day." The README cites GitHub's documentation on delayed and dropped scheduled runs and sizes Jev capacity at about 125 evaluations a day. #8 carries a dated correction to its 1,200-a-day figure.
+
+**Verification**:
+- `npm test` 281 pass, and removing either the wiring or the Jev skip fails a test.
+- A dry run over the live audit changed exactly the three decisions.
+- Run 36486562301 deployed. The three articles are excluded in the audit and absent from the public feed, and 20 articles carry the reason. `rejectionReferences` is 20, and Label Desk agreement holds at 42 of 43.
+- 66 post-boundary articles await re-evaluation because the new references changed their requests. They clear at the normal cap in about three runs.
+- Run 36487018742 deployed the reader wording, and all three strings were confirmed on cerulean.news.
+
+---
 
 ## 2026-09-28 - Jev honors the shared exclusions, learns from rejections, and scores more stories
 
