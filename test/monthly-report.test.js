@@ -477,6 +477,7 @@ test("a page is built for each month from 2026-06, and the current one is marked
     "2026-08.html",
     "2026-09.html",
     "index.html",
+    "latest-email.json",
   ]);
   assert.match(pages["2026-09.html"], /<span class="tag">to date<\/span>/);
   assert.doesNotMatch(pages["2026-08.html"], /to date/);
@@ -490,7 +491,8 @@ test("a page is built for each month from 2026-06, and the current one is marked
 
   // A new month adds a page without dropping the old ones.
   const october = buildMonthlyReportPages(items, { now: new Date("2026-10-03T16:00:00Z") });
-  assert.equal(Object.keys(october).length, 6);
+  assert.equal(Object.keys(october).length, 7);
+  assert.equal(JSON.parse(october["latest-email.json"]).month, "2026-09");
   assert.doesNotMatch(october["2026-09.html"], /to date/);
   assert.match(october["2026-10.html"], /to date/);
 
@@ -552,13 +554,14 @@ test("writeMonthlyReports writes the pages and never throws", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "cerulean-reports-"));
   const items = [item("2026-09-10T15:00:00Z", { sentiment: "positive" })];
   const result = await writeMonthlyReports(items, { outputDir: path.join(dir, "reports"), now: NOW });
-  assert.equal(result.written, 5);
+  assert.equal(result.written, 6);
   assert.deepEqual((await readdir(path.join(dir, "reports"))).sort(), [
     "2026-06.html",
     "2026-07.html",
     "2026-08.html",
     "2026-09.html",
     "index.html",
+    "latest-email.json",
   ]);
 
   const originalError = console.error;
@@ -582,7 +585,7 @@ test("the feed run writes the reports beside the feed", async () => {
     auditJsonOutputPath: path.join(dir, "site", "feed-audit.json"),
   });
   const files = (await readdir(path.join(dir, "site", "reports"))).sort();
-  assert.deepEqual(files, ["2026-06.html", "2026-07.html", "2026-08.html", "index.html"]);
+  assert.deepEqual(files, ["2026-06.html", "2026-07.html", "2026-08.html", "index.html", "latest-email.json"]);
   const index = await readFile(path.join(dir, "site", "reports", "index.html"), "utf8");
   assert.match(index, /August 2026/);
 });
@@ -593,4 +596,25 @@ test("the trends page links the reports index in a marked block", async () => {
     html,
     /<!-- feature: monthly-report -->[^]*<a href="reports\/">[^]*<!-- \/feature: monthly-report -->/,
   );
+});
+
+test("latest-email.json carries the last complete month for the mail Worker", () => {
+  const items = [
+    item("2026-08-12T15:00:00Z", { sentiment: "positive" }),
+    item("2026-09-10T15:00:00Z", { sentiment: "positive" }),
+  ];
+  const pages = buildMonthlyReportPages(items, { now: NOW });
+  const email = JSON.parse(pages["latest-email.json"]);
+  assert.equal(email.month, "2026-08");
+  assert.match(email.subject, /August 2026/);
+  assert.ok(email.html.length > 0 && email.text.length > 0);
+  // The Worker appends the disclaimer and unsubscribe links itself.
+  assert.doesNotMatch(email.html, /Not affiliated/);
+  assert.doesNotMatch(email.text, /Not affiliated/);
+  assert.doesNotMatch(email.html, /unsubscribe/i);
+});
+
+test("no latest-email.json until a month is complete", () => {
+  const pages = buildMonthlyReportPages([], { now: new Date("2026-06-15T12:00:00Z") });
+  assert.equal(pages["latest-email.json"], undefined);
 });

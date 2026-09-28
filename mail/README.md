@@ -69,7 +69,9 @@ Renderers must not add their own unsubscribe link or disclaimer. The Worker appe
 { "id": "2026-09-29T10:47-3", "generatedAt": "2026-09-29T10:50:00Z", "subject": "...", "html": "...", "text": "...", "count": 3 }
 ```
 
-- The orchestrator adds the writer. `id` must be stable for one batch of alerts and change when the batch changes. It is the dedupe key, so reusing an id for new alerts means nobody receives them.
+- Written by `writeEmailAlerts` in `src/brand-alerts.js` on every run. `id` is stable for one batch of alerts and changes when the batch changes. It is the dedupe key, so reusing an id for new alerts would mean nobody receives them.
+- A batch stays published until a newer one replaces it, so a run with nothing new keeps the last batch visible. A batch younger than 35 minutes is folded into the next one, so the 30-minute ticks cannot miss it. Past 12 hours the file publishes `count: 0`.
+- The batch is independent of `BRAND_ALERTS`, which governs only the Slack and Discord webhooks.
 - `count` is the number of alerts in the batch. Zero (or missing) sends nothing.
 - `generatedAt` must be no more than 12 hours old (`ALERTS_MAX_AGE_HOURS`), so a stale file is never mailed to someone who joined later.
 
@@ -79,7 +81,7 @@ Renderers must not add their own unsubscribe link or disclaimer. The Worker appe
 { "month": "2026-09", "subject": "...", "html": "...", "text": "..." }
 ```
 
-- The orchestrator adds the writer. `month` is `YYYY-MM` and must be the current or previous UTC month. On day 1 it is the month that just ended.
+- Written by `buildMonthlyReportPages` in `src/monthly-report.js`, beside the report pages, for the last complete Eastern month. `month` is `YYYY-MM` and must be the current or previous UTC month. On day 1 it is the month that just ended.
 - Dedupe key: `month`. Publish it before 13:05 UTC on day 1. Ticks retry through day 3.
 
 Each body (`html` plus `text`) may be up to 2 MiB. Cloudflare's own message limit is 5 MiB.

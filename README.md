@@ -184,7 +184,7 @@ The result is published as `quotedSpokespeople` on Blue Cross VT items in `feed.
 
 ## Clip Email Draft
 
-Every run drafts the communications team's daily clip email. `src/digest.js` exports `buildDigest(items, { now, windowHours = 24 })`, a pure function that returns `{ subject, html, text, sections, itemCount }` and does no I/O, so a later job can send the same output by email. `src/digest-output.js` writes `site/digest.html` and `site/digest.json` beside the RSS output. The page previews the email and has a "Copy email" button that puts the HTML and a plain text alternative on the clipboard. `digest.json` holds `{ generatedAt, subject, text, html, sections }`. The page is marked `noindex` and is not in the sitemap. A failure while writing the digest is logged and never fails the run.
+Every run drafts the communications team's daily clip email. `src/digest.js` exports `buildDigest(items, { now, windowHours = 24 })`, a pure function that returns `{ subject, html, text, sections, itemCount }` and does no I/O, so a later job can send the same output by email. `src/digest-output.js` writes `site/digest.html` and `site/digest.json` beside the RSS output. The page previews the email and has a "Copy email" button that puts the HTML and a plain text alternative on the clipboard. `digest.json` holds `{ generatedAt, subject, text, html, sections }` for the mail Worker. Its footer keeps only the AI note, because the Worker appends the affiliation disclaimer and unsubscribe links. The page is marked `noindex` and is not in the sitemap. A failure while writing the digest is logged and never fails the run.
 
 - **Window.** Stories published or first seen in the last 24 hours. A future timestamp never counts.
 - **Sections.** Blue Cross VT News, Vermont Healthcare News, National Healthcare News, then More News, which holds Blue Cross Blue Shield Association pages. Empty sections are left out. Each section runs newest first.
@@ -273,7 +273,7 @@ Stories are marked priority and listed first when the sentiment is `negative` or
 
 Alerted keys live in `crawlState.brandAlerts` in `feed-audit.json`, hashed and bounded to the newest 2,000. The first run with no stored state records every current item and sends nothing, so the archive never floods the channel. With the switch off, new coverage is still recorded and nothing is sent, so switching it on later starts from that moment. A failed delivery never fails the run. Each endpoint keeps its own pending list and retries on the next run without repeating an alert another endpoint already accepted.
 
-`renderBrandAlertEmail(items, { now })` in `src/brand-alerts.js` returns `{ subject, html, text }` for subscriber email. It uses tables and inline styles, escapes all scraped text, drops non-http links, and contains no scripts. Nothing sends it yet.
+`renderBrandAlertEmail(items, { now })` in `src/brand-alerts.js` returns `{ subject, html, text }` for subscriber email. It uses tables and inline styles, escapes all scraped text, drops non-http links, and contains no scripts. Every run writes the current batch to `site/alerts.json`, which the mail Worker sends to the alerts list. The batch does not depend on `BRAND_ALERTS`. See `mail/README.md` for how batches are kept and replaced.
 
 ### Share of voice
 

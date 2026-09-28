@@ -6,6 +6,7 @@ import { cleanText } from "./utils.js";
 import { shouldScoreSentiment } from "./summaries.js";
 import { itemOutletName } from "./relevance.js";
 import { configuredWebhookTargets, postWebhookBatches } from "./alerts.js";
+import { writeText } from "./fsx.js";
 
 // The stored set is bounded so the audit JSON cannot grow without limit.
 export const BRAND_ALERT_MAX_KEYS = 2000;
@@ -58,11 +59,98 @@ export function normalizeBrandAlertState(value) {
       }
     }
   }
-  return {
+  const state = {
     seeded: Array.isArray(value?.keys) && value.seeded !== false,
     keys: boundKeys(value?.keys),
     undelivered,
   };
+  const batch = normalizeEmailAlertBatch(value?.emailBatch);
+  if (batch) {
+    state.emailBatch = batch;
+  }
+  return state;
+}
+
+// Email subscribers get alerts through the mail Worker, which reads
+// site/alerts.json (contract in mail/README.md). A batch stays published until
+// a newer one replaces it, so a run with nothing new never hides a batch the
+// Worker has not fetched yet. The Worker checks every 30 minutes, so a batch
+// younger than EMAIL_BATCH_MERGE_MINUTES is folded into the next one rather
+// than replaced before the Worker could see it.
+export const EMAIL_ALERT_MAX_AGE_HOURS = 12;
+const EMAIL_BATCH_MERGE_MINUTES = 35;
+
+function normalizeEmailAlertBatch(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const { id, generatedAt, subject, html, text } = value;
+  const keys = boundKeys(value.keys);
+  if (
+    typeof id !== "string" ||
+    !id ||
+    Number.isNaN(Date.parse(generatedAt)) ||
+    typeof subject !== "string" ||
+    typeof html !== "string" ||
+    typeof text !== "string" ||
+    keys.length === 0
+  ) {
+    return null;
+  }
+  return { id, generatedAt, keys, count: keys.length, subject, html, text };
+}
+
+// Writes site/alerts.json. Like the other generated files it is best-effort:
+// a problem is logged and never fails a run whose feed is already written.
+export async function writeEmailAlerts(state, { now = new Date(), outputPath }) {
+  try {
+    const document = emailAlertsDocument(state?.emailBatch, { now });
+    await writeText(outputPath, `${JSON.stringify(document, null, 2)}\n`);
+    return document;
+  } catch (error) {
+    console.error("Email alerts file was not written:", error);
+    return null;
+  }
+}
+
+// The next published batch: fresh stories (plus a very recent batch's stories)
+// in a new batch, or the previous batch unchanged when nothing is new.
+export function nextEmailAlertBatch(previous, freshKeys, candidates, { now = new Date() } = {}) {
+  const prior = normalizeEmailAlertBatch(previous);
+  if (freshKeys.length === 0) {
+    return prior;
+  }
+  const ageMinutes = prior ? (now.getTime() - Date.parse(prior.generatedAt)) / 60000 : Infinity;
+  const carried = ageMinutes >= 0 && ageMinutes < EMAIL_BATCH_MERGE_MINUTES ? prior.keys : [];
+  const keys = boundKeys([...carried, ...freshKeys]).filter((key) => candidates.has(key));
+  if (keys.length === 0) {
+    return prior;
+  }
+  const generatedAt = now.toISOString();
+  const digest = createHash("sha256").update(keys.join(",")).digest("base64url").slice(0, 10);
+  const email = renderBrandAlertEmail(
+    keys.map((key) => candidates.get(key)),
+    { now },
+  );
+  return {
+    id: `${generatedAt.slice(0, 16)}-${keys.length}-${digest}`,
+    generatedAt,
+    keys,
+    count: keys.length,
+    ...email,
+  };
+}
+
+// The alerts.json body. A batch older than the Worker's limit is published as
+// an empty batch, which the Worker skips quietly.
+export function emailAlertsDocument(batch, { now = new Date() } = {}) {
+  const current = normalizeEmailAlertBatch(batch);
+  const ageHours = current ? (now.getTime() - Date.parse(current.generatedAt)) / 3600000 : Infinity;
+  if (!current || ageHours > EMAIL_ALERT_MAX_AGE_HOURS) {
+    return { id: "none", generatedAt: now.toISOString(), subject: "", html: "", text: "", count: 0 };
+  }
+  const { id, generatedAt, subject, html, text, count } = current;
+  return { id, generatedAt, subject, html, text, count };
 }
 
 export function isPriorityBrandAlert(item) {
@@ -204,9 +292,11 @@ function formatEmailDate(now) {
   });
 }
 
-// Email-safe rendering for later delivery to subscribers: nested tables and
-// inline styles only, no scripts, styles blocks, or remote images. Every value
-// is scraped text, so all of it is escaped and links must be http(s).
+// Email-safe rendering for the mail Worker: nested tables and inline styles
+// only, no scripts, styles blocks, or remote images. The Worker appends the
+// unsubscribe links and the affiliation disclaimer, so this adds neither.
+// Every value is scraped text, so all of it is escaped and links must be
+// http(s).
 export function renderBrandAlertEmail(items, { now = new Date() } = {}) {
   const views = orderBrandAlertItems(items).map(describeItem);
   const shown = views.slice(0, BRAND_ALERT_MAX_ITEMS);
@@ -224,13 +314,13 @@ export function renderBrandAlertEmail(items, { now = new Date() } = {}) {
   const rows = shown
     .map((view) => {
       const headline = view.url
-        ? `<a href="${escapeHtml(view.url)}" style="color:#0b5cad;text-decoration:underline;">${escapeHtml(view.title)}</a>`
+        ? `<a href="${escapeHtml(view.url)}" style="color:#0033a0;text-decoration:underline;">${escapeHtml(view.title)}</a>`
         : escapeHtml(view.title);
       const cell = view.priority
-        ? "padding:14px 20px;border-top:1px solid #e3e7eb;border-left:4px solid #b3261e;background-color:#fdf1f0;"
-        : "padding:14px 20px;border-top:1px solid #e3e7eb;border-left:4px solid #ffffff;";
+        ? "padding:14px 20px;border-top:1px solid #dddddd;border-left:4px solid #b02a1f;background-color:#fbf1f0;"
+        : "padding:14px 20px;border-top:1px solid #dddddd;border-left:4px solid #ffffff;";
       const badge = view.priority
-        ? `<div style="font-size:12px;font-weight:bold;letter-spacing:0.05em;color:#b3261e;padding-bottom:4px;">PRIORITY: UNFAVORABLE COVERAGE</div>`
+        ? `<div style="font-size:12px;font-weight:bold;letter-spacing:0.05em;color:#b02a1f;padding-bottom:4px;">PRIORITY: UNFAVORABLE COVERAGE</div>`
         : "";
       const summary = view.summary
         ? `<div style="font-size:14px;line-height:1.5;color:#333333;padding-top:6px;">${escapeHtml(truncate(view.summary, 300))}</div>`
@@ -246,7 +336,7 @@ export function renderBrandAlertEmail(items, { now = new Date() } = {}) {
     .join("\n");
   const moreRow =
     more > 0
-      ? `<tr><td style="padding:14px 20px;border-top:1px solid #e3e7eb;font-size:14px;color:#555555;">+${more} more on <a href="${escapeHtml(siteUrl)}" style="color:#0b5cad;">Cerulean News</a></td></tr>`
+      ? `<tr><td style="padding:14px 20px;border-top:1px solid #dddddd;font-size:14px;color:#555555;">+${more} more on <a href="${escapeHtml(siteUrl)}" style="color:#0033a0;">Cerulean News</a></td></tr>`
       : "";
   const intro =
     views.length === 0
@@ -259,22 +349,22 @@ export function renderBrandAlertEmail(items, { now = new Date() } = {}) {
     '<html lang="en"><head><meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
     `<title>${escapeHtml(subject)}</title></head>`,
-    '<body style="margin:0;padding:0;background-color:#f4f6f8;">',
-    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f6f8;"><tr><td align="center" style="padding:24px 12px;">',
-    '<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;background-color:#ffffff;font-family:Georgia,\'Times New Roman\',serif;color:#1a1a1a;">',
-    `<tr><td style="padding:20px;"><div style="font-size:20px;font-weight:bold;">Blue Cross VT News Mention Monitor</div>` +
+    '<body style="margin:0;padding:0;background-color:#f5f8fc;">',
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f5f8fc;"><tr><td align="center" style="padding:24px 12px;">',
+    '<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;background-color:#ffffff;font-family:Helvetica,Arial,sans-serif;color:#111111;">',
+    `<tr><td style="padding:20px;"><div style="font-size:20px;font-weight:bold;">Cerulean News alerts</div>` +
       (date ? `<div style="font-size:13px;color:#555555;padding-top:2px;">${escapeHtml(date)}</div>` : "") +
       `<div style="font-size:15px;line-height:1.5;padding-top:10px;">${escapeHtml(intro)}</div></td></tr>`,
     rows,
     moreRow,
-    `<tr><td style="padding:16px 20px;border-top:1px solid #e3e7eb;font-size:12px;line-height:1.5;color:#777777;">Automated alert from Cerulean News. Sentiment is a model estimate, so read the story before acting on it. Not affiliated with Blue Cross and Blue Shield of Vermont.</td></tr>`,
+    `<tr><td style="padding:16px 20px;border-top:1px solid #dddddd;font-size:12px;line-height:1.5;color:#777777;">Automated alert from Cerulean News. Sentiment is a model estimate, so read the story before acting on it.</td></tr>`,
     "</table></td></tr></table></body></html>",
   ]
     .filter(Boolean)
     .join("\n");
 
   const text = [
-    "Blue Cross VT News Mention Monitor",
+    "Cerulean News alerts",
     ...(date ? [date] : []),
     "",
     intro,
@@ -287,7 +377,7 @@ export function renderBrandAlertEmail(items, { now = new Date() } = {}) {
     ]),
     ...(more > 0 ? ["", `+${more} more on Cerulean News: ${siteUrl}`] : []),
     "",
-    "Automated alert from Cerulean News. Sentiment is a model estimate. Not affiliated with Blue Cross and Blue Shield of Vermont.",
+    "Automated alert from Cerulean News. Sentiment is a model estimate, so read the story before acting on it.",
   ].join("\n");
 
   return { subject, html, text };
@@ -301,7 +391,7 @@ export function renderBrandAlertEmail(items, { now = new Date() } = {}) {
 export async function sendBrandAlerts(
   items,
   crawlState,
-  { env = process.env, targets = configuredWebhookTargets() } = {},
+  { env = process.env, targets = configuredWebhookTargets(), now = new Date() } = {},
 ) {
   try {
     const state = (crawlState.brandAlerts ||= normalizeBrandAlertState());
@@ -331,6 +421,14 @@ export async function sendBrandAlerts(
     }
     const known = new Set(state.keys);
     const freshKeys = [...candidates.keys()].filter((key) => !known.has(key));
+    // Email is independent of BRAND_ALERTS, which only governs the webhooks;
+    // the mail Worker sends only to people who chose the alerts list.
+    const emailBatch = nextEmailAlertBatch(state.emailBatch, freshKeys, candidates, { now });
+    if (emailBatch) {
+      state.emailBatch = emailBatch;
+    } else {
+      delete state.emailBatch;
+    }
     const enabled = brandAlertsEnabled(env);
     let sent = 0;
 

@@ -27,7 +27,7 @@ import {
   selectFailureAlerts,
   triggerWebhooks,
 } from "./alerts.js";
-import { sendBrandAlerts } from "./brand-alerts.js";
+import { sendBrandAlerts, writeEmailAlerts } from "./brand-alerts.js";
 import { buildJsonSummary, buildRss, writeOutput } from "./outputs.js";
 import { writeDigestOutputs } from "./digest-output.js";
 import { writeMonthlyReports } from "./monthly-report.js";
@@ -249,7 +249,7 @@ export async function generateFeed({
   );
   // Sentiment is final here. Brand alerts share the join below with the
   // failure alerts and never throw.
-  const brandAlertPromise = sendBrandAlerts(matchedItems, crawlState);
+  const brandAlertPromise = sendBrandAlerts(matchedItems, crawlState, { now });
   // Successful endpoint-specific alert state is written with the source
   // results. Failed endpoints remain pending and retry on the next run.
   await Promise.all([webhookPromise, brandAlertPromise]);
@@ -278,6 +278,11 @@ export async function generateFeed({
     auditJsonOutputPath,
   );
   await writeDigestOutputs(matchedItems, { now, rssOutputPath });
+  // Brand alerts for email subscribers, read by the mail Worker.
+  await writeEmailAlerts(crawlState.brandAlerts, {
+    now,
+    outputPath: path.join(path.dirname(rssOutputPath), "alerts.json"),
+  });
   // Monthly leadership report pages, beside the feed. Never fails the run.
   await writeMonthlyReports(jsonSummary.items, {
     outputDir: path.join(path.dirname(rssOutputPath), "reports"),

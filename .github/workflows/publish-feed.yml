@@ -321,7 +321,7 @@ jobs:
           fetch_live digest.json json || echo "::warning::No live digest.json to reuse"
           curl -fsSL --compressed --retry 3 --max-time 60 "$LIVE_SITE_URL/digest.html" -o site/digest.html \
             || echo "::warning::No live digest.html to reuse"
-          for name in storylines.json calendar.json calendar.ics; do
+          for name in storylines.json calendar.json calendar.ics alerts.json; do
             curl -fsSL --compressed --retry 3 --max-time 60 "$LIVE_SITE_URL/$name" -o "/tmp/$name" \
               && mv "/tmp/$name" "site/$name" \
               || echo "::warning::No live $name to reuse; deploying the committed copy"

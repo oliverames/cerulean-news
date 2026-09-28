@@ -9,6 +9,8 @@ import {
   BRAND_ALERT_MAX_KEYS,
   brandAlertKey,
   buildBrandAlertMessage,
+  emailAlertsDocument,
+  nextEmailAlertBatch,
   normalizeBrandAlertState,
   renderBrandAlertEmail,
   sendBrandAlerts,
@@ -103,7 +105,7 @@ async function auditWorkspace(items) {
     paths.auditJsonOutputPath,
     JSON.stringify({ generatedAt: "2026-09-28T10:00:00.000Z", items }),
   );
-  const run = () => generateFeed({ sources: [], now: NOW, ...paths });
+  const run = (now = NOW) => generateFeed({ sources: [], now, ...paths });
   const readAudit = async () =>
     JSON.parse(await readFile(paths.auditJsonOutputPath, "utf8"));
   // Adds coverage to the audit the way a later crawl would, keeping the state
@@ -113,7 +115,9 @@ async function auditWorkspace(items) {
     audit.items.push(...added);
     await writeFile(paths.auditJsonOutputPath, JSON.stringify(audit));
   };
-  return { run, readAudit, addItems };
+  const readEmailAlerts = async () =>
+    JSON.parse(await readFile(path.join(workdir, "alerts.json"), "utf8"));
+  return { run, readAudit, addItems, readEmailAlerts };
 }
 
 const ON = {
@@ -365,4 +369,68 @@ test("the stored alert set stays bounded to the newest keys", async () => {
     });
   });
   assert.equal(crawlState.brandAlerts.keys.length, BRAND_ALERT_MAX_KEYS);
+});
+
+test("alerts.json publishes new coverage for the mail Worker, even with webhooks off", async () => {
+  const workspace = await auditWorkspace([archiveItem("old")]);
+  await withEnv({ ...ON, BRAND_ALERTS: undefined }, () =>
+    withWebhookFetch(async (posts) => {
+      await workspace.run();
+      assert.equal((await workspace.readEmailAlerts()).count, 0, "seeding publishes nothing");
+
+      await workspace.addItems(archiveItem("fresh", { title: "Fresh coverage of Blue Cross VT" }));
+      await workspace.run();
+      const batch = await workspace.readEmailAlerts();
+      assert.equal(posts.length, 0, "BRAND_ALERTS governs only the webhooks");
+      assert.equal(batch.count, 1);
+      assert.match(batch.id, /^2026-09-28T16:00-1-/);
+      assert.match(batch.subject, /1 new story/);
+      assert.match(batch.html, /Fresh coverage of Blue Cross VT/);
+      assert.match(batch.text, /Fresh coverage of Blue Cross VT/);
+      // The Worker appends the disclaimer and the unsubscribe links.
+      assert.doesNotMatch(batch.html, /affiliated|unsubscribe/i);
+
+      // A later run with nothing new keeps the batch, so the Worker still sees it.
+      await workspace.run(new Date("2026-09-28T19:00:00Z"));
+      assert.equal((await workspace.readEmailAlerts()).id, batch.id);
+
+      // Past the Worker's 12-hour limit the file empties.
+      await workspace.run(new Date("2026-09-29T05:00:00Z"));
+      assert.equal((await workspace.readEmailAlerts()).count, 0);
+    }),
+  );
+});
+
+test("a batch younger than the Worker's check interval is folded into the next", () => {
+  const candidates = new Map(
+    ["a", "b", "c"].map((slug) => [brandAlertKey(liveItem(slug)), liveItem(slug)]),
+  );
+  const [a, b, c] = [...candidates.keys()];
+  const first = nextEmailAlertBatch(null, [a], candidates, { now: NOW });
+  assert.equal(first.count, 1);
+
+  const soon = nextEmailAlertBatch(first, [b], candidates, {
+    now: new Date(NOW.getTime() + 10 * 60000),
+  });
+  assert.deepEqual(soon.keys, [a, b]);
+  assert.notEqual(soon.id, first.id);
+
+  const later = nextEmailAlertBatch(soon, [c], candidates, {
+    now: new Date(NOW.getTime() + 3 * 3600000),
+  });
+  assert.deepEqual(later.keys, [c]);
+  assert.equal(nextEmailAlertBatch(later, [], candidates, { now: NOW }).id, later.id);
+});
+
+test("the alerts document matches the mail Worker's contract", () => {
+  const candidates = new Map([[brandAlertKey(liveItem("a")), liveItem("a")]]);
+  const batch = nextEmailAlertBatch(null, [...candidates.keys()], candidates, { now: NOW });
+  const document = emailAlertsDocument(batch, { now: NOW });
+  assert.deepEqual(Object.keys(document).sort(), ["count", "generatedAt", "html", "id", "subject", "text"]);
+  assert.equal(document.count, 1);
+  assert.equal(emailAlertsDocument(null, { now: NOW }).count, 0);
+  // The batch survives the audit round trip.
+  const restored = normalizeBrandAlertState({ keys: [], emailBatch: batch });
+  assert.equal(restored.emailBatch.id, batch.id);
+  assert.equal(normalizeBrandAlertState({ keys: [], emailBatch: { id: "" } }).emailBatch, undefined);
 });

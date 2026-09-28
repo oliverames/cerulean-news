@@ -555,7 +555,7 @@ ${emailSection("Most favorable stories", `<tr><td><table role="presentation" wid
 ${emailSection("Least favorable stories", `<tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${emailStoryRows(report.unfavorable, "No adverse stories this month.")}</table></td></tr>`)}
 ${emailSection("Top themes", `<tr><td style="padding:6px 0 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${themeRows}</table></td></tr>`)}
 <tr><td style="padding:18px 0 0;font:14px/1.5 ${EMAIL_FONT};color:#111111;"><a href="${escapeXml(reportUrl)}" style="color:#0000cc;">Open the full report</a></td></tr>
-<tr><td style="padding:18px 0 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:10px 12px;border:2px solid #0033a0;font:13px/1.45 ${EMAIL_FONT};color:#111111;"><strong style="color:#0033a0;">Not affiliated.</strong> Cerulean News is an independent personal project. It is not affiliated with, endorsed by, or operated by Blue Cross and Blue Shield of Vermont or the Blue Cross Blue Shield Association. Sentiment scores are AI-generated, so treat them as a first pass.</td></tr></table></td></tr>
+<tr><td style="padding:18px 0 0;font:12px/1.45 ${EMAIL_FONT};color:#555555;">Sentiment scores are AI-generated, so treat them as a first pass.</td></tr>
 </table>
 </td></tr></table>
 </body></html>
@@ -598,7 +598,7 @@ ${emailSection("Top themes", `<tr><td style="padding:6px 0 0;"><table role="pres
     "",
     `Full report: ${reportUrl}`,
     "",
-    "Not affiliated. Cerulean News is an independent personal project, not affiliated with Blue Cross and Blue Shield of Vermont or the Blue Cross Blue Shield Association. Sentiment scores are AI-generated.",
+    "Sentiment scores are AI-generated, so treat them as a first pass.",
   ];
 
   return { subject, html, text: `${lines.join("\n")}\n` };
@@ -932,6 +932,13 @@ export function buildMonthlyReportPages(items, { now = new Date(), firstMonth = 
     pages[`${report.month}.html`] = renderMonthlyReportPage(report);
   }
   pages["index.html"] = renderReportsIndex(reports);
+  // The mail Worker sends the last complete month on the 1st (contract in
+  // mail/README.md), so the email is for the month before the current one.
+  const lastComplete = reports.length > 1 ? reports[reports.length - 2] : null;
+  if (lastComplete) {
+    const email = renderMonthlyReportEmail(lastComplete);
+    pages["latest-email.json"] = `${JSON.stringify({ month: lastComplete.month, ...email }, null, 2)}\n`;
+  }
   return pages;
 }
 
