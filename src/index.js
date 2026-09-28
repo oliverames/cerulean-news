@@ -14,6 +14,7 @@ import {
 } from "./enrich.js";
 import { applyDeterministicRelevance } from "./relevance.js";
 import { applyJevRelevance } from "./jev-relevance.js";
+import { applyHumanRejections } from "./jev-alignment.js";
 import {
   dedupeResolvedItems,
   loadPreviousState,
@@ -223,10 +224,15 @@ export async function generateFeed({
   await measurePhase(crawlMetrics, "summarize", () =>
     summarizeItems(mergedItems),
   );
+  // Human exclusions from editorial review decide their own articles, after
+  // Gemini's verdict and before Jev, which then leaves them alone.
+  const reviewedItems = await applyHumanRejections(mergedItems, {
+    alignment: jevOptions.alignment,
+  });
   // Jev runs last so Gemini cannot overwrite a confident enforced evaluation.
   // Shadow mode preserves reader output while recording calibration evidence.
   const matchedItems = await measurePhase(crawlMetrics, "jevRelevance", () =>
-    applyJevRelevance(mergedItems, {
+    applyJevRelevance(reviewedItems, {
       ...jevOptions,
       cache: crawlState.jevCache,
       metrics: (crawlMetrics.jev = {}),

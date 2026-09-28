@@ -1,6 +1,6 @@
 // Supported request-level adaptation, not customer-specific model weights.
 import { readFile } from "node:fs/promises";
-import { selectReferenceExamples } from "./jev-examples.js";
+import { exampleId, selectReferenceExamples } from "./jev-examples.js";
 import { INCLUSION_PRIORITIES, INCLUSION_RULES } from "./summaries.js";
 
 export const ALIGNMENT_VERSION = "editorial-examples-v2";
@@ -98,4 +98,25 @@ export async function loadAlignmentProfile(filename) {
     throw new Error("Invalid Jev alignment profile");
   }
   return profile;
+}
+
+export const HUMAN_REJECTION_REASON = "Excluded by editorial review.";
+
+// A human exclusion decides the article itself, the way a tracker clip's
+// inclusion does. It cannot come through Jev: an article never sees its own
+// label among its references, so Jev would judge it afresh. Runs after
+// Gemini and before Jev on every pass, and marks the article so Jev skips
+// it. Tracker clips keep their inclusion. A missing or invalid profile
+// leaves every decision unchanged.
+export async function applyHumanRejections(items, { env = process.env, alignment } = {}) {
+  let profile = alignment;
+  if (!profile && env.JEV_ALIGNMENT_PROFILE) {
+    try { profile = await loadAlignmentProfile(env.JEV_ALIGNMENT_PROFILE); } catch { return items; }
+  }
+  const rejected = new Set(profile?.references?.rejectedIds || []);
+  if (!rejected.size || !Array.isArray(items)) return items;
+  return items.map((item) => {
+    if (item?.fromMediaTracker || !rejected.has(exampleId(item?.link || item?.url || ""))) return item;
+    return { ...item, relevant: false, reason: HUMAN_REJECTION_REASON, humanRejected: true };
+  });
 }

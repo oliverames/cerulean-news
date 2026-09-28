@@ -4,7 +4,9 @@ import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { buildReferenceExamples, exampleId, sameExampleStory, selectReferenceExamples } from "../src/jev-examples.js";
-import { addEditorialAlignment, alignedInclusionAnswer, loadAlignmentProfile } from "../src/jev-alignment.js";
+import { addEditorialAlignment, alignedInclusionAnswer, applyHumanRejections, HUMAN_REJECTION_REASON, loadAlignmentProfile } from "../src/jev-alignment.js";
+import { generateFeed } from "../src/index.js";
+import { readFile } from "node:fs/promises";
 import { applyJevRelevance, buildJevRequest, classifyItemRelevance, normalizeJevCache, loadRelevanceRubric, loadSentimentRubric } from "../src/jev-relevance.js";
 import { INCLUSION_PRIORITIES, INCLUSION_RULES } from "../src/summaries.js";
 
@@ -187,14 +189,57 @@ test("Label Desk rejections become include:false references drawn from the archi
   // An article is never shown its own rejection.
   const own = selectReferenceExamples(rejected, many, { task: "inclusion", limit: 8 });
   assert.ok(own.every((entry) => entry.article.title !== rejected.title));
-  // The committed profile carries the 17 decisions as hashes and nothing else.
+  // The committed profile carries the 20 decisions as hashes and nothing else.
   const profile = await loadAlignmentProfile("src/rubrics/editorial-alignment-v2.json");
-  assert.equal(profile.references.rejectedIds.length, 17);
+  assert.equal(profile.references.rejectedIds.length, 20);
   assert.ok(profile.references.rejectedIds.every((id) => /^[a-f0-9]{64}$/.test(id)));
   const directory = await mkdtemp(path.join(tmpdir(), "jev-rejections-"));
   try {
     const bad = path.join(directory, "profile.json");
     await writeFile(bad, JSON.stringify({ ...profile, references: { ...profile.references, rejectedIds: ["https://colorado.test"] } }));
     await assert.rejects(loadAlignmentProfile(bad));
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test("a human rejection excludes its own article, and Jev leaves it alone", async () => {
+  const rejected = { title: "St. Lawrence County hosts Medicare info sessions", link: "https://ny.test/medicare-sessions",
+    snippet: "Medicare sessions in New York.", matchedTerms: ["Medicare"], category: "topic", relevant: true,
+    reason: "Medicare info sessions in another state.", firstSeenAt: new Date("2026-09-23T00:00:00Z") };
+  const clip = { ...rejected, link: "https://ny.test/clip", title: "A tracker clip", fromMediaTracker: true };
+  const kept = { ...rejected, link: "https://ny.test/other", title: "Vermont Medicare counseling expands" };
+  const alignment = { references: { rejectedIds: [exampleId(rejected.link), exampleId(clip.link)] } };
+  const [out, clipOut, keptOut] = await applyHumanRejections([rejected, clip, kept], { alignment });
+  assert.equal(out.relevant, false);
+  assert.equal(out.reason, HUMAN_REJECTION_REASON);
+  // A tracker clip is a human inclusion decision too, and keeps it.
+  assert.equal(clipOut, clip);
+  assert.equal(keptOut, kept);
+  // Without a profile, nothing changes.
+  assert.deepEqual(await applyHumanRejections([rejected], { env: {} }), [rejected]);
+  const titles = [];
+  const [afterJev] = await applyJevRelevance([out], { env: {}, mode: "enforce", enforceAfter: "2026-09-21T00:00:00Z",
+    alignment: await loadAlignmentProfile("src/rubrics/editorial-alignment-v2.json"), referenceExamples: buildReferenceExamples(seed),
+    callJev: async (request) => { titles.push(request.state.article.title); return {}; } });
+  assert.deepEqual(titles, []);
+  assert.equal(afterJev.relevant, false);
+});
+
+test("the generator applies human rejections on every run", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "jev-human-rejection-"));
+  try {
+    const now = new Date("2026-09-28T12:00:00Z");
+    const story = { title: "Vermont hospital budget review", link: "https://vtdigger.org/2026/09/27/budget", sourceName: "VTDigger",
+      snippet: "Green Mountain Care Board reviews Vermont hospital budgets.", matchedTerms: ["hospital"], category: "topic",
+      summary: "Vermont hospital budgets are under review.", reason: "Hospital budgets.", relevant: true, pubDate: now.toISOString() };
+    const paths = { rssOutputPath: path.join(directory, "feed.rss"), jsonOutputPath: path.join(directory, "feed.json"), auditJsonOutputPath: path.join(directory, "feed-audit.json") };
+    await writeFile(paths.auditJsonOutputPath, JSON.stringify({ generatedAt: now.toISOString(), items: [story] }));
+    const alignment = { references: { rejectedIds: [exampleId(story.link)] } };
+    await generateFeed({ sources: [], now, ...paths, jevOptions: { mode: "off", alignment } });
+    const audit = JSON.parse(await readFile(paths.auditJsonOutputPath, "utf8"));
+    const published = JSON.parse(await readFile(paths.jsonOutputPath, "utf8"));
+    assert.equal(audit.items[0].relevant, false);
+    assert.equal(audit.items[0].reason, HUMAN_REJECTION_REASON);
+    assert.equal(audit.items[0].humanRejected, undefined);
+    assert.equal(published.items.length, 0);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });

@@ -346,6 +346,9 @@ export async function classifyItemRelevance(item, options = {}) {
 
 // Deterministic rules own these items, so the model is never asked about them.
 export function jevSkipReason(item) {
+  if (item?.humanRejected) {
+    return "excluded by editorial review";
+  }
   if (isObituaryItem(item) || applyDeterministicRelevance({ ...item, relevant: undefined }).relevant === false) {
     return "rejected by a deterministic rule";
   }
