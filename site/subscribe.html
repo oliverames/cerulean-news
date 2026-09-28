@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Email updates | Cerulean News</title>
+    <meta name="description" content="Get the Cerulean News daily digest, brand-mention alerts, or monthly report by email. Confirm by email, unsubscribe any time. Not affiliated with any insurer.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://cerulean.news/subscribe">
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="manifest" href="site.webmanifest">
+    <meta name="theme-color" content="#0033a0">
+    <style>
+      :root {
+        --fg: #111;
+        --muted: #555;
+        --link: #0000cc;
+        --visited: #551a8b;
+        --rule: #ccc;
+        --surface: #f5f8fc;
+        --bg: #fff;
+        --bar-1: #0033a0;
+        --bar-2: #111;
+        --bar-3: #418fde;
+        --ok: #0d4c9e;
+        --bad: #b02a1f;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --fg: #e8e8e8;
+          --muted: #a8a8a8;
+          --link: #8ab4ff;
+          --visited: #c3a6ee;
+          --rule: #444;
+          --surface: #161c26;
+          --bg: #0f1115;
+          --bar-1: #4a7fe0;
+          --bar-2: #e8e8e8;
+          --bar-3: #418fde;
+          --ok: #8ab4ff;
+          --bad: #ff8a80;
+        }
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1.45;
+      }
+
+      .page {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 18px 16px 48px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 0.9rem;
+        margin-bottom: 24px;
+      }
+
+      .topbar .button {
+        display: inline-block;
+        padding: 4px 12px;
+        border: 1px solid var(--fg);
+        color: var(--fg);
+        text-decoration: none;
+      }
+
+      .topbar .button:hover {
+        background: var(--surface);
+      }
+
+      h1 {
+        margin: 0 0 6px;
+        font-size: 1.65rem;
+        font-weight: 700;
+      }
+
+      .tricolor {
+        display: flex;
+        height: 5px;
+        margin: 0 0 18px;
+      }
+
+      .tricolor span { flex: 1; }
+      .tricolor .c1 { background: var(--bar-1); }
+      .tricolor .c2 { background: var(--bar-2); }
+      .tricolor .c3 { background: var(--bar-3); }
+
+      a { color: var(--link); }
+      a:visited { color: var(--visited); }
+
+      a:focus-visible,
+      button:focus-visible,
+      input:focus-visible {
+        outline: 3px solid var(--bar-3);
+        outline-offset: 2px;
+      }
+
+      form { margin: 18px 0 0; }
+
+      label.field {
+        display: block;
+        font-weight: 700;
+        margin: 0 0 4px;
+      }
+
+      input[type="email"] {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid var(--fg);
+        background: var(--bg);
+        color: var(--fg);
+        font: inherit;
+      }
+
+      fieldset {
+        margin: 18px 0;
+        padding: 6px 14px 10px;
+        border: 1px solid var(--rule);
+      }
+
+      legend {
+        padding: 0 6px;
+        font-weight: 700;
+      }
+
+      label.opt {
+        display: block;
+        margin: 10px 0;
+      }
+
+      label.opt small {
+        display: block;
+        margin-left: 24px;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      /* The honeypot: off-screen rather than display:none, so a bot that
+         fills every visible-to-the-DOM field still trips it. */
+      .hp {
+        position: absolute;
+        left: -10000px;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+      }
+
+      button[type="submit"] {
+        padding: 6px 16px;
+        border: 1px solid var(--fg);
+        background: var(--bg);
+        color: var(--fg);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      button[type="submit"]:hover:not(:disabled) {
+        background: var(--surface);
+      }
+
+      button[type="submit"]:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+
+      .result {
+        margin: 16px 0 0;
+        padding: 10px 12px;
+        border-left: 3px solid var(--ok);
+        background: var(--surface);
+      }
+
+      .result.error {
+        border-left-color: var(--bad);
+      }
+
+      .privacy {
+        margin: 22px 0 0;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      footer {
+        margin-top: 24px;
+        font-size: 0.8rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      footer::before {
+        content: "";
+        display: block;
+        height: 5px;
+        margin-bottom: 16px;
+        background: linear-gradient(
+          to right,
+          var(--bar-1) 0 33.333%,
+          var(--bar-2) 33.333% 66.666%,
+          var(--bar-3) 66.666% 100%
+        );
+      }
+
+      .affiliation {
+        margin: 0 0 14px;
+        padding: 10px 12px;
+        border: 2px solid var(--bar-1);
+        border-radius: 4px;
+        color: var(--fg);
+        font-size: 15px;
+        line-height: 1.45;
+      }
+
+      .affiliation strong { color: var(--bar-1); }
+
+      .copyright {
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      footer a { color: var(--muted); }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <a class="button" href="./">Reader</a>
+        <a class="button" href="trends">Trends</a>
+        <a class="button" href="feed.rss">RSS Feed</a>
+      </div>
+
+      <main aria-labelledby="subscribe-title">
+        <h1 id="subscribe-title">Email updates</h1>
+        <div class="tricolor" aria-hidden="true">
+          <span class="c1"></span><span class="c2"></span><span class="c3"></span>
+        </div>
+
+        <p>Get Cerulean News by email. Pick any of the three lists. We send a confirmation email first, and nothing else arrives until you confirm.</p>
+
+        <form id="subscribe-form" action="/api/mail/subscribe" method="post" novalidate>
+          <label class="field" for="email">Email address</label>
+          <input id="email" name="email" type="email" autocomplete="email" inputmode="email" required>
+
+          <fieldset>
+            <legend>Lists</legend>
+            <label class="opt">
+              <input type="checkbox" name="lists" value="digest" checked>
+              Daily clip digest
+              <small>One email each morning with the day&rsquo;s Vermont health care and Blue Cross VT coverage.</small>
+            </label>
+            <label class="opt">
+              <input type="checkbox" name="lists" value="alerts">
+              Brand-mention alerts
+              <small>A short note when new coverage names Blue Cross VT, checked every 30 minutes.</small>
+            </label>
+            <label class="opt">
+              <input type="checkbox" name="lists" value="monthly">
+              Monthly leadership report
+              <small>Coverage volume, sentiment, and themes for the month, sent on the first.</small>
+            </label>
+          </fieldset>
+
+          <!-- Honeypot: people never see or fill this. -->
+          <div class="hp" aria-hidden="true">
+            <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+          </div>
+
+          <button type="submit" id="subscribe-button">Subscribe</button>
+          <div id="subscribe-result" role="status" aria-live="polite" hidden></div>
+        </form>
+
+        <p class="privacy">
+          Privacy: we store only your email address, the lists you chose, and a log of what we sent you. Every email has a link to unsubscribe, and you can change your lists from any email.
+        </p>
+      </main>
+
+      <footer>
+        <p class="affiliation">
+          <strong>Not affiliated.</strong> Cerulean News is an independent personal
+          project. It is not affiliated with, endorsed by, or operated by Blue
+          Cross and Blue Shield of Vermont or the Blue Cross Blue Shield
+          Association.
+        </p>
+        <p class="copyright">&copy; <span id="copyright-year">2026</span> Ames Consulting, LLC. The site's source code is released under the <a href="https://opensource.org/license/mit">MIT License</a>; email <a href="mailto:oliver@ames.consulting">oliver@ames.consulting</a> for a copy.</p>
+      </footer>
+    </div>
+
+    <script>
+      document.getElementById("copyright-year").textContent = String(new Date().getFullYear());
+
+      const form = document.getElementById("subscribe-form");
+      const button = document.getElementById("subscribe-button");
+      const resultEl = document.getElementById("subscribe-result");
+
+      function show(message, isError) {
+        resultEl.textContent = message;
+        resultEl.className = isError ? "result error" : "result";
+        resultEl.hidden = false;
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const email = form.elements.email.value.trim();
+        const lists = Array.from(form.querySelectorAll('input[name="lists"]:checked')).map((box) => box.value);
+        if (!email) {
+          show("Enter your email address.", true);
+          return;
+        }
+        if (lists.length === 0) {
+          show("Choose at least one list.", true);
+          return;
+        }
+        button.disabled = true;
+        show("Sending…", false);
+        try {
+          const response = await fetch("/api/mail/subscribe", {
+            method: "POST",
+            headers: { "content-type": "application/json", accept: "application/json" },
+            body: JSON.stringify({ email, lists, website: form.elements.website.value }),
+          });
+          let body = {};
+          try {
+            body = await response.json();
+          } catch {
+            // A non-JSON reply falls through to the generic message below.
+          }
+          if (response.ok) {
+            show(body.message || "Check your inbox for a confirmation email.", false);
+            form.elements.email.value = "";
+          } else {
+            show(body.message || "Something went wrong. Please try again.", true);
+          }
+        } catch {
+          show("Could not reach the server. Please try again.", true);
+        } finally {
+          button.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
