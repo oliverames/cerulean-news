@@ -237,6 +237,8 @@ jobs:
           JEV_REJUDGE_ARCHIVE: ${{ inputs.jev_rejudge_archive }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          # Team alert when new press coverage names Blue Cross VT.
+          BRAND_ALERTS: "on"
           # One-shot re-passes, opt-in from the Actions "Run workflow" dialog.
           # Both cost Gemini calls proportional to the archive, so they are
           # never set on the scheduled run.

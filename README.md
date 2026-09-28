@@ -221,6 +221,16 @@ Because Google News search feeds name the query rather than the publisher,
 every item also carries an `outlet` field, resolved from the article link. The
 trends page groups by that rather than by `sourceName`.
 
+### Brand-mention alerts
+
+With `BRAND_ALERTS=on`, the run posts one Slack and Discord message when new press coverage names Blue Cross VT. It reuses the failure-alert webhooks. A story qualifies when `shouldScoreSentiment` accepts it and it is judged relevant, and it alerts once. The message lists up to 10 stories, then a "+N more" line, and shows fewer when Discord's 2,000-character limit demands it. Each story has its linked headline, outlet, sentiment label and score, and summary.
+
+Stories are marked priority and listed first when the sentiment is `negative` or `neutral to negative`, or the score is below 35. The alerts run after Jev, so sentiment is final.
+
+Alerted keys live in `crawlState.brandAlerts` in `feed-audit.json`, hashed and bounded to the newest 2,000. The first run with no stored state records every current item and sends nothing, so the archive never floods the channel. With the switch off, new coverage is still recorded and nothing is sent, so switching it on later starts from that moment. A failed delivery never fails the run. Each endpoint keeps its own pending list and retries on the next run without repeating an alert another endpoint already accepted.
+
+`renderBrandAlertEmail(items, { now })` in `src/brand-alerts.js` returns `{ subject, html, text }` for subscriber email. It uses tables and inline styles, escapes all scraped text, drops non-http links, and contains no scripts. Nothing sends it yet.
+
 ## Configuration
 
 | Variable | Required | Default | Description |
@@ -254,6 +264,7 @@ trends page groups by that rather than by `sourceName`.
 | `SUMMARY_RESCORE_SENTIMENT` | No | empty | Set to `true` for one run after changing the sentiment rubric |
 | `SLACK_WEBHOOK_URL` | No | empty | Optional Slack webhook for source failure alerts |
 | `DISCORD_WEBHOOK_URL` | No | empty | Optional Discord webhook for source failure alerts |
+| `BRAND_ALERTS` | No | `off` | `on` sends a Slack and Discord alert for new press coverage that names Blue Cross VT. The Actions workflow sets it to `on` |
 | `WEBHOOK_FAILURE_THRESHOLD` | No | `24` | Consecutive failed runs before a source triggers an alert |
 | `ENABLE_SOCIAL_SOURCES` | No | `false` | Set to `true` to include the parked built-in Facebook pages and configured Facebook URLs |
 | `FACEBOOK_POST_URLS` | No | empty | Optional comma- or newline-separated `Name\|URL` public Facebook posts, used only when social sources are enabled |
@@ -338,6 +349,7 @@ src/archive.js     Audit loading, archive retention, dedupe rules
 src/story-groups.js  Groups different outlets' reports of one event for display
 src/summaries.js   Gemini prompt, batching, parsing, summary cache behavior
 src/alerts.js      Failure streaks and optional webhook alerts
+src/brand-alerts.js  New brand coverage alerts and the subscriber email renderer
 src/outputs.js     RSS, JSON Feed, audit JSON, file writes
 src/utils.js       Shared text, date, URL, and concurrency helpers
 src/fsx.js         Indirection over file reads and writes, so the generator can

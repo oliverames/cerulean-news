@@ -27,6 +27,7 @@ import {
   selectFailureAlerts,
   triggerWebhooks,
 } from "./alerts.js";
+import { sendBrandAlerts } from "./brand-alerts.js";
 import { buildJsonSummary, buildRss, writeOutput } from "./outputs.js";
 
 function resolveRssOutputPath() {
@@ -238,9 +239,12 @@ export async function generateFeed({
       metrics: (crawlMetrics.jev = {}),
     }),
   );
+  // Sentiment is final here. Brand alerts share the join below with the
+  // failure alerts and never throw.
+  const brandAlertPromise = sendBrandAlerts(matchedItems, crawlState);
   // Successful endpoint-specific alert state is written with the source
   // results. Failed endpoints remain pending and retry on the next run.
-  await webhookPromise;
+  await Promise.all([webhookPromise, brandAlertPromise]);
   finishCrawlMetrics(crawlMetrics, runStartedMs);
   const rss = buildRss(matchedItems, { now });
   const jsonSummary = buildJsonSummary(matchedItems, sourceResults, now);
@@ -444,4 +448,9 @@ export {
   triggerWebhooks,
   webhookTargetId,
 } from "./alerts.js";
+export {
+  buildBrandAlertMessage,
+  renderBrandAlertEmail,
+  sendBrandAlerts,
+} from "./brand-alerts.js";
 export { buildJsonSummary, buildRss } from "./outputs.js";
