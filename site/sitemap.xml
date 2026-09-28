@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- The two HTML pages, at the extensionless URLs Cloudflare Pages serves
+<!-- The HTML pages, at the extensionless URLs Cloudflare Pages serves
      (it 308s /index.html to / and /trends.html to /trends). No lastmod: the
      pages' content changes with every feed build, and a static lastmod would
      be wrong within the hour. -->
@@ -9,5 +9,8 @@
   </url>
   <url>
     <loc>https://cerulean.news/trends</loc>
+  </url>
+  <url>
+    <loc>https://cerulean.news/calendar</loc>
   </url>
 </urlset>

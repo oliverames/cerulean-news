@@ -1,0 +1,156 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Cerulean News//Vermont health care calendar//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Cerulean News: Vermont health care calendar
+X-WR-TIMEZONE:America/New_York
+BEGIN:VEVENT
+UID:067a8302-ef50c02f@cerulean.news
+DTSTAMP:20260928T225538Z
+DTSTART;VALUE=DATE:20261005
+DTEND;VALUE=DATE:20261006
+SUMMARY:Public comment closes: AHS 2026 Health Care Workforce Development S
+ trategic Plan
+DESCRIPTION:Public comments will be accepted until Monday\, October 5\, 202
+ 6.\nSource: GMCB public comment
+URL:https://gmcboard.vermont.gov/board/comment
+CATEGORIES:deadline
+END:VEVENT
+BEGIN:VEVENT
+UID:96f492c2-5dfaaeed@cerulean.news
+DTSTAMP:20260928T225538Z
+DTSTART;VALUE=DATE:20261006
+DTEND;VALUE=DATE:20261007
+SUMMARY:GMCB: Data Governance Council meeting
+DESCRIPTION:Source: GMCB meetings
+URL:https://gmcboard.vermont.gov/data-and-analytics/data-governance/data-go
+ vernance-council
+CATEGORIES:committee
+END:VEVENT
+BEGIN:VEVENT
+UID:c2cf9a20-e24e5ead@cerulean.news
+DTSTAMP:20260928T225538Z
+DTSTART;VALUE=DATE:20261007
+DTEND;VALUE=DATE:20261008
+SUMMARY:GMCB: Board meeting
+DESCRIPTION:Public meeting with Microsoft Teams and phone participation. De
+ tails are on the meeting page.\nSource: GMCB meetings
+URL:https://gmcboard.vermont.gov/2026-meetings
+CATEGORIES:board
+END:VEVENT
+BEGIN:VEVENT
+UID:45154e53-ab1a0afe@cerulean.news
+DTSTAMP:20260928T225538Z
+DTSTART:20261007T170000Z
+DTEND:20261007T180000Z
+SUMMARY:Blueprint Payment Implementation Workgroup
+DESCRIPTION:Agency of Human Services Vermont Blueprint for Health\nSource: 
+ Vermont state agency meetings
+URL:https://blueprintforhealth.vermont.gov/
+CATEGORIES:agency
+END:VEVENT
+BEGIN:VEVENT
+UID:f6de5350-38ea8146@cerulean.news
+DTSTAMP:20260928T225538Z
+DTSTART;VALUE=DATE:20261009
+DTEND;VALUE=DATE:20261010
+SUMMARY:House Committee on Human Services
+DESCRIPTION:Room 11 (Large Hearing Room)\, State House\nSource: Vermont Leg
+ islature
+URL:https://legislature.vermont.gov/committee/detail/2026/16
+CATEGORIES:legislature
+END:VEVENT
+BEGIN:VEVENT
+UID:500fa714-341445be@cerulean.news
+DTSTAMP:20260928T225538Z
+DTSTART;VALUE=DATE:20261009
+DTEND;VALUE=DATE:20261010
+SUMMARY:Senate Committee on Health and Welfare
+DESCRIPTION:Room 11 (Large Hearing Room)\, State House\nSource: Vermont Leg
+ islature
+URL:https://legislature.vermont.gov/committee/detail/2026/27
+CATEGORIES:legislature
+END:VEVENT
+BEGIN:VEVENT
+UID:abd3d570-bc4cdb8a@cerulean.news
+DTSTAMP:20260928T225538Z
+DTSTART:20261013T200000Z
+DTEND:20261013T213000Z
+SUMMARY:VSCCPHC Payment Reform Subcommittee
+DESCRIPTION:Agency of Human Services Vermont Blueprint for Health\nSource: 
+ Vermont state agency meetings
+URL:https://blueprintforhealth.vermont.gov/vermont-steering-committee-compr
+ ehensive-primary-health-care
+CATEGORIES:agency
+END:VEVENT
+BEGIN:VEVENT
+UID:56a4b716-ac85578f@cerulean.news
+DTSTAMP:20260928T225538Z
+DTSTART:20261015T140000Z
+DTEND:20261015T150000Z
+SUMMARY:Legislative Committee on Administrative Rules (LCAR)
+DESCRIPTION:Room 10 (Small Hearing Room)\, State House\nSource: Vermont Leg
+ islature
+URL:https://legislature.vermont.gov/committee/detail/2026/39
+CATEGORIES:legislature
+END:VEVENT
+BEGIN:VEVENT
+UID:fc65f905-b18e2c6d@cerulean.news
+DTSTAMP:20260928T225538Z
+DTSTART:20261020T200000Z
+DTEND:20261020T213000Z
+SUMMARY:Vermont Steering Committee for Comprehensive Primary Health Care
+DESCRIPTION:Agency of Human Services Vermont Blueprint for Health\nSource: 
+ Vermont state agency meetings
+URL:https://blueprintforhealth.vermont.gov/vermont-steering-committee-compr
+ ehensive-primary-health-care
+CATEGORIES:agency
+END:VEVENT
+BEGIN:VEVENT
+UID:d3765a74-e852e54d@cerulean.news
+DTSTAMP:20260928T225538Z
+DTSTART;VALUE=DATE:20261021
+DTEND;VALUE=DATE:20261022
+SUMMARY:GMCB: Board meeting
+DESCRIPTION:Public meeting with Microsoft Teams and phone participation. De
+ tails are on the meeting page.\nSource: GMCB meetings
+URL:https://gmcboard.vermont.gov/2026-meetings
+CATEGORIES:board
+END:VEVENT
+BEGIN:VEVENT
+UID:205a198c-233c9eaa@cerulean.news
+DTSTAMP:20260928T225538Z
+DTSTART:20261110T210000Z
+DTEND:20261110T223000Z
+SUMMARY:VSCCPHC Payment Reform Subcommittee
+DESCRIPTION:Agency of Human Services Vermont Blueprint for Health\nSource: 
+ Vermont state agency meetings
+URL:https://blueprintforhealth.vermont.gov/vermont-steering-committee-compr
+ ehensive-primary-health-care
+CATEGORIES:agency
+END:VEVENT
+BEGIN:VEVENT
+UID:728a3cf4-b4a14ec2@cerulean.news
+DTSTAMP:20260928T225538Z
+DTSTART:20261117T210000Z
+DTEND:20261117T223000Z
+SUMMARY:Vermont Steering Committee for Comprehensive Primary Health Care
+DESCRIPTION:Agency of Human Services Vermont Blueprint for Health\nSource: 
+ Vermont state agency meetings
+URL:https://blueprintforhealth.vermont.gov/vermont-steering-committee-compr
+ ehensive-primary-health-care
+CATEGORIES:agency
+END:VEVENT
+BEGIN:VEVENT
+UID:58829c53-503523ab@cerulean.news
+DTSTAMP:20260928T225538Z
+DTSTART:20261119T133000Z
+DTEND:20261119T150000Z
+SUMMARY:Blueprint Executive Committee
+DESCRIPTION:Agency of Human Services Vermont Blueprint for Health\nSource: 
+ Vermont state agency meetings
+URL:https://blueprintforhealth.vermont.gov/
+CATEGORIES:agency
+END:VEVENT
+END:VCALENDAR

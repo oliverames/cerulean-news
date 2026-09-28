@@ -97,6 +97,20 @@ Every article in the media tracker is Blue Cross VT by definition, whatever
 terms the seed can see: roughly 40% of the list names us only in the article
 body.
 
+## Regulatory Calendar
+
+`site/calendar.html` lists upcoming Vermont health care events for the next 60 days, and `site/calendar.ics` is the same list for a calendar app to subscribe to. `src/calendar.js` builds both, plus `site/calendar.json`, once per run of `npm run generate`. It reads five public sources through the same `fetchText` as the feeds.
+
+| Source | What it gives |
+| --- | --- |
+| Green Mountain Care Board meeting page | Board and committee meetings for the year |
+| Green Mountain Care Board hospital budget schedule | Hearing and deliberation days, with times |
+| Green Mountain Care Board public comment page | Comment deadlines and forums, read from two sentence patterns |
+| Vermont Legislature scheduled meetings (JSON) | Health, human services, insurance, and fiscal committees |
+| State agency meeting calendar (ICS) | Blueprint, payment reform, and drug utilization meetings |
+
+Events are `{ date, time?, title, body, source, url, kind }`. A source that fails or no longer looks like itself is recorded in `calendar.json`, and its events from the previous run stay until they fall out of the window. The state calendar's own Board entries are ignored because they disagree with the Board's page. The calendar runs only from `npm run generate`, not from the parked Worker. To keep the last-known fallback across scheduled runs, the workflow needs to seed `site/calendar.json` from the live site the way it seeds the audit file.
+
 ## How Matching Works
 
 The matcher scans feed titles, descriptions, source text, and, when enabled, selected article pages. Brand terms scan both feed text and article body text. Topic terms scan feed text only, because full article bodies mention health care too often for that to be precise.
