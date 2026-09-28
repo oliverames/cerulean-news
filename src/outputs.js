@@ -28,6 +28,7 @@ import {
 import { groupRelatedStories } from "./story-groups.js";
 import { shouldScoreSentiment } from "./summaries.js";
 import { quotedSpokespeopleForItem, spokespersonTitles } from "./quotes.js";
+import { storylinesForItem } from "./storylines.js";
 
 const SITE_URL = process.env.SITE_URL?.trim() || "";
 const FEED_URL = resolveFeedUrl();
@@ -373,6 +374,7 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
       const previewText = previewTextForOutput(item);
       const access = itemAccessLabel(item);
       const eligibleForSentiment = shouldScoreSentiment(item);
+      const storylineIds = storylinesForItem(item);
       const contentText = cleanText(
         [
           item.summary || snippet || item.description || "",
@@ -472,6 +474,9 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
           includeRejected && item.bodyQuotedSpokespeople?.length
             ? item.bodyQuotedSpokespeople
             : undefined,
+        // Ongoing storylines from data/storylines.json this story belongs to;
+        // the timelines page lists it under each. Omitted when there are none.
+        storylines: storylineIds.length > 0 ? storylineIds : undefined,
       };
     }),
   };

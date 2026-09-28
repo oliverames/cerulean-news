@@ -1,0 +1,2095 @@
+{
+  "generatedAt": "2026-09-28T23:00:00.000Z",
+  "storylines": [
+    {
+      "id": "gmcb-rate-review",
+      "name": "Annual insurance rate review",
+      "description": "Vermont insurers file premium requests in the spring and the Green Mountain Care Board rules on them in August.",
+      "total": 27,
+      "undated": 0,
+      "weeks": [
+        {
+          "week": "2025-05-12",
+          "count": 1,
+          "scored": 1,
+          "sentiment": {
+            "neutral to negative": 1
+          }
+        },
+        {
+          "week": "2025-05-19",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-05-26",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-06-02",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-06-09",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-06-16",
+          "count": 1,
+          "scored": 1,
+          "sentiment": {
+            "neutral to negative": 1
+          }
+        },
+        {
+          "week": "2025-06-23",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-06-30",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-07-07",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-07-14",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-07-21",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-07-28",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-08-04",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-08-11",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-08-18",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-08-25",
+          "count": 1,
+          "scored": 1,
+          "sentiment": {
+            "neutral": 1
+          }
+        },
+        {
+          "week": "2025-09-01",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-09-08",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-09-15",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-09-22",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-09-29",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-10-06",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-10-13",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-10-20",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-10-27",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-11-03",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-11-10",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-11-17",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-11-24",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-12-01",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-12-08",
+          "count": 1,
+          "scored": 1,
+          "sentiment": {
+            "neutral to negative": 1
+          }
+        },
+        {
+          "week": "2025-12-15",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-12-22",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2025-12-29",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-01-05",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-01-12",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-01-19",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-01-26",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-02-02",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-02-09",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-02-16",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-02-23",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-03-02",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-03-09",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-03-16",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-03-23",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-03-30",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-04-06",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-04-13",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-04-20",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-04-27",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-05-04",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-05-11",
+          "count": 7,
+          "scored": 6,
+          "sentiment": {
+            "positive": 2,
+            "neutral": 2,
+            "neutral to positive": 2
+          }
+        },
+        {
+          "week": "2026-05-18",
+          "count": 1,
+          "scored": 1,
+          "sentiment": {
+            "neutral to positive": 1
+          }
+        },
+        {
+          "week": "2026-05-25",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-06-01",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-06-08",
+          "count": 1,
+          "scored": 1,
+          "sentiment": {
+            "neutral to positive": 1
+          }
+        },
+        {
+          "week": "2026-06-15",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-06-22",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-06-29",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-07-06",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-07-13",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-07-20",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-07-27",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-03",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-10",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-17",
+          "count": 11,
+          "scored": 10,
+          "sentiment": {
+            "neutral to positive": 7,
+            "positive": 3
+          }
+        },
+        {
+          "week": "2026-08-24",
+          "count": 3,
+          "scored": 2,
+          "sentiment": {
+            "neutral to positive": 2
+          }
+        },
+        {
+          "week": "2026-08-31",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-07",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-14",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-21",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-28",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        }
+      ],
+      "stories": [
+        {
+          "title": "VT Regulators Approve Health Insurance Premium Hikes for 2027 - NFIB",
+          "url": "https://www.nfib.com/news/news/vt-regulators-approve-health-insurance-premium-hikes-for-2027/",
+          "date": "2026-08-27T10:52:04.000Z",
+          "outlet": "nfib.com"
+        },
+        {
+          "title": "Green Mountain Care Board set modest rate increases for 2027 Vermont health insurance marketplace plans",
+          "url": "https://vtdigger.org/2026/08/18/green-mountain-care-board-set-modest-rate-increases-for-2027-vermont-health-insurance-marketplace-plans/",
+          "date": "2026-08-24T15:44:00.000Z",
+          "outlet": "VTDigger",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "Green Mountain Care Board sets insurance premium rates",
+          "url": "https://www.timesargus.com/news/local/green-mountain-care-board-sets-insurance-premium-rates/article_4180bbd8-298a-5c0d-9069-9a30040506e0.html",
+          "date": "2026-08-24T15:44:00.000Z",
+          "outlet": "Times Argus/Rutland Herald",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "Board Cuts Proposed Health Insurance Rate Increases - The White River Valley Herald",
+          "url": "https://www.ourherald.com/articles/board-cuts-proposed-health-insurance-rate-increases/",
+          "date": "2026-08-21T01:36:48.000Z",
+          "outlet": "White River Valley Herald"
+        },
+        {
+          "title": "Health insurance premiums will rise up to 6% in 2027 - Valley News",
+          "url": "https://vnews.com/2026/08/20/vermont-health-insurance-premiums-rise/",
+          "date": "2026-08-20T18:30:00.000Z",
+          "outlet": "Valley News",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "Green Mountain Care Board set modest rate increases for 2027 Vermont health insurance marketplace plans - Bennington Banner",
+          "url": "https://www.benningtonbanner.com/news/state/green-mountain-care-board-set-modest-rate-increases-for-2027-vermont-health-insurance-marketplace-plans/article_48e44f7a-2422-4a55-94c5-d0381facc21f.html",
+          "date": "2026-08-19T15:55:00.000Z",
+          "outlet": "Bennington Banner",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "Green Mountain Care Board set modest rate increases for 2027 Vermont health insurance marketplace plans - Manchester Journal",
+          "url": "https://www.manchesterjournal.com/news/state/green-mountain-care-board-set-modest-rate-increases-for-2027-vermont-health-insurance-marketplace-plans/article_cb62fc1f-5c55-4021-a9aa-db0014a5a778.html",
+          "date": "2026-08-19T15:55:00.000Z",
+          "outlet": "Manchester Journal",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "GMCB cuts 2027 insurance rate increases: BCBS 1.2%, MVP 6.2% small group",
+          "url": "https://vermontbiz.com/news/2026/august/19/gmcb-cuts-2027-insurance-rate-increases-bcbs-12-mvp-62-small-group",
+          "date": "2026-08-19T12:00:00.000Z",
+          "outlet": "Vermont Business Magazine",
+          "sentiment": "positive"
+        },
+        {
+          "title": "Green Mtn. Care Board sets 2027 health insurance rates",
+          "url": "https://www.mychamplainvalley.com/news/local-news/vermont/green-mtn-care-board-sets-2027-health-insurance-rates/",
+          "date": "2026-08-19T00:22:02.000Z",
+          "outlet": "ABC 22/FOX 44",
+          "sentiment": "positive"
+        },
+        {
+          "title": "Green Mountain Care Board cuts proposed 2027 health insurance increases",
+          "url": "https://www.wcax.com/2026/08/18/green-mountain-care-board-cuts-proposed-2027-health-insurance-increases/",
+          "date": "2026-08-18T15:15:10.000Z",
+          "outlet": "WCAX",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "Green Mountain Care Board set modest rate increases for 2027 Vermont health insurance marketplace plans",
+          "url": "https://vtdigger.org/2026/08/18/green-mountain-care-board-set-modest-rate-increases-for-2027-vermont-health-insurance-marketplace-plans/?utm_medium=email&utm_campaign=Daily+Digger+08%2F19%2F26&utm_source=dc3c5486db&npnl=NjUzNDk5fDBjZTM1OGQ4YWVlYzQzZjc4Y2RmMjE2Njg3MDNiMjJjNzE5NGM3NTIzNTliMDliYWYwOTI5OWFmY2RlNDE2YjY&np_seg_donor=&utm_source=VTDigger+Subscribers+and+Donors&utm_campaign=a768c7924a-EMAIL_CAMPAIGN_2026_08_18_10_26&utm_medium=email&utm_term=0_-a768c7924a-426249919",
+          "date": "2026-08-18T12:00:00.000Z",
+          "outlet": "VTDigger",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "Vt. regulator approves 2027 health insurance rate increases",
+          "url": "https://www.wcax.com/2026/08/18/vt-regulator-approves-2027-health-insurance-rate-increases/",
+          "date": "2026-08-18T12:00:00.000Z",
+          "outlet": "WCAX",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "Green Mountain Care Board sets insurance premium rates",
+          "url": "https://www.rutlandherald.com/news/local/green-mountain-care-board-sets-insurance-premium-rates/article_fe4476bf-eca6-557c-944a-cd2842aef051.html",
+          "date": "2026-08-18T12:00:00.000Z",
+          "outlet": "Rutland Herald",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "Green Mtn. Care Board sets 2027 health insurance rates - Yahoo",
+          "url": "https://www.yahoo.com/news/politics/articles/green-mtn-care-board-sets-002202167.html",
+          "date": "2026-08-18T07:00:00.000Z",
+          "outlet": "yahoo.com",
+          "sentiment": "positive"
+        },
+        {
+          "title": "Vermont’s largest health insurer wants to offer a cheaper plan. Can it actually help Vermonters?",
+          "url": "https://vtdigger.org/2026/06/11/vermonts-largest-health-insurer-wants-to-offer-a-cheaper-plan-can-it-actually-help-vermonters/",
+          "date": "2026-06-11T12:00:00.000Z",
+          "outlet": "VTDigger",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "BCBS, MVP Health Care request lower premium increases in Vermont for 2027",
+          "url": "https://www.beckerspayer.com/payer/aca/bcbs-mvp-health-care-request-lower-premium-increases-in-vermont-for-2027/",
+          "date": "2026-05-20T12:00:00.000Z",
+          "outlet": "Becker's Payer Issues",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "BlueCross BlueShield requests its lowest premium hike in Vermont in five years",
+          "url": "https://www.vermontpublic.org/local-news/2026-05-13/bluecross-blueshield-requests-its-lowest-premium-hike-in-vermont-in-five-years",
+          "date": "2026-05-13T12:00:00.000Z",
+          "outlet": "Vermont Public",
+          "sentiment": "positive"
+        },
+        {
+          "title": "Blue Cross and Blue Shield of Vermont Requests Lowest Premium Increase in Five Years",
+          "url": "https://www.bluecrossvt.org/health-community/news/blue-cross-and-blue-shield-vermont-requests-lowest-premium-increase-five-years",
+          "date": "2026-05-12T19:08:00.000Z",
+          "outlet": "Blue Cross VT Press Release"
+        },
+        {
+          "title": "Blue Cross Blue Shield of Vermont files for rate increases with state",
+          "url": "https://www.wcax.com/2026/05/12/blue-cross-blue-shield-vermont-files-rate-increases-with-state/",
+          "date": "2026-05-12T19:08:00.000Z",
+          "outlet": "WCAX",
+          "sentiment": "neutral"
+        },
+        {
+          "title": "Blue Cross and Blue Shield of Vermont seeks smaller premium increase this year",
+          "url": "https://www.mynbc5.com/article/blue-cross-and-blue-shield-of-vermont-seeks-premium-increases/71287520",
+          "date": "2026-05-12T12:00:00.000Z",
+          "outlet": "WPTZ",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "Blue Cross VT requests lowest premium increase in five years",
+          "url": "https://vermontbiz.com/news/2026/may/12/blue-cross-vt-requests-lowest-premium-increase-five-years",
+          "date": "2026-05-12T12:00:00.000Z",
+          "outlet": "Vermont Business Magazine",
+          "sentiment": "positive"
+        },
+        {
+          "title": "Blue Cross Blue Shield requests rate increase for 2027",
+          "url": "https://www.mychamplainvalley.com/news/local-news/vermont/blue-cross-blue-shield-requests-rate-increase-for-2027/",
+          "date": "2026-05-12T12:00:00.000Z",
+          "outlet": "WVNY/WFFF",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "Blue Cross Blue Shield of Vermont files for rate increases with state",
+          "url": "https://www.wcax.com/2026/05/12/blue-cross-blue-shield-files-rate-increases-with-state/",
+          "date": "2026-05-12T12:00:00.000Z",
+          "outlet": "WCAX",
+          "sentiment": "neutral"
+        },
+        {
+          "title": "Thousands of Vermonters brace for big health insurance rate hikes",
+          "url": "https://www.wcax.com/2025/12/08/thousands-vermonters-brace-big-health-insurance-rate-hikes/",
+          "date": "2025-12-08T12:00:00.000Z",
+          "outlet": "WCAX",
+          "sentiment": "neutral to negative"
+        },
+        {
+          "title": "Vermont's Green Mountain Care Board approves lower rate increases for MVP, Blue Cross Blue Shield - Rutland Herald",
+          "url": "https://www.rutlandherald.com/news/local/vermonts-green-mountain-care-board-approves-lower-rate-increases-for-mvp-blue-cross-blue-shield/article_b34266ef-c731-450f-a278-92dcda95e4e8.html",
+          "date": "2025-08-25T07:00:00.000Z",
+          "outlet": "Rutland Herald",
+          "sentiment": "neutral"
+        },
+        {
+          "title": "Green Mountain Care Board denies BlueCross and BlueShield of Vermont request for premium hike - WPTZ",
+          "url": "https://www.mynbc5.com/article/green-mountain-care-board-blue-cross-premium-hike/65115595",
+          "date": "2025-06-19T07:00:00.000Z",
+          "outlet": "NBC5",
+          "sentiment": "neutral to negative"
+        },
+        {
+          "title": "Blue Cross Blue Shield Vermont and MVP Health Care Seek Premium Hikes - WPTZ",
+          "url": "https://www.mynbc5.com/article/blue-cross-blue-shield-vermont-mvp-health-care-seek-premium-hikes/64774127",
+          "date": "2025-05-14T07:00:00.000Z",
+          "outlet": "NBC5",
+          "sentiment": "neutral to negative"
+        }
+      ]
+    },
+    {
+      "id": "uvm-health-finances",
+      "name": "UVM Health finances and cuts",
+      "description": "Budget shortfalls, layoffs, and regulator-ordered cuts at the UVM Health Network and its medical center.",
+      "total": 50,
+      "undated": 0,
+      "weeks": [
+        {
+          "week": "2026-04-20",
+          "count": 1,
+          "scored": 1,
+          "sentiment": {
+            "neutral to negative": 1
+          }
+        },
+        {
+          "week": "2026-04-27",
+          "count": 1,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-05-04",
+          "count": 2,
+          "scored": 2,
+          "sentiment": {
+            "neutral to positive": 2
+          }
+        },
+        {
+          "week": "2026-05-11",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-05-18",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-05-25",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-06-01",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-06-08",
+          "count": 8,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-06-15",
+          "count": 2,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-06-22",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-06-29",
+          "count": 1,
+          "scored": 1,
+          "sentiment": {
+            "neutral to negative": 1
+          }
+        },
+        {
+          "week": "2026-07-06",
+          "count": 1,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-07-13",
+          "count": 1,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-07-20",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-07-27",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-03",
+          "count": 2,
+          "scored": 2,
+          "sentiment": {
+            "neutral": 1,
+            "neutral to positive": 1
+          }
+        },
+        {
+          "week": "2026-08-10",
+          "count": 5,
+          "scored": 1,
+          "sentiment": {
+            "neutral to negative": 1
+          }
+        },
+        {
+          "week": "2026-08-17",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-24",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-31",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-07",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-14",
+          "count": 23,
+          "scored": 3,
+          "sentiment": {
+            "neutral to positive": 3
+          }
+        },
+        {
+          "week": "2026-09-21",
+          "count": 3,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-28",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        }
+      ],
+      "stories": [
+        {
+          "title": "After UVMMC layoff announcement, employees share concerns",
+          "url": "https://www.mynbc5.com/article/uvmmc-layoff-announcement/73764421",
+          "date": "2026-09-21T15:55:00.000Z",
+          "outlet": "WPTZ"
+        },
+        {
+          "title": "In review: UVM Health and Dartmouth Health layoffs, school district uncertainty",
+          "url": "https://www.vermontpublic.org/show/vermont-this-week/2026-09-18/in-review-healthcare-layoffs-school-district-uncertainty",
+          "date": "2026-09-21T15:55:00.000Z",
+          "outlet": "Vermont Public – Vermont This Week"
+        },
+        {
+          "title": "When your boss is your landlord: UVM Health Network job cuts put employee housing at risk",
+          "url": "https://www.wcax.com/2026/09/18/when-your-boss-is-your-landlord-uvm-health-network-job-cuts-put-employee-housing-risk/",
+          "date": "2026-09-21T15:55:00.000Z",
+          "outlet": "WCAX"
+        },
+        {
+          "title": "UVM health union protests layoffs – ABC22 & FOX44 - MyChamplainValley.com",
+          "url": "https://www.mychamplainvalley.com/video/uvm-health-union-protests-layoffs/12184096/",
+          "date": "2026-09-18T19:40:45.000Z",
+          "outlet": "mychamplainvalley.com"
+        },
+        {
+          "title": "UVM health union protests layoffs - yahoo.com",
+          "url": "https://www.yahoo.com/news/videos/uvm-health-union-protests-layoffs-194045249.html",
+          "date": "2026-09-18T19:40:45.000Z",
+          "outlet": "yahoo.com"
+        },
+        {
+          "title": "University of Vermont Medical Center Healthcare Union Statement Regarding UVMHN Layoffs",
+          "url": "https://www.youtube.com/watch?v=4Tw5rfiN8zQ",
+          "date": "2026-09-18T13:38:26.000Z",
+          "outlet": "Town Meeting TV"
+        },
+        {
+          "title": "UVM Health Union protests layoffs - MyChamplainValley.com",
+          "url": "https://www.mychamplainvalley.com/news/uvm-health-union-protests-layoffs/",
+          "date": "2026-09-16T20:58:45.000Z",
+          "outlet": "mychamplainvalley.com"
+        },
+        {
+          "title": "UVM Health Network announces 199 job cuts - nny360.com",
+          "url": "https://www.nny360.com/news/malone/uvm-health-network-announces-199-job-cuts/article_47b175ee-7b7c-5b60-96a6-3938f30b6a73.html",
+          "date": "2026-09-16T20:37:12.000Z",
+          "outlet": "nny360.com"
+        },
+        {
+          "title": "UVM Health announces another round of layoffs - NCPR: North Country Public Radio",
+          "url": "https://www.northcountrypublicradio.org/news/story/53962/20260916/uvm-health-announces-another-round-of-layoffs",
+          "date": "2026-09-16T19:52:50.000Z",
+          "outlet": "northcountrypublicradio.org"
+        },
+        {
+          "title": "UVM Health announces staff reductions; Green Mountain Care Board discusses budgets - Rutland Herald",
+          "url": "https://www.rutlandherald.com/news/local/uvm-health-announces-staff-reductions-green-mountain-care-board-discusses-budgets/article_3e6ad64c-5ff1-5127-b4fb-6995a74e3a74.html",
+          "date": "2026-09-16T19:13:00.000Z",
+          "outlet": "Rutland Herald"
+        },
+        {
+          "title": "University of Vermont Health Network announces 199 job cuts",
+          "url": "https://www.mynbc5.com/article/university-of-vermont-health-network-job-cuts/73744294",
+          "date": "2026-09-16T15:01:00.000Z",
+          "outlet": "WPTZ"
+        },
+        {
+          "title": "UVM Health will eliminate nearly 200 jobs",
+          "url": "https://www.vermontpublic.org/local-news/2026-09-15/uvm-health-will-eliminate-nearly-200-jobs",
+          "date": "2026-09-16T15:01:00.000Z",
+          "outlet": "Vermont Public"
+        },
+        {
+          "title": "Green Mountain Care Board orders 2.9% decrease in patient rates, UVM Health announces layoffs",
+          "url": "https://www.mychamplainvalley.com/news/local-news/vermont/green-mountain-care-board-orders-2-9-decrease-in-patient-rates/",
+          "date": "2026-09-16T15:01:00.000Z",
+          "outlet": "ABC 22/FOX 44"
+        },
+        {
+          "title": "UVM Health to Eliminate 199 Positions Amid Growing Financial Pressure",
+          "url": "https://www.sevendaysvt.com/news/healthcare/uvm-health-to-eliminate-199-positions-amid-growing-financial-pressure/",
+          "date": "2026-09-16T15:01:00.000Z",
+          "outlet": "Seven Days"
+        },
+        {
+          "title": "UVM Health Announces Workforce Reductions Affecting 199 Positions",
+          "url": "https://www.uvmhealth.org/newsroom/uvm-health-announces-workforce-reductions-affecting-199-positions",
+          "date": "2026-09-16T15:01:00.000Z",
+          "outlet": "UVMH Press release"
+        },
+        {
+          "title": "UVM Health Network to cut nearly 200 jobs amid budget shortfall",
+          "url": "https://www.wcax.com/2026/09/15/uvm-health-network-cut-nearly-200-jobs-amid-budget-shortfall/",
+          "date": "2026-09-16T15:01:00.000Z",
+          "outlet": "WCAX"
+        },
+        {
+          "title": "UVM Health announces staff reductions; Green Mountain Care Board discusses budgets",
+          "url": "https://www.timesargus.com/news/local/uvm-health-announces-staff-reductions-green-mountain-care-board-discusses-budgets/article_c95e1ed0-d4c9-59fb-a2d5-13ebf4af2971.html",
+          "date": "2026-09-16T12:00:00.000Z",
+          "outlet": "Times Argus",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "University of Vermont Medical Center Healthcare Union Statement Regarding UVMHN Layoffs - CCTV Center for Media & Democracy",
+          "url": "https://cctv.org/watch-tv/university-of-vermont-medical-center-healthcare-union-statement-regarding-uvmhn-layoffs",
+          "date": "2026-09-16T07:00:00.000Z",
+          "outlet": "Town Meeting TV"
+        },
+        {
+          "title": "Green Mountain Care Board orders 2.9% decrease in patient rates, UVM Health announces layoffs - yahoo.com",
+          "url": "https://www.yahoo.com/news/us/articles/green-mountain-care-board-orders-203816483.html",
+          "date": "2026-09-15T20:38:16.000Z",
+          "outlet": "yahoo.com"
+        },
+        {
+          "title": "Vermont’s largest hospital needs to further cut its revenue and spending next year - News From The States",
+          "url": "https://www.newsfromthestates.com/article/vermonts-largest-hospital-needs-further-cut-its-revenue-and-spending-next-year",
+          "date": "2026-09-15T17:57:22.000Z",
+          "outlet": "newsfromthestates.com"
+        },
+        {
+          "title": "More job cuts by the University of Vermont Health Network to improve sustainability - WCAX",
+          "url": "https://www.wcax.com/2026/09/15/more-job-cuts-by-university-vermont-health-network-improve-sustainability/",
+          "date": "2026-09-15T15:22:00.000Z",
+          "outlet": "WCAX"
+        },
+        {
+          "title": "VT Headlines: Green Mountain Care Board approves aggressive cuts to UVMMC revenue, rates",
+          "url": "https://vermontdailychronicle.com/vt-headlines-green-mountain-care-board-approves-aggressive-cuts-to-uvmmc-revenue-rates/",
+          "date": "2026-09-15T14:58:10.000Z",
+          "outlet": "Vermont Daily Chronicle"
+        },
+        {
+          "title": "UVM Medical Center ordered to make cuts again as regulators approve hospital budgets",
+          "url": "https://www.wcax.com/2026/09/14/uvm-medical-center-ordered-make-cuts-again-regulators-approve-hospital-budgets/",
+          "date": "2026-09-15T13:54:00.000Z",
+          "outlet": "WCAX"
+        },
+        {
+          "title": "Vermont’s largest hospital needs to further cut its revenue and spending next year",
+          "url": "https://vtdigger.org/2026/09/15/vermonts-largest-hospital-needs-to-further-cut-its-revenue-and-spending-next-year/",
+          "date": "2026-09-15T12:00:00.000Z",
+          "outlet": "VTDigger",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "Hospital regulators approve sharp cuts to UVMMC revenue, rates - WPTZ",
+          "url": "https://news.google.com/rss/articles/CBMisAFBVV95cUxQMTk1VDJPMmJjcUZXYy12NE5ZZ1J3VjFRM2YwNmw5LXdoeU1vWVVDT25VYzNidEZjb0NrbG9MTDdDNUFtWXlwcVNCRDhCVUZCMklIc3pjcVZtanExT0tTOEFMTjBsQ1NVSmpNc0FzbUdTcVdsRkEzUXhjVEtKeDk0cXYzcW16Sno5NTg3akZKRVdxeHQ0aU1PZFcwSFRVX01ndGxfLXk2bXJQSkFRNnB3cA?oc=5",
+          "date": "2026-09-14T23:55:00.000Z",
+          "outlet": "news.google.com"
+        },
+        {
+          "title": "Green Mountain Care Board approves aggressive cuts to UVMMC revenue, rates",
+          "url": "https://www.mynbc5.com/article/green-mountain-care-board-approves-aggressive-cuts-to-uvm-revenue-rates/73729982",
+          "date": "2026-09-14T12:00:00.000Z",
+          "outlet": "WPTZ-NBC 5",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "‘Stark Changes’ in UVM Health Budget Proposal",
+          "url": "https://vermontmedicalsociety51665.wildapricot.org/resources/EmailTemplates/2026-08-11-Rounds-Hospital-Budgets/index_preview.html",
+          "date": "2026-08-13T14:20:00.000Z",
+          "outlet": "Vermont Medical Society –Rounds Newsletter"
+        },
+        {
+          "title": "A chastened UVM Health embarks on its first budget season after leadership reset | NCPR News - NCPR: North Country Public Radio",
+          "url": "https://www.northcountrypublicradio.org/news/story/53828/20260813/a-chastened-uvm-health-embarks-on-its-first-budget-season-after-leadership-reset",
+          "date": "2026-08-13T07:00:00.000Z",
+          "outlet": "northcountrypublicradio.org"
+        },
+        {
+          "title": "A chastened UVM Health embarks on its first budget season after leadership reset | NCPR News - NCPR: North Country Public Radio",
+          "url": "https://news.google.com/rss/articles/CBMi3wFBVV95cUxPXzFuZDBxNG9GenlOX1RHR1cxdzJPYVpZMWFFbnNIY1k1b0FNa0YxVE1vSlBtVEU5eWpJbXJiMG9oRWJiRUptZkdHWElTNG9DbXliNXA2WEM3bVhBREZPaFpfNTRUdjJtQWJYZ0pNcHNBYUk4WmsyQXBBVWRlZHc0c3ZXQ2VFbmNhaU5KdTRFb0xGVGcxcC1GT0E2M2E2T3JncTk1SlprWGtBZEVLLUFwQlJQZDAzVjdZanE5bDdFQ212N0tDaUpOU0hQZmp2ZEg3OFk2bWZBRXhTbEZreWlN?oc=5",
+          "date": "2026-08-13T07:00:00.000Z",
+          "outlet": "news.google.com"
+        },
+        {
+          "title": "UVM Health Network faces $14M loss despite $140M in planned expense cuts - Valley News",
+          "url": "https://vnews.com/2026/08/12/uvm-health-network-budget-deficit/",
+          "date": "2026-08-12T15:51:49.000Z",
+          "outlet": "Valley News",
+          "sentiment": "neutral to negative"
+        },
+        {
+          "title": "UVM Health says big change is afoot — but is it enough to balance the budget?",
+          "url": "https://mountaintimes.info/2026/08/12/uvm-health-says-big-change-is-afoot/",
+          "date": "2026-08-12T12:59:52.000Z",
+          "outlet": "The Mountain Times"
+        },
+        {
+          "title": "UVM Health says big change is afoot — but is it enough to balance the budget?",
+          "url": "https://vtdigger.org/2026/08/07/uvm-health-says-big-change-is-afoot-but-is-it-enough-to-balance-the-budget/",
+          "date": "2026-08-07T12:00:00.000Z",
+          "outlet": "VTDigger",
+          "sentiment": "neutral"
+        },
+        {
+          "title": "A chastened UVM Health embarks on its first budget season after leadership reset",
+          "url": "https://www.vermontpublic.org/local-news/2026-08-05/uvm-health-first-budget-season-after-leadership-reset",
+          "date": "2026-08-05T12:00:00.000Z",
+          "outlet": "Vermont Public",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "UVM Health cutting GLP-1 weight-loss drug coverage for employees",
+          "url": "https://www.wcax.com/2026/07/17/uvm-health-cutting-glp-1-weight-loss-drug-coverage-employees/",
+          "date": "2026-07-17T21:09:32.000Z",
+          "outlet": "WCAX"
+        },
+        {
+          "title": "Hundreds of Vt. healthcare workers rally against UVM Health layoffs",
+          "url": "https://www.wcax.com/2026/07/12/hundreds-vt-healthcare-workers-rally-against-uvm-health-layoffs/",
+          "date": "2026-07-12T21:24:57.000Z",
+          "outlet": "WCAX"
+        },
+        {
+          "title": "I hate this, but that is our reality:' More layoffs coming for UVM Health",
+          "url": "https://www.vermontpublic.org/show/vermont-edition/2026-06-29/i-hate-this-but-that-is-our-reality-more-layoffs-coming-for-uvm-health",
+          "date": "2026-06-29T12:00:00.000Z",
+          "outlet": "Vermont Public - Vermont Edition",
+          "sentiment": "neutral to negative"
+        },
+        {
+          "title": "UVM Health is downsizing. Here’s what those cuts mean for services.",
+          "url": "https://vtdigger.org/2026/06/18/uvm-health-is-downsizing-heres-what-those-cuts-mean-for-services/",
+          "date": "2026-06-19T13:45:00.000Z",
+          "outlet": "VTDigger"
+        },
+        {
+          "title": "In review: UVM Health layoffs, new Upper Valley surgery center, border library opens Quebec entrance",
+          "url": "https://www.vermontpublic.org/show/vermont-this-week/2026-06-12/in-review-uvm-health-layoffs-upper-valley-surgery-center-border-library-quebec-entrance",
+          "date": "2026-06-15T15:36:00.000Z",
+          "outlet": "Vermont Public- Vermont This Week"
+        },
+        {
+          "title": "Unions respond to UVM Health layoffs, concerns over more cuts to come",
+          "url": "https://www.timesargus.com/news/local/unions-respond-to-uvm-health-layoffs-concerns-over-more-cuts-to-come/article_9a0b08fb-695e-550c-aaab-00b395d0f21e.html",
+          "date": "2026-06-11T16:35:00.000Z",
+          "outlet": "Times Argus"
+        },
+        {
+          "title": "UVM Health cuts more jobs as budget strains continue",
+          "url": "https://www.burlingtonfreepress.com/story/news/local/vermont/2026/06/11/uvm-health-layoffs-healthcare-quality-nurses-unions-vt/90498664007/",
+          "date": "2026-06-11T16:35:00.000Z",
+          "outlet": "Burlington Free Press"
+        },
+        {
+          "title": "UVM Health cuts 142 jobs — an estimated $9 million in staff positions",
+          "url": "https://vtdigger.org/2026/06/09/uvm-health-cuts-142-jobs-an-estimated-9-million-in-staff-positions/",
+          "date": "2026-06-10T15:01:00.000Z",
+          "outlet": "VTDigger"
+        },
+        {
+          "title": "UVM Health Cuts 142 Positions Amid Ongoing Restructuring",
+          "url": "https://www.sevendaysvt.com/news/healthcare/uvm-health-cuts-142-positions-amid-ongoing-restructuring/",
+          "date": "2026-06-10T15:01:00.000Z",
+          "outlet": "Seven Days"
+        },
+        {
+          "title": "UVM Health Network to eliminate dozens of jobs amid financial pressures",
+          "url": "https://www.wcax.com/2026/06/09/uvm-health-network-eliminate-dozens-jobs-amid-financial-pressures/",
+          "date": "2026-06-10T15:01:00.000Z",
+          "outlet": "WCAX"
+        },
+        {
+          "title": "University of Vermont Health eliminates 76 jobs, restructures 66 roles",
+          "url": "https://www.mynbc5.com/article/university-of-vermont-health-job-eliminations/71538043",
+          "date": "2026-06-10T15:01:00.000Z",
+          "outlet": "WPTZ"
+        },
+        {
+          "title": "UVM Health eliminates, restructures 142 positions",
+          "url": "https://www.mychamplainvalley.com/news/local-news/vermont/uvm-health-eliminates-restructures-142-positions/",
+          "date": "2026-06-10T15:01:00.000Z",
+          "outlet": "ABC 22/FOX 44"
+        },
+        {
+          "title": "UVM Health Announces Elimination of 76 Positions",
+          "url": "https://www.uvmhealth.org/newsroom/uvm-health-announces-elimination-of-76-positions",
+          "date": "2026-06-10T15:01:00.000Z",
+          "outlet": "UVM Health press release"
+        },
+        {
+          "title": "UVM Health's outpatient productivity problems addressed - Valley News",
+          "url": "https://vnews.com/2026/05/10/uvm-health-financial-outlook/",
+          "date": "2026-05-10T07:00:00.000Z",
+          "outlet": "Valley News",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "UVM Health must cut expenses by $300 million in three years, independent liaison finds",
+          "url": "https://vtdigger.org/2026/05/08/uvm-health-must-cut-expenses-by-300-million-in-three-years-independent-liaison-finds/",
+          "date": "2026-05-08T12:00:00.000Z",
+          "outlet": "VTDigger",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "In review: ICE protesters won't be charged, UVMMC's financial losses, small colleges on the ropes",
+          "url": "https://www.vermontpublic.org/show/vermont-this-week/2026-04-24/in-review-ice-protesters-not-charged-uvmmc-financial-losses-small-colleges-struggle",
+          "date": "2026-04-27T14:09:00.000Z",
+          "outlet": "Vermont Public – Vermont This Week"
+        },
+        {
+          "title": "UVM Medical Center Is Losing $460,000 Every Day",
+          "url": "https://www.sevendaysvt.com/news/healthcare/uvm-medical-center-is-losing-460000-every-day/",
+          "date": "2026-04-20T12:00:00.000Z",
+          "outlet": "Seven Days",
+          "sentiment": "neutral to negative"
+        }
+      ]
+    },
+    {
+      "id": "vt-basic",
+      "name": "Blue Cross VT lower-cost plan",
+      "description": "The VT Basic proposal for a cheaper, higher-deductible plan, from filing to withdrawal.",
+      "total": 7,
+      "undated": 0,
+      "weeks": [
+        {
+          "week": "2026-06-08",
+          "count": 1,
+          "scored": 1,
+          "sentiment": {
+            "neutral to positive": 1
+          }
+        },
+        {
+          "week": "2026-06-15",
+          "count": 2,
+          "scored": 2,
+          "sentiment": {
+            "neutral": 1,
+            "positive": 1
+          }
+        },
+        {
+          "week": "2026-06-22",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-06-29",
+          "count": 2,
+          "scored": 2,
+          "sentiment": {
+            "neutral to negative": 2
+          }
+        },
+        {
+          "week": "2026-07-06",
+          "count": 1,
+          "scored": 1,
+          "sentiment": {
+            "neutral to positive": 1
+          }
+        },
+        {
+          "week": "2026-07-13",
+          "count": 1,
+          "scored": 1,
+          "sentiment": {
+            "negative": 1
+          }
+        },
+        {
+          "week": "2026-07-20",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-07-27",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-03",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-10",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-17",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-24",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-31",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-07",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-14",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-21",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-28",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        }
+      ],
+      "stories": [
+        {
+          "title": "No one struggling to pay rent can meet a $12,000 deductible",
+          "url": "https://vtdigger.org/2026/07/14/opinon-no-one-struggling-to-pay-rent-can-meet-a-12000-deductible/",
+          "date": "2026-07-14T12:00:00.000Z",
+          "outlet": "VTDigger",
+          "sentiment": "negative"
+        },
+        {
+          "title": "5 Blue Cross Blue Shield updates",
+          "url": "https://www.beckerspayer.com/payer/5-blue-cross-blue-shield-updates/",
+          "date": "2026-07-06T12:00:00.000Z",
+          "outlet": "Becker's Payer Issues",
+          "sentiment": "neutral to positive"
+        },
+        {
+          "title": "BCBS Vermont takes step back with proposed product line",
+          "url": "https://www.beckerspayer.com/payer/aca/bcbs-vermont-takes-step-back-with-proposed-product-line/",
+          "date": "2026-07-02T12:00:00.000Z",
+          "outlet": "Becker's Payer Issues",
+          "sentiment": "neutral to negative"
+        },
+        {
+          "title": "BlueCross BlueShield of VT pulls its proposed lower-cost, higher-deductible health plans",
+          "url": "https://vtdigger.org/2026/06/29/bluecross-blueshield-of-vt-pulls-its-proposed-lower-cost-higher-deductible-health-plans/",
+          "date": "2026-06-29T12:00:00.000Z",
+          "outlet": "VTDigger",
+          "sentiment": "neutral to negative"
+        },
+        {
+          "title": "BCBS Vermont to Offer High Deductible Plans Amid CMS Push",
+          "url": "https://www.healthpayerspecialist.com/c/5184344/738024",
+          "date": "2026-06-16T14:01:00.000Z",
+          "outlet": "Health Payer Specialist",
+          "sentiment": "neutral"
+        },
+        {
+          "title": "BCBS Vermont to Offer High Deductible Plans Amid CMS Push",
+          "url": "https://www.healthpayerspecialist.com/lead/enroll/5184344/738024?from=https%3A%2F%2Fwww.healthpayerspecialist.com%2Fc%2F5184344%2F738024%3Freferrer_module%3DdashLatestNews%26module_order%3D4&referrer_module=dashLatestNews",
+          "date": "2026-06-15T12:00:00.000Z",
+          "outlet": "Health Payer Specialist",
+          "sentiment": "positive"
+        },
+        {
+          "title": "Vermont’s largest health insurer wants to offer a cheaper plan. Can it actually help Vermonters?",
+          "url": "https://vtdigger.org/2026/06/11/vermonts-largest-health-insurer-wants-to-offer-a-cheaper-plan-can-it-actually-help-vermonters/",
+          "date": "2026-06-11T12:00:00.000Z",
+          "outlet": "VTDigger",
+          "sentiment": "neutral to positive"
+        }
+      ]
+    },
+    {
+      "id": "medicaid-work-requirements",
+      "name": "Medicaid work requirements",
+      "description": "The federal rule tying Medicaid coverage to work, and the lawsuits and state rollouts that followed.",
+      "total": 33,
+      "undated": 2,
+      "weeks": [
+        {
+          "week": "2026-06-29",
+          "count": 3,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-07-06",
+          "count": 3,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-07-13",
+          "count": 1,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-07-20",
+          "count": 2,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-07-27",
+          "count": 3,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-03",
+          "count": 3,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-10",
+          "count": 4,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-17",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-24",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-31",
+          "count": 1,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-07",
+          "count": 2,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-14",
+          "count": 1,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-21",
+          "count": 8,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-28",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        }
+      ],
+      "stories": [
+        {
+          "title": "As work requirements kick in for Medicaid, some states are taking a tougher stance",
+          "url": "https://www.rutlandherald.com/ap/national/as-work-requirements-kick-in-for-medicaid-some-states-are-taking-a-tougher-stance/article_faf05e86-77c9-5cf2-b23d-50af4437bd32.html",
+          "date": "2026-09-26T10:09:40.000Z",
+          "outlet": "Rutland Herald"
+        },
+        {
+          "title": "As work requirements kick in for Medicaid, some states are taking a tougher stance",
+          "url": "https://www.caledonianrecord.com/news/national/as-work-requirements-kick-in-for-medicaid-some-states-are-taking-a-tougher-stance/article_29b554de-fe87-5891-8429-63e506e73be4.html",
+          "date": "2026-09-26T10:09:40.000Z",
+          "outlet": "Caledonian Record"
+        },
+        {
+          "title": "As work requirements kick in for Medicaid, some states are taking a tougher stance - AP News",
+          "url": "https://apnews.com/012ebf8a94ce672bd8ae5c863db566e5",
+          "date": "2026-09-26T10:09:00.000Z",
+          "outlet": "apnews.com"
+        },
+        {
+          "title": "Commentary | Notes from a Vermont activist by Nancy Braus: Work requirements for Medicare?",
+          "url": "https://www.reformer.com/opinion/columnists/commentary-notes-from-a-vermont-activist-by-nancy-braus-work-requirements-for-medicare/article_cb3947aa-c5e5-4b14-a206-7c6a67ad78de.html",
+          "date": "2026-09-24T14:19:00.000Z",
+          "outlet": "Brattleboro Reformer"
+        },
+        {
+          "title": "Lawsuit targets 'medically frail' Medicaid work requirement exemption",
+          "url": "https://thehill.com/policy/healthcare/6105262-lawsuit-trump-medicaid-work-requirements/",
+          "date": "2026-09-22T21:39:56.000Z",
+          "outlet": "The Hill Health Care"
+        },
+        {
+          "title": "Physician groups, patients sue CMS over Medicaid work requirements - Becker's Payer Issues",
+          "url": "https://www.beckerspayer.com/payer/medicaid/physician-groups-patients-sue-cms-over-medicaid-work-requirements/",
+          "date": "2026-09-22T15:37:52.000Z",
+          "outlet": "Becker's Payer Issues"
+        },
+        {
+          "title": "New lawsuit targets Medicaid work requirements’ medical frailty rules",
+          "url": "https://www.healthcaredive.com/news/new-lawsuit-targets-medicaid-work-requirements-medical-frailty-rules/831006/",
+          "date": "2026-09-22T14:08:45.000Z",
+          "outlet": "Healthcare Dive"
+        },
+        {
+          "title": "Medical groups, city of Columbus sue to challenge final Medicaid work requirements rule",
+          "url": "https://www.fiercehealthcare.com/payers/medical-groups-city-columbus-sue-challenge-final-medicaid-work-requirements-rule",
+          "date": "2026-09-21T17:08:00.000Z",
+          "outlet": "Fierce Healthcare"
+        },
+        {
+          "title": "A Cancer Survivor Hoped To Work — Then She Lost Her Medicaid Disability Coverage",
+          "url": "https://kffhealthnews.org/medicaid/disability-medicaid-work-requirements-cancer-state-reviews-montana/",
+          "date": "2026-09-15T09:00:00.000Z",
+          "outlet": "KFF Health News"
+        },
+        {
+          "title": "How Medicaid work requirements could impact young adults",
+          "url": "https://www.fiercehealthcare.com/regulatory/how-medicaid-work-requirements-could-impact-young-adults",
+          "date": "2026-09-11T15:36:00.000Z",
+          "outlet": "Fierce Healthcare"
+        },
+        {
+          "title": "Indigenous Groups Are Exempt From Medicaid Work Rules, but Native Hawaiians Aren’t",
+          "url": "https://kffhealthnews.org/medicaid/native-hawaiians-not-exempt-medicaid-work-requirements-indigenous-groups/",
+          "date": "2026-09-11T09:00:00.000Z",
+          "outlet": "KFF Health News"
+        },
+        {
+          "title": "10M expansion state adults risk losing Medicaid coverage over inconsistent work hours",
+          "url": "https://www.fiercehealthcare.com/regulatory/20-medicaid-eligible-adults-risk-losing-coverage-due-inconsistent-work-hours",
+          "date": "2026-08-31T16:27:00.000Z",
+          "outlet": "Fierce Healthcare"
+        },
+        {
+          "title": "Readers Speak Out on Work Requirements, Federal Data Grab, Opioid Payback Cash",
+          "url": "https://kffhealthnews.org/letter-to-the-editor/readers-work-requirements-federal-data-grab-opioid-payback-cash-prior-authorization-august-2026/",
+          "date": "2026-08-13T09:00:00.000Z",
+          "outlet": "KFF Health News"
+        },
+        {
+          "title": "‘Way off the reservation’: Brookings researchers slam assumptions in CMS work requirements rule",
+          "url": "https://www.healthcaredive.com/news/cms-medicaid-work-requirements-rule-slammed-brookings-analysis/827481/",
+          "date": "2026-08-12T17:29:07.000Z",
+          "outlet": "Healthcare Dive"
+        },
+        {
+          "title": "People with disabilities say Medicaid income limits can stifle career advancement",
+          "url": "https://www.npr.org/2026/08/10/nx-s1-5910791/disabilities-people-work-requirements-medicaid-income-caps-buy-in",
+          "date": "2026-08-10T11:00:00.000Z",
+          "outlet": "NPR Health"
+        },
+        {
+          "title": "Opinion: How should states reach out to Medicaid enrollees affected by changes? Our research gives a hint",
+          "url": "https://www.statnews.com/2026/08/10/medicaid-work-requirement-changes-states-contact/?utm_campaign=rss",
+          "date": "2026-08-10T08:30:00.000Z",
+          "outlet": "STAT Health News"
+        },
+        {
+          "title": "Medicaid Work Rule Leaves Homeless People in the Cold",
+          "url": "https://kffhealthnews.org/medicaid/medicaid-work-requirements-rules-montana-homeless-people-exemption/",
+          "date": "2026-08-06T09:00:00.000Z",
+          "outlet": "KFF Health News"
+        },
+        {
+          "title": "Medicaid work rule leaves homeless people in the cold",
+          "url": "https://www.npr.org/2026/08/04/nx-s1-5918346/medicaid-work-requirement-montana-homeless",
+          "date": "2026-08-04T09:00:00.000Z",
+          "outlet": "NPR Health"
+        },
+        {
+          "title": "Medicaid's work requirement crunch arrives: What to know - Axios",
+          "url": "https://www.axios.com/2026/08/03/medicaid-work-eligibility-requirement-rules-patients",
+          "date": "2026-08-03T09:34:28.000Z",
+          "outlet": "axios.com"
+        },
+        {
+          "title": "Judge rejects states’ bid to pause Medicaid work requirements",
+          "url": "https://www.healthcaredive.com/news/judge-rejects-states-bid-pause-medicaid-work-requirements/826714/",
+          "date": "2026-07-31T14:47:44.000Z",
+          "outlet": "Healthcare Dive"
+        },
+        {
+          "title": "Federal government could improve infectious disease monitoring, says federal government",
+          "url": "https://www.statnews.com/2026/07/31/health-news-federal-government-infectious-disease-monitoring-issues/?utm_campaign=rss",
+          "date": "2026-07-31T12:28:22.000Z",
+          "outlet": "STAT Health News"
+        },
+        {
+          "title": "Judge denies states’ motion to postpone Medicaid work requirement",
+          "url": "https://www.statnews.com/2026/07/30/medicaid-work-requirements-judge-declines-states-request-injunction/?utm_campaign=rss",
+          "date": "2026-07-30T13:45:55.000Z",
+          "outlet": "STAT Health News"
+        },
+        {
+          "title": "We want to hear how Medicaid work requirements are affecting you - NBC News",
+          "url": "https://www.nbcnews.com/news/us-news/medicaid-work-requirements-tell-story-rcna587293",
+          "date": "2026-07-20T11:00:40.000Z",
+          "outlet": "nbcnews.com"
+        },
+        {
+          "title": "Doctors ‘Cringe’ at Possibility of Documenting Which Medicaid Enrollees Too Sick To Work",
+          "url": "https://kffhealthnews.org/medicaid/medicaid-work-requirements-medical-frailty-documentation-doctors/",
+          "date": "2026-07-20T09:00:00.000Z",
+          "outlet": "KFF Health News"
+        },
+        {
+          "title": "STAT+: Elevance plots a Medicaid retreat as costs remain high",
+          "url": "https://www.statnews.com/2026/07/15/elevance-health-shrink-medicaid-portfolio-high-costs/?utm_campaign=rss",
+          "date": "2026-07-15T17:12:56.000Z",
+          "outlet": "STAT Health News"
+        },
+        {
+          "title": "They Harvest the Nation’s Food, but a New Rule May Strip Them of Health Insurance",
+          "url": "https://kffhealthnews.org/insurance/agricultural-workers-medicaid-eligibility-immigration-food-harvest/",
+          "date": "2026-07-10T09:00:00.000Z",
+          "outlet": "KFF Health News"
+        },
+        {
+          "title": "Centene exits Arkansas Medicaid expansion program, citing funding challenges - Healthcare Dive",
+          "url": "https://www.healthcaredive.com/news/centene-exits-arkansas-medicaid-expansion-arhome/824678/",
+          "date": "2026-07-08T16:35:53.000Z",
+          "outlet": "healthcaredive.com"
+        },
+        {
+          "title": "New Medicaid Work Rule Means More Opportunities To Lose Coverage",
+          "url": "https://kffhealthnews.org/medicaid/wamu-health-hub-audio-medicaid-work-rule-requirement-tips-coverage/",
+          "date": "2026-07-06T09:00:00.000Z",
+          "outlet": "KFF Health News"
+        },
+        {
+          "title": "States sue Trump administration over Medicaid work requirements rule",
+          "url": "https://www.healthcaredive.com/news/states-sue-trump-administration-medicaid-work-requirements-rule/824060/",
+          "date": "2026-06-30T12:58:47.000Z",
+          "outlet": "Healthcare Dive"
+        },
+        {
+          "title": "Vt., NY among 25 states suing Trump administration over Medicaid work rules",
+          "url": "https://www.wcax.com/2026/06/29/vt-ny-among-25-states-suing-trump-administration-over-medicaid-work-rules/",
+          "date": "2026-06-29T21:31:19.000Z",
+          "outlet": "WCAX"
+        },
+        {
+          "title": "STAT+: 26 states sue to block Medicaid work requirements",
+          "url": "https://www.statnews.com/2026/06/29/state-lawsuit-block-medicaid-work-requirements/?utm_campaign=rss",
+          "date": "2026-06-29T20:11:47.000Z",
+          "outlet": "STAT Health News"
+        },
+        {
+          "title": "From Medicaid work requirement exemptions to AI safeguards in coverage: New AMA policies from annual meeting",
+          "url": "https://www.fiercehealthcare.com/regulatory/medicaid-work-requirement-exemptions-ai-safeguards-coverage-decisions-look-new-ama",
+          "date": null,
+          "outlet": "Fierce Healthcare"
+        },
+        {
+          "title": "AMA issues policy urging exemptions in upcoming Medicaid work requirements",
+          "url": "https://www.fiercehealthcare.com/regulatory/ama-issues-policy-urging-exemptions-upcoming-medicaid-work-requirements",
+          "date": null,
+          "outlet": "Fierce Healthcare"
+        }
+      ]
+    },
+    {
+      "id": "aca-enrollment-subsidies",
+      "name": "Federal ACA enrollment and subsidies",
+      "description": "Expired subsidies, shrinking marketplace enrollment, and the federal fraud crackdown on ACA coverage.",
+      "total": 40,
+      "undated": 1,
+      "weeks": [
+        {
+          "week": "2026-01-12",
+          "count": 1,
+          "scored": 1,
+          "sentiment": {
+            "neutral to negative": 1
+          }
+        },
+        {
+          "week": "2026-01-19",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-01-26",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-02-02",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-02-09",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-02-16",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-02-23",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-03-02",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-03-09",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-03-16",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-03-23",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-03-30",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-04-06",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-04-13",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-04-20",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-04-27",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-05-04",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-05-11",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-05-18",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-05-25",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-06-01",
+          "count": 2,
+          "scored": 2,
+          "sentiment": {
+            "neutral to negative": 1,
+            "neutral": 1
+          }
+        },
+        {
+          "week": "2026-06-08",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-06-15",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-06-22",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-06-29",
+          "count": 2,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-07-06",
+          "count": 7,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-07-13",
+          "count": 2,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-07-20",
+          "count": 4,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-07-27",
+          "count": 1,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-03",
+          "count": 1,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-10",
+          "count": 1,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-17",
+          "count": 1,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-24",
+          "count": 1,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-08-31",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-07",
+          "count": 3,
+          "scored": 1,
+          "sentiment": {
+            "positive": 1
+          }
+        },
+        {
+          "week": "2026-09-14",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-21",
+          "count": 13,
+          "scored": 0,
+          "sentiment": {}
+        },
+        {
+          "week": "2026-09-28",
+          "count": 0,
+          "scored": 0,
+          "sentiment": {}
+        }
+      ],
+      "stories": [
+        {
+          "title": "Federal bill would reinstate enhanced ACA subsidies, introduce public option - Becker's Payer Issues",
+          "url": "https://www.beckerspayer.com/policy-updates/federal-bill-would-reinstate-enhanced-aca-subsidies-introduce-public-option/",
+          "date": "2026-09-25T21:34:30.000Z",
+          "outlet": "Becker's Payer Issues"
+        },
+        {
+          "title": "New Mexico was the only state to fully backfill enhanced ACA tax credits. Can it keep paying? - Becker's Payer Issues",
+          "url": "https://www.beckerspayer.com/payer/aca/new-mexico-was-the-only-state-to-fully-backfill-enhanced-aca-tax-credits-can-it-keep-paying/",
+          "date": "2026-09-25T17:34:22.000Z",
+          "outlet": "Becker's Payer Issues"
+        },
+        {
+          "title": "CMS freezes new ACA broker registrations for 2027, culls ‘unauthorized’ enrollees",
+          "url": "https://www.healthcaredive.com/news/cms-freezes-new-aca-broker-registrations-for-2027/831138/",
+          "date": "2026-09-23T14:18:22.000Z",
+          "outlet": "Healthcare Dive"
+        },
+        {
+          "title": "Trump administration drops 760,000 Americans from ACA coverage, citing fraud",
+          "url": "https://www.npr.org/2026/09/23/nx-s1-5978044/trump-administration-drops-760-000-americans-from-aca-coverage-citing-fraud",
+          "date": "2026-09-23T08:42:00.000Z",
+          "outlet": "NPR Health"
+        },
+        {
+          "title": "Trump administration to remove 760,000 Affordable Care Act enrollees over fraud claims - NPR",
+          "url": "https://www.npr.org/2026/09/23/g-s1-144623/trump-affordable-care-act",
+          "date": "2026-09-23T05:26:31.000Z",
+          "outlet": "npr.org"
+        },
+        {
+          "title": "Trump administration to remove 760,000 Affordable Care Act enrollees over fraud claims - AP News",
+          "url": "https://apnews.com/article/vance-healthcare-oz-aca-fraud-task-force-eb57a4819c8a876a72c1301a112e21dc",
+          "date": "2026-09-22T22:51:00.000Z",
+          "outlet": "apnews.com"
+        },
+        {
+          "title": "Trump administration cuts ACA coverage for 750,000 people it says were ‘fraudulently’ enrolled - NBC News",
+          "url": "https://www.nbcnews.com/health/health-news/trump-administration-cuts-aca-coverage-750000-people-says-fraudulently-rcna599258",
+          "date": "2026-09-22T19:30:12.000Z",
+          "outlet": "nbcnews.com"
+        },
+        {
+          "title": "Trump administration to remove 760,000 Affordable Care Act enrollees over fraud claims",
+          "url": "https://www.rutlandherald.com/ap/washington/trump-administration-to-remove-760-000-affordable-care-act-enrollees-over-fraud-claims/article_8e8df3cb-36de-57de-99ca-1ebff4f99287.html",
+          "date": "2026-09-22T18:32:59.000Z",
+          "outlet": "Rutland Herald"
+        },
+        {
+          "title": "Trump administration to remove 760,000 Affordable Care Act enrollees over fraud claims - Caledonian Record",
+          "url": "https://www.caledonianrecord.com/news/national/trump-administration-to-remove-760-000-affordable-care-act-enrollees-over-fraud-claims/article_8bedbb05-4c5d-5fc7-bfb3-a3118275414c.html",
+          "date": "2026-09-22T17:56:23.000Z",
+          "outlet": "Caledonian Record"
+        },
+        {
+          "title": "Vance-led task force set to remove 750K ObamaCare enrollees, citing fraud",
+          "url": "https://thehill.com/policy/healthcare/6104381-vance-oz-aca-obamacare-crackdown/",
+          "date": "2026-09-22T17:04:20.000Z",
+          "outlet": "The Hill Health Care"
+        },
+        {
+          "title": "Watch live: Vance, Oz to announce crackdown on alleged Obamacare fraud",
+          "url": "https://thehill.com/video-clips/6103679-watch-live-jd-vance-mehmet-oz-obamacare-alleged-fraud-trump-admin/",
+          "date": "2026-09-22T14:38:29.000Z",
+          "outlet": "The Hill Health Care"
+        },
+        {
+          "title": "CMS to cancel ACA coverage for 760K, crack down on brokers in latest anti-fraud push",
+          "url": "https://www.fiercehealthcare.com/regulatory/cms-cancel-aca-coverage-760k-crack-down-brokers-latest-anti-fraud-push",
+          "date": "2026-09-22T14:27:00.000Z",
+          "outlet": "Fierce Healthcare"
+        },
+        {
+          "title": "BCBSA response to Trump administration efforts to remove fraudulent ACA enrollment",
+          "url": "https://www.bcbs.com/about-us/association-news/bcbsa-response-efforts-to-remove-fraud-aca-enrollment",
+          "date": "2026-09-22T00:00:00.000Z",
+          "outlet": "BCBS Association"
+        },
+        {
+          "title": "Trump admin. to send $500 checks to nearly 1 million ACA enrollees",
+          "url": "https://www.cbsnews.com/news/trump-500-checks-obamacare-enrollees/",
+          "date": "2026-09-11T21:49:00.000Z",
+          "outlet": "CBS News Health"
+        },
+        {
+          "title": "Trump promises $500 Obamacare rebate checks for 1M enrollees in 30 states",
+          "url": "https://abcnews.com/Health/wireStory/trump-promises-500-obamacare-rebate-checks-1m-enrollees-136338450",
+          "date": "2026-09-11T06:41:58.000Z",
+          "outlet": "ABC News Health"
+        },
+        {
+          "title": "9 states finalize 2027 ACA rates",
+          "url": "https://www.beckershospitalreview.com/finance/5-states-finalize-2027-aca-rates/",
+          "date": "2026-09-09T12:00:00.000Z",
+          "outlet": "Becker's Payer Issues",
+          "sentiment": "positive"
+        },
+        {
+          "title": "As ACA enrollment declines, misleading marketing of short-term plans surges: Study - Becker's Payer Issues",
+          "url": "https://www.beckerspayer.com/payer/aca/as-aca-enrollment-declines-misleading-marketing-of-short-term-plans-surges-study/",
+          "date": "2026-08-24T15:15:52.000Z",
+          "outlet": "Becker's Payer Issues"
+        },
+        {
+          "title": "As Affordable Care Act enrollment declines and premiums increase, will Congress take action?",
+          "url": "https://www.mynbc5.com/article/as-affordable-care-act-enrollment-declines-and-premiums-increase-will-congress-take-action/73474388",
+          "date": "2026-08-20T13:53:00.000Z",
+          "outlet": "NBC5"
+        },
+        {
+          "title": "AG Clark sues over effort to undermine Affordable Care Act protections - Rutland Herald",
+          "url": "https://www.rutlandherald.com/greenmountaingazette/ag-clark-sues-over-effort-to-undermine-affordable-care-act-protections/article_6ff016c7-71b9-52df-85a3-350ade7c2125.html",
+          "date": "2026-08-13T07:00:00.000Z",
+          "outlet": "Rutland Herald"
+        },
+        {
+          "title": "Democratic AGs file suit challenging 2027 ACA rule",
+          "url": "https://www.fiercehealthcare.com/payers/democratic-ags-file-suit-challenging-2027-aca-rule",
+          "date": "2026-08-03T15:18:00.000Z",
+          "outlet": "Fierce Healthcare"
+        },
+        {
+          "title": "Margin improvements underpin Centene's strategy for 2027 ACA plans, CEO says",
+          "url": "https://www.fiercehealthcare.com/payers/centene-boosts-2026-guidance-it-posts-11b-q2-profit",
+          "date": "2026-07-28T07:54:00.000Z",
+          "outlet": "Fierce Healthcare"
+        },
+        {
+          "title": "HHS appeals invalidation of 2025 ACA rule",
+          "url": "https://www.healthcaredive.com/news/hhs-2025-aca-rule-appeal-enrollment-eligibility/826105/",
+          "date": "2026-07-24T12:33:06.000Z",
+          "outlet": "Healthcare Dive"
+        },
+        {
+          "title": "HCA Healthcare's H1 ACA volume dropoffs 'almost one for one' shifted to uninsurance",
+          "url": "https://www.fiercehealthcare.com/finance/hca-healthcare-reports-203b-q2-revenue-amid-aca-coverage-disruptions",
+          "date": "2026-07-24T11:53:00.000Z",
+          "outlet": "Fierce Healthcare"
+        },
+        {
+          "title": "Molina Healthcare plans more marketplace exits as ACA segment falters - Fierce Healthcare",
+          "url": "https://www.fiercehealthcare.com/payers/molina-healthcare-plans-more-marketplace-exits-aca-segment-falters",
+          "date": "2026-07-23T19:30:00.000Z",
+          "outlet": "fiercehealthcare.com"
+        },
+        {
+          "title": "Molina plans additional ACA cuts in 2027 - Healthcare Dive",
+          "url": "https://www.healthcaredive.com/news/molina-plans-aca-cuts-q2-2026-moh/825934/",
+          "date": "2026-07-23T15:32:48.000Z",
+          "outlet": "healthcaredive.com"
+        },
+        {
+          "title": "Judge stays Trump administration policies set to shrink ACA marketplaces - Healthcare Dive",
+          "url": "https://www.healthcaredive.com/news/trump-2026-aca-rule-paused-maryland-judge/825519/",
+          "date": "2026-07-17T15:41:02.000Z",
+          "outlet": "healthcaredive.com"
+        },
+        {
+          "title": "STAT+: Hospital chain HCA warns of lower profits as more patients go uninsured",
+          "url": "https://www.statnews.com/2026/07/14/hca-predicts-treating-uninsured-patients-will-trim-1-billion-in-profits/?utm_campaign=rss",
+          "date": "2026-07-14T17:01:48.000Z",
+          "outlet": "STAT Health News"
+        },
+        {
+          "title": "ACA coverage losses surge in Connecticut after subsidy expiration - CT Mirror",
+          "url": "https://ctmirror.org/2026/07/10/aca-coverage-losses-surge-in-connecticut-after-subsidy-expiration/",
+          "date": "2026-07-10T09:00:00.000Z",
+          "outlet": "ctmirror.org"
+        },
+        {
+          "title": "Rising ObamaCare premiums fuel Democrats' affordability attacks against GOP",
+          "url": "https://thehill.com/policy/healthcare/5959964-obamacare-premiums-climb-affordability-midterms/",
+          "date": "2026-07-09T10:00:00.000Z",
+          "outlet": "The Hill Health Care"
+        },
+        {
+          "title": "ACA premiums set to spike again in 2027",
+          "url": "https://www.healthcaredive.com/news/affordable-care-act-premium-increase-2027-kff-peterson-center-healthcare/824695/",
+          "date": "2026-07-08T14:39:07.000Z",
+          "outlet": "Healthcare Dive"
+        },
+        {
+          "title": "Insurers propose a median ACA rate hike of 15% for 2027: KFF",
+          "url": "https://www.fiercehealthcare.com/payers/aca-plans-set-another-year-premium-spikes-preliminary-filings-show",
+          "date": "2026-07-08T12:16:00.000Z",
+          "outlet": "Fierce Healthcare"
+        },
+        {
+          "title": "ObamaCare premiums poised for another big hike",
+          "url": "https://thehill.com/policy/healthcare/5958559-obamacare-premiums-rise-again/",
+          "date": "2026-07-08T12:04:19.000Z",
+          "outlet": "The Hill Health Care"
+        },
+        {
+          "title": "Why Obamacare premiums are set for another double-digit jump - Axios",
+          "url": "https://www.axios.com/2026/07/08/obamacare-aca-premiums-price-jump",
+          "date": "2026-07-08T09:30:45.000Z",
+          "outlet": "axios.com"
+        },
+        {
+          "title": "Obamacare rolls shrank dramatically in many states over the past year, new federal data shows",
+          "url": "https://thehill.com/policy/healthcare/obamacare-enrollment-steep-declines-multiple-states/",
+          "date": "2026-07-06T22:39:14.000Z",
+          "outlet": "The Hill Health Care"
+        },
+        {
+          "title": "State fiscal officers push back on health care cost pressures",
+          "url": "https://www.magic967.com/news/national/state-fiscal-officers-push-back-on-health-care-cost-pressures/",
+          "date": "2026-06-29T23:00:00.000Z",
+          "outlet": "Magic 96.7 Vermont News"
+        },
+        {
+          "title": "ACA enrollment declines by nearly 3M",
+          "url": "https://www.healthcaredive.com/news/affordable-care-act-enrollment-declines-3-million-hhs/823975/",
+          "date": "2026-06-29T14:53:19.000Z",
+          "outlet": "Healthcare Dive"
+        },
+        {
+          "title": "Cities sue to block ACA rule - Modern Healthcare",
+          "url": "http://www.modernhealthcare.com/politics-regulation/mh-hhs-lawsuit-aca-exchange-rule-2027/",
+          "date": "2026-06-05T17:53:00.000Z",
+          "outlet": "Modern Healthcare",
+          "sentiment": "neutral to negative"
+        },
+        {
+          "title": "Payers pitch 2027 ACA rates: 7 updates",
+          "url": "https://www.beckerspayer.com/payer/aca/payers-begin-pitching-2027-aca-rates-3-updates/",
+          "date": "2026-06-02T12:00:00.000Z",
+          "outlet": "Becker's Payer Issues",
+          "sentiment": "neutral"
+        },
+        {
+          "title": "BlueCross BlueShield’s new CEO takes over as insurer faces federal and statewide challenges",
+          "url": "https://vtdigger.org/2026/01/16/bluecross-blueshields-new-ceo-takes-over-as-insurer-faces-federal-and-statewide-challenges/?utm_medium=email&utm_campaign=Daily%20Digger%201%2F17%2F26&utm_source=dc3c5486db&utm_source=VTDigger+Subscribers+and+Donors&utm_campaign=31f366a632-EMAIL_CAMPAIGN_2026_01_17_01_30&utm_medium=email&utm_term=0_-31f366a632-381308666",
+          "date": "2026-01-16T12:00:00.000Z",
+          "outlet": "VTDigger",
+          "sentiment": "neutral to negative"
+        },
+        {
+          "title": "ACA marketplace enrollment down by 3M as of February, new federal data show",
+          "url": "https://www.fiercehealthcare.com/payers/aca-marketplace-enrollment-down-3m-february-new-federal-data-show",
+          "date": null,
+          "outlet": "Fierce Healthcare"
+        }
+      ]
+    }
+  ]
+}

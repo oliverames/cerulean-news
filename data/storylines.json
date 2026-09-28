@@ -1,0 +1,172 @@
+{
+  "_comment": "Storylines the timelines page tracks. Tracking only: this file never reaches the sentiment scorer. Scoring notes belong in data/coverage-context.json, which the communications team owns.",
+  "_howToAdd": "id: short slug, unique. name and description: what the page shows. match: lowercase substrings; a story joins when any appears in its title, summary, or snippet. exclude: lowercase substrings that keep a story out even when it matches. start: optional YYYY-MM-DD, ignores older stories. Matches are plain substrings, so prefer phrases over bare words.",
+  "storylines": [
+    {
+      "id": "gmcb-rate-review",
+      "name": "Annual insurance rate review",
+      "description": "Vermont insurers file premium requests in the spring and the Green Mountain Care Board rules on them in August.",
+      "match": [
+        "care board",
+        "gmcb",
+        "rate review",
+        "files for rate increase",
+        "requests rate increase",
+        "request lower premium",
+        "requests lowest premium",
+        "smaller premium increase",
+        "premium increases in vermont",
+        "premium hike in vermont",
+        "vermonters brace",
+        "seeks to raise insurance rates",
+        "needs double digit increases",
+        "health insurance premiums will rise",
+        "regulators approve health insurance premium hikes",
+        "cuts proposed health insurance"
+      ],
+      "start": "2025-01-01",
+      "exclude": [
+        "hospital",
+        "uvm",
+        "medical center",
+        "birth center",
+        "budget",
+        "chair",
+        "nurs",
+        "union",
+        "planning commission",
+        "maine",
+        "colorado",
+        "new york",
+        "oklahoma",
+        "340b",
+        "financial reporting",
+        "owen foster"
+      ]
+    },
+    {
+      "id": "uvm-health-finances",
+      "name": "UVM Health finances and cuts",
+      "description": "Budget shortfalls, layoffs, and regulator-ordered cuts at the UVM Health Network and its medical center.",
+      "match": [
+        "uvm health layoff",
+        "uvm health cut",
+        "uvm health network to cut",
+        "uvm health network to eliminate",
+        "uvm health will eliminate",
+        "uvm health to eliminate",
+        "uvm health eliminate",
+        "uvm health announces",
+        "uvm health network announces",
+        "uvm health is downsizing",
+        "uvm health budget",
+        "uvm health says big change",
+        "uvm health must cut",
+        "uvm health network faces",
+        "uvm health's outpatient productivity",
+        "uvm health's affordability",
+        "uvm health job cuts",
+        "uvm health network job cuts",
+        "uvm health union protests",
+        "against uvm health layoffs",
+        "chastened uvm health",
+        "more layoffs coming for uvm",
+        "layoffs at uvm",
+        "uvmmc layoff",
+        "uvmhn layoff",
+        "uvmmc's financial",
+        "uvmmc budget",
+        "uvmmc's budget",
+        "uvmmc revenue",
+        "uvmmc's revenue",
+        "uvm medical center ordered",
+        "uvm medical center is losing",
+        "uvm medical center's budget",
+        "job cuts by the university of vermont",
+        "university of vermont health network announces",
+        "university of vermont health network to",
+        "university of vermont health eliminates",
+        "university of vermont medical center healthcare union statement",
+        "cut its revenue and spending"
+      ],
+      "exclude": [
+        "school budget woes"
+      ]
+    },
+    {
+      "id": "vt-basic",
+      "name": "Blue Cross VT lower-cost plan",
+      "description": "The VT Basic proposal for a cheaper, higher-deductible plan, from filing to withdrawal.",
+      "match": [
+        "vt basic",
+        "vermont basic",
+        "lower-cost plan",
+        "lower cost plan",
+        "cheaper plan",
+        "lower-cost, higher-deductible",
+        "proposed product line",
+        "$12,000 deductible",
+        "high deductible plans amid",
+        "high-deductible plan"
+      ],
+      "start": "2026-06-01"
+    },
+    {
+      "id": "medicaid-work-requirements",
+      "name": "Medicaid work requirements",
+      "description": "The federal rule tying Medicaid coverage to work, and the lawsuits and state rollouts that followed.",
+      "match": [
+        "work requirement",
+        "medicaid work",
+        "community engagement requirement"
+      ],
+      "exclude": [
+        "snap",
+        "food stamp",
+        "tanf"
+      ]
+    },
+    {
+      "id": "aca-enrollment-subsidies",
+      "name": "Federal ACA enrollment and subsidies",
+      "description": "Expired subsidies, shrinking marketplace enrollment, and the federal fraud crackdown on ACA coverage.",
+      "match": [
+        "enhanced aca",
+        "enhanced premium tax",
+        "enhanced subsid",
+        "premium tax credit",
+        "aca subsid",
+        "aca tax credit",
+        "aca enrollee",
+        "aca enrollment",
+        "aca coverage",
+        "aca marketplace",
+        "aca broker",
+        "aca plans",
+        "aca premium",
+        "aca rate",
+        "aca rule",
+        "affordable care act enroll",
+        "affordable care act subsid",
+        "affordable care act premium",
+        "affordable care act protections",
+        "affordable care act coverage",
+        "obamacare enroll",
+        "obamacare rebate",
+        "obamacare subsid",
+        "obamacare premium",
+        "obamacare rolls",
+        "obamacare fraud",
+        "subsidy expiration",
+        "subsidies expire"
+      ],
+      "exclude": [
+        "prior authorization",
+        "ichra",
+        "parasitic",
+        "scams",
+        "owen foster"
+      ]
+    }
+  ]
+}

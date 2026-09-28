@@ -31,6 +31,10 @@ import { sendBrandAlerts } from "./brand-alerts.js";
 import { buildJsonSummary, buildRss, writeOutput } from "./outputs.js";
 import { writeDigestOutputs } from "./digest-output.js";
 import { writeMonthlyReports } from "./monthly-report.js";
+import {
+  resolveStorylinesOutputPath,
+  writeStorylinesSummary,
+} from "./storylines.js";
 
 function resolveRssOutputPath() {
   if (process.env.RSS_OUTPUT_PATH) {
@@ -277,6 +281,11 @@ export async function generateFeed({
     outputDir: path.join(path.dirname(rssOutputPath), "reports"),
     now,
   });
+  await writeStorylinesSummary(
+    matchedItems,
+    resolveStorylinesOutputPath(rssOutputPath),
+    now,
+  );
   if (articleCacheStore) {
     await articleCacheStore.persist(
       crawlState.articleCache,

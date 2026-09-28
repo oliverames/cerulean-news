@@ -53,6 +53,7 @@ The generator writes:
 | JSON Feed | `site/feed.json` | Public reader data and machine-readable feed |
 | Audit JSON | `site/feed-audit.json` | Rejected items, source status, summary cache, and archive state |
 | Reader | `site/index.html` | Text-only browser with search and paging |
+| Storylines | `site/storylines.json` | Weekly volume, brand sentiment, and stories for each tracked storyline |
 
 The live reader is published at [cerulean.news](https://cerulean.news/), with shortcuts at [/sentiment](https://cerulean.news/sentiment), [/rss](https://cerulean.news/rss), and [/json](https://cerulean.news/json). The old oliverames.github.io/vt-news-rss-bcbs address redirects there.
 
@@ -249,11 +250,13 @@ Stories are marked priority and listed first when the sentiment is `negative` or
 Alerted keys live in `crawlState.brandAlerts` in `feed-audit.json`, hashed and bounded to the newest 2,000. The first run with no stored state records every current item and sends nothing, so the archive never floods the channel. With the switch off, new coverage is still recorded and nothing is sent, so switching it on later starts from that moment. A failed delivery never fails the run. Each endpoint keeps its own pending list and retries on the next run without repeating an alert another endpoint already accepted.
 
 `renderBrandAlertEmail(items, { now })` in `src/brand-alerts.js` returns `{ subject, html, text }` for subscriber email. It uses tables and inline styles, escapes all scraped text, drops non-http links, and contains no scripts. Nothing sends it yet.
+
 ### Share of voice
 
 The trends page ends with a "Share of voice" section. It compares monthly press mentions of Blue Cross VT, MVP Health Care, and UVM Health, and each one's share of the combined total. The browser computes it from `feed.json`, and the counting lives in `site/share-of-voice.js` so the tests load the same code. Matched terms credit each organization. Blue Cross VT is the brand category, and the other two are stories carrying the `MVP Health Care` or `UVM Health` label. One story can count for several, so a share divides by combined mentions rather than by stories. Only relevant press counts. The insurer's own site, association pages, and social items are left out, as in the sentiment coverage set. Sentiment is scored only for Blue Cross VT, so none is shown for the others. The range and outlet filters apply, and every chart has a table.
 
 Two limits shape the numbers. Topic terms match feed text only, so a story that names MVP or UVM only in its body is missed. That understates both against Blue Cross VT. And stories that do not name Blue Cross VT are archived for 92 days while brand stories are kept indefinitely. The charts therefore start at the first month the archive holds in full, and earlier months appear only in the table, marked with an asterisk.
+
 ## Monthly report
 
 Every feed build also writes a one-page summary of brand coverage for leadership, one page per month from June 2026 through the current month, at `site/reports/YYYY-MM.html` with a list at `site/reports/index.html`. The current month is marked "to date" and is compared with the whole prior month. Each page has print styles, so a browser's Save as PDF gives one or two clean pages. The trends page links the list from its footer. The pages carry `noindex` and are not in the sitemap.
@@ -263,6 +266,14 @@ Every feed build also writes a one-page summary of brand coverage for leadership
 The definitions are the trends page's own. The coverage set is items with `sentimentEligible` and a date, volume counts all of them including any not yet scored, and net sentiment is the mean of the five labels mapped to +2 through -2 over the scored ones. Months run on Eastern time, where the trends page uses UTC, so a story published after 8 pm on the last evening of a month counts in that month. The favorable and adverse lists show each group of repeated reports once and never place a story on the wrong side of neutral.
 
 The pages are written by `npm run generate`, and `node scripts/build-monthly-reports.js [siteDir]` rebuilds them from a `feed.json` without a crawl. A static-only deploy does not run the generator, so it carries no `reports/` folder until the next full run.
+
+## Storylines
+
+The [storylines page](https://cerulean.news/storylines) follows ongoing subjects over time. Each section shows a weekly volume strip, the Blue Cross VT sentiment marks for the same weeks, and a dated list of the stories, newest first.
+
+`data/storylines.json` defines what to follow: an `id`, a `name`, a one-line `description`, `match` phrases, and optionally `exclude` phrases and a `start` date. All terms are lowercase substrings checked against a story's title, summary, and snippet. The file is for tracking only. Notes that steer sentiment scoring stay in `data/coverage-context.json`, which the communications team owns. A missing or malformed file means no storylines and never stops a run.
+
+`src/storylines.js` loads the file once. Each published item in `feed.json` gets a `storylines` array of ids when it belongs to one, and every run writes `site/storylines.json` with weekly counts, weekly sentiment counts, and the story list per storyline. Weeks start on Monday, UTC. Sentiment counts only scored brand press coverage, so a storyline about federal policy may show none.
 
 ## Configuration
 
