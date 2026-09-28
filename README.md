@@ -283,13 +283,25 @@ Two limits shape the numbers. Topic terms match feed text only, so a story that 
 
 ## Monthly report
 
-Every feed build also writes a one-page summary of brand coverage for leadership, one page per month from June 2026 through the current month, at `site/reports/YYYY-MM.html` with a list at `site/reports/index.html`. The current month is marked "to date" and is compared with the whole prior month. Each page has print styles, so a browser's Save as PDF gives one or two clean pages. The trends page links the list from its footer. The pages carry `noindex` and are not in the sitemap.
+Every feed build also writes a one-page summary of brand coverage for leadership, one page per month from January 2026 through the current month, at `site/reports/YYYY-MM.html` with a list at `site/reports/index.html`. The current month is marked "to date" and is compared with the whole prior month. Each page has print styles, so a browser's Save as PDF gives one or two clean pages. The trends page links the list from its footer. The pages carry `noindex` and are not in the sitemap.
 
-`src/monthly-report.js` holds the logic and is pure. `buildMonthlyReport(items, { month: "YYYY-MM", now })` returns brand volume and the change from the prior month, net sentiment and the label mix, the mean `sentimentScore` with how many stories carry one, the top five outlets, the three most and least favorable stories, the top themes, Vermont health care volume from the `section` values, and a templated plain-language paragraph. There are no model calls. `renderMonthlyReportEmail(report)` returns `{ subject, html, text }` with table layout and inline styles only, ready for a later email step. Nothing sends it yet.
+`src/monthly-report.js` holds the logic and is pure. `buildMonthlyReport(items, { month: "YYYY-MM", now })` returns brand volume and the change from the prior month, net sentiment and the label mix, the mean `sentimentScore` with how many stories carry one, the top five outlets, the three most and least favorable stories, the top themes, Vermont health care volume from the `section` values, and a templated plain-language paragraph. The numbers and the summary paragraph are deterministic. `renderMonthlyReportEmail(report)` returns `{ subject, html, text }` with table layout and inline styles only. The mail Worker sends it (see Email subscriptions).
 
 The definitions are the trends page's own. The coverage set is items with `sentimentEligible` and a date, volume counts all of them including any not yet scored, and net sentiment is the mean of the five labels mapped to +2 through -2 over the scored ones. Months run on Eastern time, where the trends page uses UTC, so a story published after 8 pm on the last evening of a month counts in that month. The favorable and adverse lists show each group of repeated reports once and never place a story on the wrong side of neutral.
 
-The pages are written by `npm run generate`, and `node scripts/build-monthly-reports.js [siteDir]` rebuilds them from a `feed.json` without a crawl. A static-only deploy does not run the generator, so it carries no `reports/` folder until the next full run.
+The pages are written by `npm run generate`, and `node scripts/build-monthly-reports.js [siteDir]` rebuilds them from a `feed.json` without a crawl. A static-only deploy rebuilds the pages the same way in the workflow's "Build monthly reports for static deploy" step.
+
+### Vermont totals and their limit
+
+The Vermont health care count covers the "Vermont Healthcare News" section. Those stories leave the archive after `ARCHIVE_MAX_AGE_DAYS` (92 days), so a month's live count shrinks as it ages. The report therefore snapshots each month's Vermont volume and distinct-story count into `crawlState.monthlyReports.vermontTotals`, which rides in `feed-audit.json`. A snapshot is written and refreshed only while the whole month, measured from midnight Eastern on its first day, is still inside the window. After that the snapshot stands. A month that has left the window with no snapshot shows "Not available: the archive keeps these stories for 92 days", and a comparison against such a month says there is no comparison instead of computing a change. In practice the months before July 2026 show no Vermont total, because nothing was recorded while they were whole (snapshots began on 2026-09-28). Blue Cross VT coverage is kept indefinitely, so every brand number is complete back to January.
+
+### What stood out (AI findings)
+
+Each report can carry a short "What stood out" section of two to four bullets, placed after the summary on the page and in the email, and marked "AI-generated". Gemini writes it from that month's report data only: the computed numbers, the outlet and theme lists, and the headline and one-line summary of each story. The prompt forbids any number or claim outside that data, and the reply must be JSON with two to four short plain-text lines. It is discarded if it has markup, links, or a number that does not appear in the input. Output is HTML-escaped. The template summary and all numbers stay deterministic.
+
+`src/monthly-report-insights.js` reuses `geminiGenerate` from `src/summaries.js`, so it uses the same `GEMINI_API_KEY`, model list, timeouts, and retry rules. Lines are cached per month in `crawlState.monthlyReports.findings`, keyed by a hash of the input. A month is generated once and again only if its data changes. The current month is rewritten at most once a day. A run makes at most three calls, the last complete month first, so the backlog clears over a few runs. A failed or invalid reply is remembered for a day and never repeated for the same input. Without a key, or on any failure, the section is left out and the run continues.
+
+`npm run generate` refreshes both parts before it writes the audit file. The static build (`scripts/build-monthly-reports.js`) has no key and no crawl. It reads the same state from the `feed-audit.json` that the workflow seeds from the live site, so old months keep their totals and the cached findings still show. It never writes the state back.
 
 ## Storylines
 
@@ -422,6 +434,8 @@ src/alerts.js      Failure streaks and optional webhook alerts
 src/brand-alerts.js  New brand coverage alerts and the subscriber email renderer
 src/outputs.js     RSS, JSON Feed, audit JSON, file writes
 src/monthly-report.js  Monthly leadership report: numbers, email rendering, and pages
+src/monthly-report-insights.js  Monthly report Vermont snapshots and AI findings
+src/monthly-report-state.js  Crawl-state normalizer for both
 src/utils.js       Shared text, date, URL, and concurrency helpers
 src/prerender.js   Prerenders the reader's first page and an ItemList into site/index.html
 src/fsx.js         Indirection over file reads and writes, so the generator can

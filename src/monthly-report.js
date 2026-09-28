@@ -12,10 +12,12 @@
 // Vermont lived it.
 import { escapeXml } from "./utils.js";
 import { writeText } from "./fsx.js";
+import { ARCHIVE_MAX_AGE_DAYS } from "./archive.js";
 
 export const REPORT_TIME_ZONE = "America/New_York";
-// The first month that gets a page. Earlier months predate steady coverage.
-export const FIRST_REPORT_MONTH = "2026-06";
+// The first month that gets a page. Blue Cross VT coverage is complete from
+// January 1, 2026 (backfilled, and brand stories are kept indefinitely).
+export const FIRST_REPORT_MONTH = "2026-01";
 const DEFAULT_SITE_URL = "https://cerulean.news";
 const OUTLET_LIMIT = 5;
 const THEME_LIMIT = 5;
@@ -252,7 +254,34 @@ function topThemes(coverage) {
     .map(([term, count]) => ({ term, count }));
 }
 
-function vermontCounts(items, month) {
+// The first instant of an Eastern calendar month. Midnight Eastern is 04:00 UTC
+// in summer and 05:00 UTC in winter, so one of the two hours is the start.
+function easternMonthStart(month) {
+  const [year, number] = month.split("-").map(Number);
+  const start = Date.UTC(year, number - 1, 1, 4);
+  return new Date(easternMonthKey(new Date(start)) === month ? start : start + 60 * 60 * 1000);
+}
+
+// True while every story published in the month is still inside the archive
+// window. Stories outside Blue Cross VT coverage leave the archive after
+// `retentionDays`, so only such a month gives a Vermont total that is whole.
+export function monthFullyRetained(month, now, retentionDays = ARCHIVE_MAX_AGE_DAYS) {
+  const cutoff = now.valueOf() - retentionDays * 24 * 60 * 60 * 1000;
+  return easternMonthStart(month).valueOf() >= cutoff;
+}
+
+// The trends page's coverage set for one month. Older feeds predate
+// sentimentEligible, so it falls back to "has a score" as trends.html does.
+export function coverageForMonth(items, month) {
+  return (Array.isArray(items) ? items : []).filter(
+    (item) =>
+      (item.sentimentEligible || item.sentiment) &&
+      publishedAt(item) &&
+      easternMonthKey(publishedAt(item)) === month,
+  );
+}
+
+export function vermontCounts(items, month) {
   const inMonth = items.filter(
     (item) =>
       item.relevant !== false &&
@@ -266,6 +295,23 @@ function vermontCounts(items, month) {
     distinctStories: new Set(inMonth.map((item) => item.storyGroupId || item.id || item.url))
       .size,
   };
+}
+
+// One month's Vermont total: counted live while the month is fully in the
+// archive, else the snapshot recorded then, else marked incomplete.
+function vermontMonth(items, month, { now, retentionDays, totals }) {
+  if (monthFullyRetained(month, now, retentionDays)) {
+    return { complete: true, ...vermontCounts(items, month) };
+  }
+  const snapshot = totals?.[month];
+  if (snapshot) {
+    return { complete: true, volume: snapshot.volume, distinctStories: snapshot.distinctStories };
+  }
+  return { complete: false, volume: null, distinctStories: null };
+}
+
+export function vermontUnavailableText(retentionDays) {
+  return `Not available: the archive keeps these stories for ${retentionDays} days.`;
 }
 
 export function formatNet(value) {
@@ -350,29 +396,38 @@ function summaryText(report) {
     }
   }
 
-  sentences.push(
-    `Vermont health care coverage ran to ${plural(vermont.volume, "story", "stories")}, ${volumeClause(report, vermont)}.`,
-  );
+  const priorMonthName = report.priorLabel.split(" ")[0];
+  if (!vermont.complete) {
+    sentences.push(
+      `The Vermont health care total for ${longMonthLabel(report.month).split(" ")[0]} is not available, because the archive keeps these stories for ${report.retentionDays} days.`,
+    );
+  } else if (!vermont.priorComplete) {
+    sentences.push(
+      `Vermont health care coverage ran to ${plural(vermont.volume, "story", "stories")}. There is no comparison with ${priorMonthName}, because the archive keeps these stories for ${report.retentionDays} days.`,
+    );
+  } else {
+    sentences.push(
+      `Vermont health care coverage ran to ${plural(vermont.volume, "story", "stories")}, ${volumeClause(report, vermont)}.`,
+    );
+  }
   return sentences.join(" ");
 }
 
 // Builds the report for one Eastern calendar month from published feed items.
-export function buildMonthlyReport(items, { month, now = new Date() } = {}) {
+// `state` is the monthlyReports crawl state: Vermont snapshots for months that
+// have left the archive window, and the cached AI findings.
+export function buildMonthlyReport(
+  items,
+  { month, now = new Date(), state = null, retentionDays = ARCHIVE_MAX_AGE_DAYS } = {},
+) {
   assertMonth(month);
   const nowDate = now instanceof Date ? now : new Date(now);
   const list = Array.isArray(items) ? items : [];
   const priorMonth = shiftMonth(month, -1);
   const toDate = month === easternMonthKey(nowDate);
 
-  // The trends page's coverage set. Older feeds predate sentimentEligible, so
-  // it falls back to "has a score" exactly as trends.html does.
-  const coverage = list.filter(
-    (item) => (item.sentimentEligible || item.sentiment) && publishedAt(item),
-  );
-  const inMonth = (set, key) =>
-    set.filter((item) => easternMonthKey(publishedAt(item)) === key);
-  const current = inMonth(coverage, month);
-  const prior = inMonth(coverage, priorMonth);
+  const current = coverageForMonth(list, month);
+  const prior = coverageForMonth(list, priorMonth);
 
   const scored = scoredOf(current);
   const net = netOf(scored);
@@ -385,8 +440,11 @@ export function buildMonthlyReport(items, { month, now = new Date() } = {}) {
     .map((item) => item.sentimentScore)
     .filter((value) => Number.isFinite(value));
   const meanScore = mean(scores);
-  const vermontNow = vermontCounts(list, month);
-  const vermontPrior = vermontCounts(list, priorMonth);
+  const vermontOptions = { now: nowDate, retentionDays, totals: state?.vermontTotals };
+  const vermontNow = vermontMonth(list, month, vermontOptions);
+  const vermontPrior = vermontMonth(list, priorMonth, vermontOptions);
+  const vermontCompare = vermontNow.complete && vermontPrior.complete;
+  const cachedFindings = state?.findings?.[month];
 
   const report = {
     month,
@@ -422,13 +480,22 @@ export function buildMonthlyReport(items, { month, now = new Date() } = {}) {
     favorable: pickStories(scored, "favorable"),
     unfavorable: pickStories(scored, "unfavorable"),
     themes: topThemes(current),
+    // volume is null when the month has left the archive with no snapshot,
+    // and the change is null whenever either month is incomplete.
     vermont: {
+      complete: vermontNow.complete,
+      priorComplete: vermontPrior.complete,
       volume: vermontNow.volume,
       priorVolume: vermontPrior.volume,
-      change: vermontNow.volume - vermontPrior.volume,
-      changePct: percentChange(vermontNow.volume, vermontPrior.volume),
+      change: vermontCompare ? vermontNow.volume - vermontPrior.volume : null,
+      changePct: vermontCompare ? percentChange(vermontNow.volume, vermontPrior.volume) : null,
       distinctStories: vermontNow.distinctStories,
     },
+    retentionDays,
+    // AI-written lines from the cache, shown after the deterministic summary.
+    findings: cachedFindings
+      ? { lines: cachedFindings.lines, asOf: toDate ? cachedFindings.asOf || null : null }
+      : null,
   };
   report.summary = summaryText(report);
   return report;
@@ -461,6 +528,24 @@ function changeText(subject, report) {
   }
   const pct = subject.changePct === null ? "" : ` (${Math.abs(subject.changePct)}%)`;
   return `${subject.change > 0 ? "Up" : "Down"} ${Math.abs(subject.change)}${pct} from ${prior}`;
+}
+
+// The Vermont comparison line, which says so when a month's total is missing
+// instead of computing a change from it.
+function vermontChangeText(vermont, report) {
+  if (!vermont.complete) {
+    return vermontUnavailableText(report.retentionDays);
+  }
+  if (!vermont.priorComplete) {
+    return `No comparison: ${report.priorLabel.split(" ")[0]}'s total is not available, because the archive keeps these stories for ${report.retentionDays} days`;
+  }
+  return changeText(vermont, report);
+}
+
+// "What stood out": AI-written lines, always labeled, empty when none exist.
+function findingsLabel(report) {
+  const asOf = report.findings?.asOf;
+  return asOf ? `AI-generated, as of ${longDayLabel(asOf)}` : "AI-generated";
 }
 
 function meanScoreText(brand) {
@@ -498,8 +583,25 @@ function emailStoryRows(stories, emptyText) {
     .join("");
 }
 
-function emailSection(title, body) {
-  return `<tr><td style="padding:18px 0 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:0 0 4px;border-bottom:1px solid #cccccc;font:bold 15px/1.3 ${EMAIL_FONT};color:#111111;">${escapeXml(title)}</td></tr>${body}</table></td></tr>`;
+function emailSection(title, body, label = "") {
+  const tag = label
+    ? ` <span style="font:italic 12px/1.3 ${EMAIL_FONT};font-weight:normal;color:#555555;">${escapeXml(label)}</span>`
+    : "";
+  return `<tr><td style="padding:18px 0 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:0 0 4px;border-bottom:1px solid #cccccc;font:bold 15px/1.3 ${EMAIL_FONT};color:#111111;">${escapeXml(title)}${tag}</td></tr>${body}</table></td></tr>`;
+}
+
+// One bullet per line, as email-safe rows. Empty when there are no findings.
+function emailFindings(report) {
+  if (!report.findings) {
+    return "";
+  }
+  const rows = report.findings.lines
+    .map(
+      (line) =>
+        `<tr><td style="padding:3px 0;font:14px/1.45 ${EMAIL_FONT};color:#111111;">&bull; ${escapeXml(line)}</td></tr>`,
+    )
+    .join("");
+  return `${emailSection("What stood out", rows, findingsLabel(report))}\n`;
 }
 
 function emailStat(value, caption) {
@@ -548,7 +650,7 @@ export function renderMonthlyReportEmail(report, { siteUrl = DEFAULT_SITE_URL } 
 <tr><td style="font:bold 24px/1.2 ${EMAIL_FONT};color:#111111;padding:0 0 6px;">Monthly report: ${escapeXml(periodLabel(report))}</td></tr>
 <tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td width="33%" height="5" bgcolor="#0033a0" style="font-size:1px;line-height:5px;">&nbsp;</td><td width="34%" height="5" bgcolor="#111111" style="font-size:1px;line-height:5px;">&nbsp;</td><td width="33%" height="5" bgcolor="#418fde" style="font-size:1px;line-height:5px;">&nbsp;</td></tr></table></td></tr>
 <tr><td style="padding:14px 0 0;font:16px/1.5 ${EMAIL_FONT};color:#111111;">${escapeXml(report.summary)}</td></tr>
-<tr><td style="padding:14px 0 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${emailStat(String(brand.volume), "Stories naming the brand")}${emailStat(formatNet(brand.net), "Net sentiment, -2 to +2")}${emailStat(String(brand.favorable), "Favorable stories")}${emailStat(String(vermont.volume), "Vermont health care stories")}</tr></table></td></tr>
+${emailFindings(report)}<tr><td style="padding:14px 0 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${emailStat(String(brand.volume), "Stories naming the brand")}${emailStat(formatNet(brand.net), "Net sentiment, -2 to +2")}${emailStat(String(brand.favorable), "Favorable stories")}${emailStat(vermont.complete ? String(vermont.volume) : "n/a", "Vermont health care stories")}</tr></table></td></tr>
 ${emailSection("Sentiment mix", `<tr><td style="padding:6px 0 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${mixRows}</table><div style="padding-top:6px;font:12px/1.4 ${EMAIL_FONT};color:#555555;">${escapeXml(meanScoreText(brand))}</div></td></tr>`)}
 ${emailSection("Top outlets", `<tr><td style="padding:6px 0 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${outletRows}</table></td></tr>`)}
 ${emailSection("Most favorable stories", `<tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${emailStoryRows(report.favorable, "No favorable stories this month.")}</table></td></tr>`)}
@@ -566,6 +668,13 @@ ${emailSection("Top themes", `<tr><td style="padding:6px 0 0;"><table role="pres
     "",
     report.summary,
     "",
+    ...(report.findings
+      ? [
+          `What stood out (${findingsLabel(report)})`,
+          ...report.findings.lines.map((line) => `  - ${line}`),
+          "",
+        ]
+      : []),
     `Stories naming the brand: ${brand.volume} (${changeText(brand, report)})`,
     `Net sentiment (-2 to +2): ${formatNet(brand.net)}`,
     `Scored stories: ${brand.scored}, favorable ${brand.favorable}, adverse ${brand.adverse}, awaiting a score ${brand.awaitingScore}`,
@@ -594,7 +703,7 @@ ${emailSection("Top themes", `<tr><td style="padding:6px 0 0;"><table role="pres
       ? report.themes.map((theme) => `  ${theme.term}: ${theme.count}`)
       : ["  None"]),
     "",
-    `Vermont health care stories: ${vermont.volume} (${changeText(vermont, report)})`,
+    `Vermont health care stories: ${vermont.complete ? `${vermont.volume} (${vermontChangeText(vermont, report)})` : vermontChangeText(vermont, report)}`,
     "",
     `Full report: ${reportUrl}`,
     "",
@@ -648,6 +757,9 @@ const PAGE_STYLE = `
       a:focus-visible, button:focus-visible { outline: 3px solid var(--bar-3); outline-offset: 2px; }
       .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
       .summary { margin: 0 0 20px; }
+      .findings h2 { margin-top: 0; }
+      ul.findings-list { margin: 6px 0 20px; padding-left: 1.3em; }
+      ul.findings-list li { margin: 0 0 6px; }
       .tag { margin-left: 8px; color: var(--muted); font-size: 0.8rem; font-style: italic; font-weight: 400; }
       .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin: 0 0 8px; background: var(--rule-soft); border: 1px solid var(--rule-soft); }
       .tile { background: var(--bg); padding: 10px 12px; }
@@ -809,9 +921,27 @@ export function renderMonthlyReportPage(report) {
       ? `No scored stories in ${escapeXml(report.priorLabel)} to compare with.`
       : `${escapeXml(report.priorLabel)} net sentiment was ${escapeXml(formatNet(brand.priorNet))}.`;
   const vermontNote =
-    vermont.distinctStories === vermont.volume
+    !vermont.complete || vermont.distinctStories === vermont.volume
       ? ""
       : ` That is ${vermont.distinctStories} distinct stories once repeated reports of one event are grouped.`;
+  // Without a whole month there is no count to state and no change to compute.
+  const vermontParagraph = !vermont.complete
+    ? vermontUnavailableText(report.retentionDays)
+    : `${vermont.volume} ${vermont.volume === 1 ? "story" : "stories"} in the Vermont section${
+        vermont.priorComplete
+          ? `, ${changeText(vermont, report).replace(/^./, (c) => c.toLowerCase())}`
+          : `. ${vermontChangeText(vermont, report)}`
+      }.`;
+  const findings = report.findings
+    ? `
+        <section class="findings">
+          <h2>What stood out<span class="tag">${escapeXml(findingsLabel(report))}</span></h2>
+          <ul class="findings-list">
+            ${report.findings.lines.map((line) => `<li>${escapeXml(line)}</li>`).join("\n            ")}
+          </ul>
+        </section>
+`
+    : "";
 
   const body = `      <div class="topbar">
         <a class="button" href="../">Back to stories</a>
@@ -830,12 +960,12 @@ export function renderMonthlyReportPage(report) {
         </div>
 
         <p class="summary">${escapeXml(report.summary)}</p>
-
+${findings}
         <div class="tiles">
           <div class="tile"><span class="value">${brand.volume}</span><span class="caption">Stories naming the insurer. ${escapeXml(changeText(brand, report))}</span></div>
           <div class="tile"><span class="value">${escapeXml(formatNet(brand.net))}</span><span class="caption">Net sentiment, -2 to +2, over ${brand.scored} scored</span></div>
           <div class="tile"><span class="value">${brand.favorable} / ${brand.adverse}</span><span class="caption">Favorable / adverse stories</span></div>
-          <div class="tile"><span class="value">${vermont.volume}</span><span class="caption">Vermont health care stories. ${escapeXml(changeText(vermont, report))}</span></div>
+          <div class="tile"><span class="value">${vermont.complete ? vermont.volume : "n/a"}</span><span class="caption">Vermont health care stories. ${escapeXml(vermontChangeText(vermont, report))}</span></div>
         </div>
         ${report.toDate ? `<p class="note">This month is not over. Changes are shown against all of ${escapeXml(report.priorLabel)}.</p>` : ""}
 
@@ -871,7 +1001,7 @@ export function renderMonthlyReportPage(report) {
 
         <section>
           <h2>Vermont health care coverage</h2>
-          <p>${vermont.volume} ${vermont.volume === 1 ? "story" : "stories"} in the Vermont section, ${escapeXml(changeText(vermont, report).replace(/^./, (c) => c.toLowerCase()))}.${escapeXml(vermontNote)}</p>
+          <p>${escapeXml(vermontParagraph)}${escapeXml(vermontNote)}</p>
         </section>
       </main>`;
 
@@ -920,13 +1050,16 @@ export function renderReportsIndex(reports) {
 
 // Every page for the months from the first report month through the current
 // one, as { "2026-06.html": html, ..., "index.html": html }.
-export function buildMonthlyReportPages(items, { now = new Date(), firstMonth = FIRST_REPORT_MONTH } = {}) {
+export function buildMonthlyReportPages(
+  items,
+  { now = new Date(), firstMonth = FIRST_REPORT_MONTH, state = null } = {},
+) {
   const nowDate = now instanceof Date ? now : new Date(now);
   const months = monthsBetween(firstMonth, easternMonthKey(nowDate));
   if (months.length === 0) {
     return {};
   }
-  const reports = months.map((month) => buildMonthlyReport(items, { month, now: nowDate }));
+  const reports = months.map((month) => buildMonthlyReport(items, { month, now: nowDate, state }));
   const pages = {};
   for (const report of reports) {
     pages[`${report.month}.html`] = renderMonthlyReportPage(report);
@@ -944,9 +1077,9 @@ export function buildMonthlyReportPages(items, { now = new Date(), firstMonth = 
 
 // Writes site/reports/ beside the feed. A reporting problem must never fail
 // the feed run, so errors are logged and reported in the return value.
-export async function writeMonthlyReports(items, { outputDir, now = new Date() } = {}) {
+export async function writeMonthlyReports(items, { outputDir, now = new Date(), state = null } = {}) {
   try {
-    const pages = buildMonthlyReportPages(items, { now });
+    const pages = buildMonthlyReportPages(items, { now, state });
     const names = Object.keys(pages);
     for (const name of names) {
       await writeText(`${outputDir.replace(/\/+$/, "")}/${name}`, pages[name]);

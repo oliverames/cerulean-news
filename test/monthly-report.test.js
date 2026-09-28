@@ -256,9 +256,11 @@ test("months break at midnight Eastern, in summer and in winter", () => {
     vermont("2026-07-01T03:59:59Z"),
     vermont("2026-07-01T04:00:00Z"),
   ];
-  const june = buildMonthlyReport(items, { month: "2026-06", now: NOW });
-  const july = buildMonthlyReport(items, { month: "2026-07", now: NOW });
-  const may = buildMonthlyReport(items, { month: "2026-05", now: NOW });
+  // Mid-July, so June and July are both whole inside the archive window.
+  const inJuly = new Date("2026-07-15T12:00:00Z");
+  const june = buildMonthlyReport(items, { month: "2026-06", now: inJuly });
+  const july = buildMonthlyReport(items, { month: "2026-07", now: inJuly });
+  const may = buildMonthlyReport(items, { month: "2026-05", now: inJuly });
   assert.equal(june.brand.volume, 2);
   assert.equal(july.brand.volume, 1);
   assert.equal(july.brand.net, -2);
@@ -463,15 +465,20 @@ test("safeHref passes only http and https URLs", () => {
 
 // ---- the pages ---------------------------------------------------------------
 
-test("months run from 2026-06 through the current month", () => {
+test("months run from the first report month through the current month", () => {
   assert.deepEqual(monthsBetween("2026-11", "2027-02"), ["2026-11", "2026-12", "2027-01", "2027-02"]);
   assert.deepEqual(monthsBetween("2026-06", "2026-05"), []);
 });
 
-test("a page is built for each month from 2026-06, and the current one is marked to date", () => {
+test("a page is built for each month from 2026-01, and the current one is marked to date", () => {
   const items = [item("2026-09-10T15:00:00Z", { sentiment: "positive" })];
   const pages = buildMonthlyReportPages(items, { now: NOW });
   assert.deepEqual(Object.keys(pages).sort(), [
+    "2026-01.html",
+    "2026-02.html",
+    "2026-03.html",
+    "2026-04.html",
+    "2026-05.html",
     "2026-06.html",
     "2026-07.html",
     "2026-08.html",
@@ -485,18 +492,18 @@ test("a page is built for each month from 2026-06, and the current one is marked
   const index = cheerio.load(pages["index.html"]);
   assert.deepEqual(
     index("ul.index-list li a").map((_, a) => index(a).attr("href")).get(),
-    ["2026-09", "2026-08", "2026-07", "2026-06"],
+    ["2026-09", "2026-08", "2026-07", "2026-06", "2026-05", "2026-04", "2026-03", "2026-02", "2026-01"],
   );
   assert.equal(index("ul.index-list li:first-child .tag").text(), "to date");
 
   // A new month adds a page without dropping the old ones.
   const october = buildMonthlyReportPages(items, { now: new Date("2026-10-03T16:00:00Z") });
-  assert.equal(Object.keys(october).length, 7);
+  assert.equal(Object.keys(october).length, 12);
   assert.equal(JSON.parse(october["latest-email.json"]).month, "2026-09");
   assert.doesNotMatch(october["2026-09.html"], /to date/);
   assert.match(october["2026-10.html"], /to date/);
 
-  assert.deepEqual(buildMonthlyReportPages(items, { now: new Date("2026-05-15T12:00:00Z") }), {});
+  assert.deepEqual(buildMonthlyReportPages(items, { now: new Date("2025-12-15T12:00:00Z") }), {});
 });
 
 test("a report page matches the reader's look and prints cleanly", () => {
@@ -554,8 +561,13 @@ test("writeMonthlyReports writes the pages and never throws", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "cerulean-reports-"));
   const items = [item("2026-09-10T15:00:00Z", { sentiment: "positive" })];
   const result = await writeMonthlyReports(items, { outputDir: path.join(dir, "reports"), now: NOW });
-  assert.equal(result.written, 6);
+  assert.equal(result.written, 11);
   assert.deepEqual((await readdir(path.join(dir, "reports"))).sort(), [
+    "2026-01.html",
+    "2026-02.html",
+    "2026-03.html",
+    "2026-04.html",
+    "2026-05.html",
     "2026-06.html",
     "2026-07.html",
     "2026-08.html",
@@ -585,7 +597,18 @@ test("the feed run writes the reports beside the feed", async () => {
     auditJsonOutputPath: path.join(dir, "site", "feed-audit.json"),
   });
   const files = (await readdir(path.join(dir, "site", "reports"))).sort();
-  assert.deepEqual(files, ["2026-06.html", "2026-07.html", "2026-08.html", "index.html", "latest-email.json"]);
+  assert.deepEqual(files, [
+    "2026-01.html",
+    "2026-02.html",
+    "2026-03.html",
+    "2026-04.html",
+    "2026-05.html",
+    "2026-06.html",
+    "2026-07.html",
+    "2026-08.html",
+    "index.html",
+    "latest-email.json",
+  ]);
   const index = await readFile(path.join(dir, "site", "reports", "index.html"), "utf8");
   assert.match(index, /August 2026/);
 });
@@ -615,6 +638,6 @@ test("latest-email.json carries the last complete month for the mail Worker", ()
 });
 
 test("no latest-email.json until a month is complete", () => {
-  const pages = buildMonthlyReportPages([], { now: new Date("2026-06-15T12:00:00Z") });
+  const pages = buildMonthlyReportPages([], { now: new Date("2026-01-15T12:00:00Z") });
   assert.equal(pages["latest-email.json"], undefined);
 });

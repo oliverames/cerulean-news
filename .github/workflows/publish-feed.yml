@@ -335,7 +335,8 @@ jobs:
         if: steps.mode.outputs.full != 'true'
         run: node src/prerender.js site/index.html site/feed.json
 
-      # The monthly report pages are generated, not committed.
+      # The monthly report pages are generated, not committed. The build reads
+      # the Vermont snapshots and AI findings from the seeded feed-audit.json.
       - name: Build monthly reports for static deploy
         if: steps.mode.outputs.full != 'true'
         run: node scripts/build-monthly-reports.js site

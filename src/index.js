@@ -31,6 +31,7 @@ import { sendBrandAlerts, writeEmailAlerts } from "./brand-alerts.js";
 import { buildJsonSummary, buildRss, writeOutput } from "./outputs.js";
 import { writeDigestOutputs } from "./digest-output.js";
 import { writeMonthlyReports } from "./monthly-report.js";
+import { refreshMonthlyReportState } from "./monthly-report-insights.js";
 import {
   resolveStorylinesOutputPath,
   writeStorylinesSummary,
@@ -256,6 +257,9 @@ export async function generateFeed({
   finishCrawlMetrics(crawlMetrics, runStartedMs);
   const rss = buildRss(matchedItems, { now });
   const jsonSummary = buildJsonSummary(matchedItems, sourceResults, now);
+  // Vermont totals and AI findings for the monthly report live in crawlState,
+  // so they are refreshed before the audit below is written. Never throws.
+  await refreshMonthlyReportState(jsonSummary.items, crawlState, { now });
   // With an external store the cache is persisted separately and must not be
   // duplicated into the audit JSON, which would put the 8 MB back that moving
   // it out was meant to save.
@@ -287,6 +291,7 @@ export async function generateFeed({
   await writeMonthlyReports(jsonSummary.items, {
     outputDir: path.join(path.dirname(rssOutputPath), "reports"),
     now,
+    state: crawlState.monthlyReports,
   });
   await writeStorylinesSummary(
     matchedItems,
