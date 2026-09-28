@@ -221,6 +221,12 @@ Because Google News search feeds name the query rather than the publisher,
 every item also carries an `outlet` field, resolved from the article link. The
 trends page groups by that rather than by `sourceName`.
 
+### Share of voice
+
+The trends page ends with a "Share of voice" section. It compares monthly press mentions of Blue Cross VT, MVP Health Care, and UVM Health, and each one's share of the combined total. The browser computes it from `feed.json`, and the counting lives in `site/share-of-voice.js` so the tests load the same code. Matched terms credit each organization. Blue Cross VT is the brand category, and the other two are stories carrying the `MVP Health Care` or `UVM Health` label. One story can count for several, so a share divides by combined mentions rather than by stories. Only relevant press counts. The insurer's own site, association pages, and social items are left out, as in the sentiment coverage set. Sentiment is scored only for Blue Cross VT, so none is shown for the others. The range and outlet filters apply, and every chart has a table.
+
+Two limits shape the numbers. Topic terms match feed text only, so a story that names MVP or UVM only in its body is missed. That understates both against Blue Cross VT. And stories that do not name Blue Cross VT are archived for 92 days while brand stories are kept indefinitely. The charts therefore start at the first month the archive holds in full, and earlier months appear only in the table, marked with an asterisk.
+
 ## Configuration
 
 | Variable | Required | Default | Description |
@@ -344,7 +350,8 @@ src/fsx.js         Indirection over file reads and writes, so the generator can
                    run somewhere without a filesystem
 src/egress.js      Routes hosts that refuse the runtime's IP range through a relay
 site/index.html    Static text reader
-site/trends.html   Sentiment-over-time charts
+site/trends.html   Sentiment-over-time and share-of-voice charts
+site/share-of-voice.js  Share-of-voice counting, shared by the page and tests
 test/index.test.js Node test suite
 worker/            Parked Cloudflare Worker build (see below)
 proxy/             Fetch relay the Worker build needs (see proxy/README.md)

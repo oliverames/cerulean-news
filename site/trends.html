@@ -457,6 +457,36 @@
       }
 
     </style>
+    <!-- feature: share-of-voice -->
+    <style>
+      :root {
+        /* Categorical series for the share-of-voice charts. Kept apart from
+           the sentiment ramp (blues, grey, orange, red) and the magnitude
+           blue so no colour on this page means two things. Validated with the
+           dataviz checker on the white page, all pairs: colour-vision
+           separation 14.6, normal-vision 18.8, each at least 3:1 on white,
+           and at least 15 dE from every sentiment and magnitude colour. The
+           page has no dark theme. If one is added, the checked dark steps are
+           #9c78e0, #008300, #d55181 on #1a1a19. */
+        --sov-bcvt: #8a3fb5;
+        --sov-mvp: #008300;
+        --sov-uvm: #dc5a93;
+      }
+
+      .sov h2 { margin: 34px 0 6px; font-size: 1.3rem; }
+      .sov .lede { margin: 0 0 14px; font-size: 0.92rem; }
+      .sov-line { fill: none; stroke-width: 2; }
+      .sov-dot { stroke: #fff; stroke-width: 2; }
+      .sov-legend { margin-top: 10px; }
+      .sov-legend .figures { color: var(--fg); font-variant-numeric: tabular-nums; }
+      .sov .method { margin: 0 0 12px; font-size: 0.84rem; line-height: 1.5; }
+      .sov .partial-note { margin: 8px 0 14px; }
+      @media (max-width: 560px) {
+        #sov-table { font-size: 0.74rem; }
+        #sov-table th, #sov-table td { padding: 4px 3px; }
+      }
+    </style>
+    <!-- /feature: share-of-voice -->
   </head>
   <body>
 
@@ -596,6 +626,89 @@
               <tbody></tbody>
             </table>
           </details>
+
+          <!-- feature: share-of-voice -->
+          <section class="sov" aria-labelledby="sov-title">
+            <h2 id="sov-title">Share of voice</h2>
+            <p class="lede">
+              How often Vermont press coverage names Blue Cross VT, MVP Health
+              Care, and UVM Health each month. The range and outlet filters
+              above apply.
+            </p>
+
+            <figure>
+              <figcaption>Mentions by month</figcaption>
+              <p class="figure-note">
+                Press stories naming each organization. One story can name more
+                than one. The latest month is still in progress.
+              </p>
+              <div class="chart-wrap">
+                <div class="chart-scroll">
+                  <svg id="sov-count-chart" role="img" aria-labelledby="sov-count-chart-desc"></svg>
+                </div>
+                <p class="visually-hidden" id="sov-count-chart-desc"></p>
+                <div class="tooltip" id="sov-count-tip" role="presentation"></div>
+              </div>
+              <ul class="legend sov-legend" id="sov-legend"></ul>
+            </figure>
+
+            <figure>
+              <figcaption>Share of the combined total</figcaption>
+              <p class="figure-note">
+                Each organization&rsquo;s mentions as a share of all three
+                that month. Bar height is constant, so read shape rather than volume.
+              </p>
+              <div class="chart-wrap">
+                <div class="chart-scroll">
+                  <svg id="sov-share-chart" role="img" aria-labelledby="sov-share-chart-desc"></svg>
+                </div>
+                <p class="visually-hidden" id="sov-share-chart-desc"></p>
+                <div class="tooltip" id="sov-share-tip" role="presentation"></div>
+              </div>
+            </figure>
+
+            <p class="figure-note partial-note" id="sov-partial-note" hidden></p>
+
+            <p class="method">
+              <strong>Method.</strong> A story counts for an organization when
+              the matcher&rsquo;s terms name it. Blue Cross VT is every story
+              filed under that category. MVP Health Care and UVM Health are the
+              stories that carry those matched terms. A story that names two
+              organizations counts for both, so a share is an organization&rsquo;s
+              mentions divided by the combined mentions of the three, not by
+              stories. Brand terms are matched against the full article text,
+              but topic terms such as these two are matched against feed text
+              only, the headline and description, so a story that names MVP or
+              UVM only deep in its body is not counted. That understates both
+              against Blue Cross VT. Blue Cross VT&rsquo;s own site,
+              association pages, and social items are left out. Sentiment is
+              scored only for Blue Cross VT, so none is shown for the others.
+            </p>
+
+            <details class="table-view">
+              <summary>Show the share of voice as a table</summary>
+              <table id="sov-table">
+                <caption class="visually-hidden">
+                  Press stories naming each organization per month, with each
+                  one&rsquo;s share of the combined total.
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Month</th>
+                    <th scope="col">Blue Cross VT</th>
+                    <th scope="col">MVP</th>
+                    <th scope="col">UVM Health</th>
+                    <th scope="col">Total</th>
+                    <th scope="col">BCVT %</th>
+                    <th scope="col">MVP %</th>
+                    <th scope="col">UVM %</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </details>
+          </section>
+          <!-- /feature: share-of-voice -->
         </div>
       </main>
 
@@ -1660,6 +1773,8 @@
         renderTopicChart(coverage);
         renderLegend();
         renderTable(buckets);
+        // feature: share-of-voice
+        renderShareOfVoice();
       }
 
       function populateOutlets() {
@@ -1687,6 +1802,9 @@
           }
           const feed = await response.json();
           const items = Array.isArray(feed.items) ? feed.items : [];
+          // feature: share-of-voice
+          feedItems = items;
+          feedGeneratedAt = feed.generatedAt || "";
           // Older feeds predate sentimentEligible; fall back to "has a score"
           // so the page still works against an archived feed.
           coverageItems = items.filter(
@@ -1750,6 +1868,402 @@
         });
         load();
       }
+
+      // ---- feature: share-of-voice ----------------------------------------
+      // Counting lives in share-of-voice.js, which the test suite loads too.
+      // Only drawing lives here. Colours are the --sov-* tokens, apart from the
+      // sentiment ramp; each follows its organization, never its rank.
+      const SOV_COLORS = {
+        bcvt: "var(--sov-bcvt)",
+        mvp: "var(--sov-mvp)",
+        uvm: "var(--sov-uvm)",
+      };
+      const SOV_SHORT = { bcvt: "BCVT", mvp: "MVP", uvm: "UVM" };
+      const sovModule = import("./share-of-voice.js");
+      // A failed import is reported where it is awaited, not as an
+      // unhandled rejection.
+      sovModule.catch(() => {});
+      // Every published item, since MVP and UVM coverage is not brand coverage.
+      let feedItems = [];
+      let feedGeneratedAt = "";
+
+      function pctText(share) {
+        return share === null ? "n/a" : `${Math.round(share * 100)}%`;
+      }
+
+      function sovMessage(svgId, descId, text) {
+        const svg = document.getElementById(svgId);
+        svg.replaceChildren();
+        svg.setAttribute("width", 320);
+        svg.setAttribute("height", 34);
+        svg.setAttribute("viewBox", "0 0 320 34");
+        svg.appendChild(el("text", { x: 0, y: 20, class: "tick" }, text));
+        document.getElementById(descId).textContent = text;
+      }
+
+      function renderSovCounts(months, series) {
+        const svg = document.getElementById("sov-count-chart");
+        const wrap = svg.closest(".chart-wrap");
+        const tip = makeTip(document.getElementById("sov-count-tip"), wrap);
+        svg.replaceChildren();
+
+        const pad = { top: 14, right: 62, bottom: 26, left: 34 };
+        const stepWidth = 56;
+        const plotWidth = Math.max(
+          200,
+          columnPlotWidth(svg, pad),
+          Math.max(1, months.length - 1) * stepWidth,
+        );
+        const plotHeight = 140;
+        const width = plotWidth + pad.left + pad.right;
+        const height = plotHeight + pad.top + pad.bottom;
+        const peak = Math.max(
+          1,
+          ...months.flatMap((m) => series.map((s) => m.counts[s.key])),
+        );
+
+        svg.setAttribute("width", width);
+        svg.setAttribute("height", height);
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+        const x = (index) =>
+          pad.left +
+          (months.length === 1
+            ? plotWidth / 2
+            : (index / (months.length - 1)) * plotWidth);
+        const y = (value) => pad.top + (1 - value / peak) * plotHeight;
+
+        const ticks = peak <= 5 ? [0, peak] : [0, Math.round(peak / 2), peak];
+        for (const value of ticks) {
+          svg.appendChild(
+            el("line", {
+              x1: pad.left,
+              x2: pad.left + plotWidth,
+              y1: y(value),
+              y2: y(value),
+              class: "grid-line",
+            }),
+          );
+          svg.appendChild(
+            el(
+              "text",
+              { x: pad.left - 6, y: y(value) + 4, "text-anchor": "end", class: "tick" },
+              String(value),
+            ),
+          );
+        }
+
+        // Draw the brand last so its line is never buried under the others.
+        for (const s of [...series].reverse()) {
+          if (months.length > 1) {
+            const d = months
+              .map((m, i) => `${i === 0 ? "M" : "L"}${x(i)},${y(m.counts[s.key])}`)
+              .join(" ");
+            svg.appendChild(el("path", { d, class: "sov-line", stroke: s.color }));
+          }
+          months.forEach((m, i) => {
+            svg.appendChild(
+              el("circle", {
+                cx: x(i),
+                cy: y(m.counts[s.key]),
+                r: 4.5,
+                class: "sov-dot",
+                fill: s.color,
+              }),
+            );
+          });
+        }
+
+        // Label each line's last value by name, nudged apart where they meet.
+        const last = months[months.length - 1];
+        const ends = series
+          .map((s) => ({ s, y: y(last.counts[s.key]) }))
+          .sort((a, b) => a.y - b.y);
+        for (let i = 1; i < ends.length; i += 1) {
+          ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 13);
+        }
+        for (const end of ends) {
+          svg.appendChild(
+            el(
+              "text",
+              { x: x(months.length - 1) + 10, y: end.y + 4, class: "point-label" },
+              `${SOV_SHORT[end.s.key]} ${last.counts[end.s.key]}`,
+            ),
+          );
+        }
+
+        months.forEach((m, i) => {
+          if (i % Math.ceil(months.length / 8) !== 0 && i !== months.length - 1) {
+            return;
+          }
+          svg.appendChild(
+            el(
+              "text",
+              { x: x(i), y: height - 8, "text-anchor": "middle", class: "tick" },
+              monthLabel(m.key),
+            ),
+          );
+        });
+
+        const crosshair = el("line", {
+          x1: 0,
+          x2: 0,
+          y1: pad.top,
+          y2: pad.top + plotHeight,
+          class: "crosshair",
+          opacity: 0,
+        });
+        svg.appendChild(crosshair);
+
+        months.forEach((m, i) => {
+          const hit = el("rect", {
+            x: x(i) - stepWidth / 2,
+            y: pad.top,
+            width: stepWidth,
+            height: plotHeight,
+            class: "hit",
+          });
+          hit.addEventListener("mouseenter", () => {
+            crosshair.setAttribute("x1", x(i));
+            crosshair.setAttribute("x2", x(i));
+            crosshair.setAttribute("opacity", 1);
+            const rows = series
+              .map((s) =>
+                swatchRow(
+                  s.color,
+                  s.label,
+                  `${m.counts[s.key]} (${pctText(m.shares[s.key])})`,
+                ),
+              )
+              .join("");
+            tip.show(
+              `<span class="tip-title">${monthLongLabel(m.key)}</span>` +
+                `<dl>${rows}<dt>Combined</dt><dd>${m.total}</dd></dl>`,
+              x(i),
+              pad.top + plotHeight / 2,
+            );
+          });
+          hit.addEventListener("mouseleave", () => {
+            crosshair.setAttribute("opacity", 0);
+            tip.hide();
+          });
+          svg.appendChild(hit);
+        });
+
+        document.getElementById("sov-count-chart-desc").textContent =
+          `Line chart of monthly press mentions of ${series.map((s) => s.label).join(", ")}, ` +
+          `from ${monthLongLabel(months[0].key)} to ${monthLongLabel(last.key)}. ` +
+          "Full figures are in the table below.";
+      }
+
+      function renderSovShare(months, series) {
+        const svg = document.getElementById("sov-share-chart");
+        const wrap = svg.closest(".chart-wrap");
+        const tip = makeTip(document.getElementById("sov-share-tip"), wrap);
+        svg.replaceChildren();
+
+        const pad = { top: 10, right: 16, bottom: 26, left: 34 };
+        const slot = 46;
+        const barWidth = 26;
+        const plotWidth = Math.max(200, columnPlotWidth(svg, pad), months.length * slot);
+        const plotHeight = 150;
+        const width = plotWidth + pad.left + pad.right;
+        const height = plotHeight + pad.top + pad.bottom;
+
+        svg.setAttribute("width", width);
+        svg.setAttribute("height", height);
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+        for (const pct of [0, 25, 50, 75, 100]) {
+          const yy = pad.top + ((100 - pct) / 100) * plotHeight;
+          svg.appendChild(
+            el("line", {
+              x1: pad.left,
+              x2: pad.left + plotWidth,
+              y1: yy,
+              y2: yy,
+              class: "grid-line",
+            }),
+          );
+          svg.appendChild(
+            el(
+              "text",
+              { x: pad.left - 6, y: yy + 4, "text-anchor": "end", class: "tick" },
+              `${pct}%`,
+            ),
+          );
+        }
+
+        months.forEach((m, index) => {
+          const cx = pad.left + index * slot + slot / 2;
+          if (m.total === 0) {
+            return;
+          }
+          // Blue Cross VT sits on the baseline, so its share reads against it.
+          let cursor = pad.top + plotHeight;
+          for (const s of series) {
+            const count = m.counts[s.key];
+            if (count === 0) {
+              continue;
+            }
+            const segHeight = (count / m.total) * plotHeight;
+            cursor -= segHeight;
+            svg.appendChild(
+              el("rect", {
+                x: cx - barWidth / 2,
+                y: cursor,
+                width: barWidth,
+                height: Math.max(1, segHeight),
+                fill: s.color,
+                class: "seg",
+              }),
+            );
+          }
+          // One target per month, wider than the bar, because a 2% segment
+          // is too thin to hover.
+          const hit = el("rect", {
+            x: pad.left + index * slot,
+            y: pad.top,
+            width: slot,
+            height: plotHeight,
+            class: "hit",
+          });
+          hit.addEventListener("mouseenter", () => {
+            const rows = series
+              .map((s) =>
+                swatchRow(
+                  s.color,
+                  s.label,
+                  `${m.counts[s.key]} of ${m.total} (${pctText(m.shares[s.key])})`,
+                ),
+              )
+              .join("");
+            tip.show(
+              `<span class="tip-title">${monthLongLabel(m.key)}</span><dl>${rows}</dl>`,
+              cx,
+              pad.top + plotHeight / 2,
+            );
+          });
+          hit.addEventListener("mouseleave", () => tip.hide());
+          svg.appendChild(hit);
+        });
+
+        months.forEach((m, index) => {
+          if (index % Math.ceil(months.length / 8) !== 0 && index !== months.length - 1) {
+            return;
+          }
+          svg.appendChild(
+            el(
+              "text",
+              {
+                x: pad.left + index * slot + slot / 2,
+                y: height - 8,
+                "text-anchor": "middle",
+                class: "tick",
+              },
+              monthLabel(m.key),
+            ),
+          );
+        });
+
+        document.getElementById("sov-share-chart-desc").textContent =
+          "Stacked bar chart of each organization's share of the combined monthly mentions. " +
+          "Full figures are in the table below.";
+      }
+
+      function renderSovLegend(totals, series) {
+        const legend = document.getElementById("sov-legend");
+        legend.replaceChildren();
+        for (const s of series) {
+          const li = document.createElement("li");
+          const swatch = document.createElement("span");
+          swatch.className = "swatch";
+          swatch.style.background = s.color;
+          const figures = document.createElement("span");
+          figures.className = "figures";
+          figures.textContent = ` ${totals.counts[s.key]} (${pctText(totals.shares[s.key])})`;
+          li.append(swatch, document.createTextNode(s.label), figures);
+          legend.appendChild(li);
+        }
+      }
+
+      function renderSovTable(months) {
+        const tbody = document.querySelector("#sov-table tbody");
+        tbody.replaceChildren();
+        for (const m of months.filter((month) => month.total > 0)) {
+          const tr = document.createElement("tr");
+          const cells = [
+            monthLongLabel(m.key) + (m.partial ? " *" : ""),
+            String(m.counts.bcvt),
+            String(m.counts.mvp),
+            String(m.counts.uvm),
+            String(m.total),
+            pctText(m.shares.bcvt),
+            pctText(m.shares.mvp),
+            pctText(m.shares.uvm),
+          ];
+          cells.forEach((text, index) => {
+            const cell = document.createElement(index === 0 ? "th" : "td");
+            if (index === 0) {
+              cell.setAttribute("scope", "row");
+            }
+            cell.textContent = text;
+            tr.appendChild(cell);
+          });
+          tbody.appendChild(tr);
+        }
+      }
+
+      async function renderShareOfVoice() {
+        const section = document.querySelector(".sov");
+        let sov;
+        try {
+          sov = await sovModule;
+        } catch {
+          section.hidden = true;
+          return;
+        }
+        section.hidden = false;
+        const series = sov.ENTITIES.map((entity) => ({
+          ...entity,
+          color: SOV_COLORS[entity.key],
+        }));
+        const completeFrom = sov.completeFromKey(feedGeneratedAt);
+        const all = sov.monthlyShareOfVoice(
+          filteredItems(feedItems.filter(sov.isPressItem)),
+          { completeFrom },
+        );
+        const months = all.filter((m) => !m.partial);
+
+        // Months the archive cannot hold in full for MVP and UVM stay out of
+        // the charts and are listed, starred, in the table.
+        const noteEl = document.getElementById("sov-partial-note");
+        const partial = all.filter((m) => m.partial && m.total > 0);
+        noteEl.hidden = partial.length === 0;
+        if (partial.length > 0) {
+          noteEl.textContent =
+            `Months before ${monthLongLabel(completeFrom)} are not charted. ` +
+            `The archive keeps stories that do not name Blue Cross VT for ` +
+            `${sov.NON_BRAND_RETENTION_DAYS} days, so MVP Health Care and UVM ` +
+            `Health counts from earlier months are incomplete. ${partial.length} ` +
+            `such month${partial.length === 1 ? " is" : "s are"} listed in the ` +
+            `table and marked with an asterisk.`;
+        }
+
+        renderSovTable(all);
+        const totals = sov.totalsOf(months);
+        if (totals.total === 0) {
+          const text = "No press mentions in this range for this outlet.";
+          sovMessage("sov-count-chart", "sov-count-chart-desc", text);
+          sovMessage("sov-share-chart", "sov-share-chart-desc", text);
+          document.getElementById("sov-legend").replaceChildren();
+          return;
+        }
+        renderSovCounts(months, series);
+        renderSovShare(months, series);
+        renderSovLegend(totals, series);
+      }
+      // ---- /feature: share-of-voice ---------------------------------------
 
       start();
     </script>
