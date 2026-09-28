@@ -3,7 +3,7 @@
 // surface, and it runs the real migration, so the SQL is exercised as written.
 // EMAIL and fetch are fakes. Nothing here touches the network or Cloudflare.
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import test from "node:test";
 import {
   CRON_ALERTS,
@@ -37,7 +37,12 @@ try {
 }
 const needsSqlite = DatabaseSync ? {} : { skip: "node:sqlite needs Node 22.5 or newer" };
 
-const MIGRATION = readFileSync(new URL("../mail/migrations/0001_init.sql", import.meta.url), "utf8");
+// Every migration in order, the way `wrangler d1 migrations apply` runs them.
+const MIGRATION = readdirSync(new URL("../mail/migrations/", import.meta.url))
+  .filter((name) => name.endsWith(".sql"))
+  .sort()
+  .map((name) => readFileSync(new URL(`../mail/migrations/${name}`, import.meta.url), "utf8"))
+  .join("\n");
 const SECRET = "test-secret-with-plenty-of-length-0123456789";
 const SITE = "https://cerulean.news";
 const API = `${SITE}/api/mail`;

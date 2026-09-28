@@ -245,6 +245,13 @@ jobs:
           JEV_RELEVANCE_MAX_ITEMS: ${{ inputs.jev_max_items || vars.JEV_RELEVANCE_MAX_ITEMS || '25' }}
           JEV_RELEVANCE_CONCURRENCY: ${{ inputs.jev_concurrency || vars.JEV_RELEVANCE_CONCURRENCY || '2' }}
           JEV_REJUDGE_ARCHIVE: ${{ inputs.jev_rejudge_archive }}
+          # Team feedback votes from the mail Worker. Both are read from
+          # secrets Oliver creates after deploying it. While the token is
+          # unset the feature is off and the run is unchanged, and a failed
+          # fetch is logged and skipped. The URL falls back to the Worker's
+          # export route, so only the token secret is needed.
+          FEEDBACK_EXPORT_URL: ${{ secrets.FEEDBACK_EXPORT_URL || 'https://cerulean.news/api/mail/feedback/export' }}
+          FEEDBACK_EXPORT_TOKEN: ${{ secrets.FEEDBACK_EXPORT_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           # Team alert when new press coverage names Blue Cross VT.

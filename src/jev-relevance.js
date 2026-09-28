@@ -5,6 +5,7 @@
 // Successful evaluations are cached by their exact bounded request and rubrics.
 import { createHash } from "node:crypto";
 import { loadReferenceExamples } from "./jev-examples.js";
+import { mergeFeedbackExamples } from "./feedback.js"; // feature: team-feedback
 import { isObituaryItem } from "./filters.js";
 import { addEditorialAlignment, alignedInclusionAnswer, loadAlignmentProfile } from "./jev-alignment.js";
 import { applyDeterministicRelevance, itemCategory, itemOutletName, itemSourceType } from "./relevance.js";
@@ -588,7 +589,10 @@ export async function applyJevRelevance(items, options = {}) {
       console.warn(`Jev evaluation (${mode}): human references ${reference.status}; keeping existing decisions.`);
       return items;
     }
-    referenceExamples = reference.examples;
+    // feature: team-feedback (votes from the team join the references)
+    referenceExamples = mergeFeedbackExamples(reference.examples, options.feedbackExamples);
+    metrics.feedbackReferences = referenceExamples.length - reference.examples.length;
+    // /feature: team-feedback
   }
 
   const enforceAfter = options.enforceAfter ?? env.JEV_ENFORCE_AFTER;
@@ -708,8 +712,9 @@ export async function applyJevRelevance(items, options = {}) {
     const baseline = normalizeJevBaseline(item.jevBaseline);
     const priorRelevant = baseline ? baseline.relevant !== false : keywordVerdict(item);
     const priorSentiment = baseline ? baseline.sentiment : item.sentiment;
-    if (!item.fromMediaTracker && classification.decision !== DECISION_KEYWORD && classification.relevant !== priorRelevant) metrics.inclusionDisagreements += 1;
-    if (classification.sentiment && priorSentiment && classification.sentiment !== priorSentiment) metrics.sentimentDisagreements += 1;
+    // Team votes decide their own articles, so they are not model disagreements.
+    if (!item.fromMediaTracker && !item.humanRejected && !item.feedbackKept && classification.decision !== DECISION_KEYWORD && classification.relevant !== priorRelevant) metrics.inclusionDisagreements += 1;
+    if (classification.sentiment && priorSentiment && !item.feedbackSentiment && classification.sentiment !== priorSentiment) metrics.sentimentDisagreements += 1;
   }
   console.log(`Jev evaluation (${mode}): ${metrics.succeeded}/${metrics.requested} successful, ${metrics.cached} cached, ${metrics.pending} pending, ${metrics.scopeBackfilled} scope backfills (${metrics.scopeBackfillPending} left), ${metrics.sentimentBackfilled ?? 0} sentiment backfills (${metrics.sentimentBackfillPending ?? 0} left); ${metrics.inclusionDisagreements} inclusion and ${metrics.sentimentDisagreements} sentiment disagreements. Status: ${metrics.status}.`);
   if (mode === JEV_MODE_SHADOW) return items;
@@ -720,7 +725,8 @@ export async function applyJevRelevance(items, options = {}) {
     let result = item;
     // Inclusion is enforced only for articles first seen after the boundary;
     // sentiment applies to every eligible article Jev has scored.
-    if (mayEnforce(item) && !item.fromMediaTracker && classification.decision !== DECISION_KEYWORD) {
+    // A team keep also stands against the model (feature: team-feedback).
+    if (mayEnforce(item) && !item.fromMediaTracker && !item.feedbackKept && classification.decision !== DECISION_KEYWORD) {
       const baseline = normalizeJevBaseline(item.jevBaseline);
       result = { ...item, relevant: classification.relevant,
         reason: classification.decision === DECISION_EXCLUDE ? ENFORCED_EXCLUDE_REASON
@@ -738,9 +744,12 @@ export async function applyJevRelevance(items, options = {}) {
     // published whenever Jev returned odds, confident or not, because the
     // uncertain answers are where it says more than the label: it can then
     // sit beside the earlier label rather than Jev's.
-    const sentimentScore = shouldScoreSentiment(result)
+    // A team correction keeps its label, and Jev's score, which belongs to
+    // Jev's label, stays off it (feature: team-feedback).
+    const teamLabel = Boolean(result.feedbackSentiment);
+    const sentimentScore = shouldScoreSentiment(result) && !teamLabel
       ? sentimentScoreFromProbabilities(classification.sentimentProbabilities) : null;
-    if (classification.sentiment && classification.sentimentConfidence >= SENTIMENT_CONFIDENCE_THRESHOLD && shouldScoreSentiment(result)) {
+    if (classification.sentiment && classification.sentimentConfidence >= SENTIMENT_CONFIDENCE_THRESHOLD && shouldScoreSentiment(result) && !teamLabel) {
       result = { ...result, sentiment: classification.sentiment, sentimentReason: "" };
     }
     if (sentimentScore !== null && result.sentiment) {

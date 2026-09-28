@@ -3,6 +3,7 @@
 import { readText } from "./fsx.js";
 import { normalizeJevCache, normalizeJevBaseline } from "./jev-relevance.js";
 import { normalizeBrandAlertState } from "./brand-alerts.js";
+import { normalizeFeedbackState } from "./feedback.js"; // feature: team-feedback
 import {
   cleanStorySnippet,
   cleanText,
@@ -127,6 +128,7 @@ export function normalizeCrawlState(value = {}) {
     articleCache: normalizeArticleCache(value.articleCache),
     jevCache: normalizeJevCache(value.jevCache),
     brandAlerts: normalizeBrandAlertState(value.brandAlerts),
+    feedback: normalizeFeedbackState(value.feedback), // feature: team-feedback
   };
 }
 
