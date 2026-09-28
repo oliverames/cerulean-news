@@ -245,6 +245,15 @@ Alerted keys live in `crawlState.brandAlerts` in `feed-audit.json`, hashed and b
 The trends page ends with a "Share of voice" section. It compares monthly press mentions of Blue Cross VT, MVP Health Care, and UVM Health, and each one's share of the combined total. The browser computes it from `feed.json`, and the counting lives in `site/share-of-voice.js` so the tests load the same code. Matched terms credit each organization. Blue Cross VT is the brand category, and the other two are stories carrying the `MVP Health Care` or `UVM Health` label. One story can count for several, so a share divides by combined mentions rather than by stories. Only relevant press counts. The insurer's own site, association pages, and social items are left out, as in the sentiment coverage set. Sentiment is scored only for Blue Cross VT, so none is shown for the others. The range and outlet filters apply, and every chart has a table.
 
 Two limits shape the numbers. Topic terms match feed text only, so a story that names MVP or UVM only in its body is missed. That understates both against Blue Cross VT. And stories that do not name Blue Cross VT are archived for 92 days while brand stories are kept indefinitely. The charts therefore start at the first month the archive holds in full, and earlier months appear only in the table, marked with an asterisk.
+## Monthly report
+
+Every feed build also writes a one-page summary of brand coverage for leadership, one page per month from June 2026 through the current month, at `site/reports/YYYY-MM.html` with a list at `site/reports/index.html`. The current month is marked "to date" and is compared with the whole prior month. Each page has print styles, so a browser's Save as PDF gives one or two clean pages. The trends page links the list from its footer. The pages carry `noindex` and are not in the sitemap.
+
+`src/monthly-report.js` holds the logic and is pure. `buildMonthlyReport(items, { month: "YYYY-MM", now })` returns brand volume and the change from the prior month, net sentiment and the label mix, the mean `sentimentScore` with how many stories carry one, the top five outlets, the three most and least favorable stories, the top themes, Vermont health care volume from the `section` values, and a templated plain-language paragraph. There are no model calls. `renderMonthlyReportEmail(report)` returns `{ subject, html, text }` with table layout and inline styles only, ready for a later email step. Nothing sends it yet.
+
+The definitions are the trends page's own. The coverage set is items with `sentimentEligible` and a date, volume counts all of them including any not yet scored, and net sentiment is the mean of the five labels mapped to +2 through -2 over the scored ones. Months run on Eastern time, where the trends page uses UTC, so a story published after 8 pm on the last evening of a month counts in that month. The favorable and adverse lists show each group of repeated reports once and never place a story on the wrong side of neutral.
+
+The pages are written by `npm run generate`, and `node scripts/build-monthly-reports.js [siteDir]` rebuilds them from a `feed.json` without a crawl. A static-only deploy does not run the generator, so it carries no `reports/` folder until the next full run.
 
 ## Configuration
 
@@ -368,6 +377,7 @@ src/summaries.js   Gemini prompt, batching, parsing, summary cache behavior
 src/alerts.js      Failure streaks and optional webhook alerts
 src/brand-alerts.js  New brand coverage alerts and the subscriber email renderer
 src/outputs.js     RSS, JSON Feed, audit JSON, file writes
+src/monthly-report.js  Monthly leadership report: numbers, email rendering, and pages
 src/utils.js       Shared text, date, URL, and concurrency helpers
 src/fsx.js         Indirection over file reads and writes, so the generator can
                    run somewhere without a filesystem

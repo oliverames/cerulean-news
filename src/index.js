@@ -30,6 +30,7 @@ import {
 import { sendBrandAlerts } from "./brand-alerts.js";
 import { buildJsonSummary, buildRss, writeOutput } from "./outputs.js";
 import { writeDigestOutputs } from "./digest-output.js";
+import { writeMonthlyReports } from "./monthly-report.js";
 
 function resolveRssOutputPath() {
   if (process.env.RSS_OUTPUT_PATH) {
@@ -271,6 +272,11 @@ export async function generateFeed({
     auditJsonOutputPath,
   );
   await writeDigestOutputs(matchedItems, { now, rssOutputPath });
+  // Monthly leadership report pages, beside the feed. Never fails the run.
+  await writeMonthlyReports(jsonSummary.items, {
+    outputDir: path.join(path.dirname(rssOutputPath), "reports"),
+    now,
+  });
   if (articleCacheStore) {
     await articleCacheStore.persist(
       crawlState.articleCache,
@@ -456,3 +462,4 @@ export {
   sendBrandAlerts,
 } from "./brand-alerts.js";
 export { buildJsonSummary, buildRss } from "./outputs.js";
+export { buildMonthlyReport, renderMonthlyReportEmail } from "./monthly-report.js";
