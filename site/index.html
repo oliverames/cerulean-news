@@ -563,6 +563,146 @@
       }
 
     </style>
+    <!-- feature: search-upgrades -->
+    <style>
+      .search-tools {
+        margin: 0 0 22px;
+        padding: 0 0 14px;
+        border-bottom: 1px solid var(--rule);
+        font-size: 0.9rem;
+      }
+
+      .search-tools .st-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 8px 12px;
+        margin: 0 0 10px;
+      }
+
+      .search-tools .st-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .search-tools label {
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .search-tools input {
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+        padding: 4px 8px;
+        border: 1px solid var(--fg);
+        background: #fff;
+        color: var(--fg);
+        font: inherit;
+        font-size: 0.9rem;
+      }
+
+      .search-tools .st-button {
+        padding: 4px 12px;
+        border: 1px solid var(--fg);
+        background: #fff;
+        color: var(--fg);
+        font: inherit;
+        font-size: 0.9rem;
+        cursor: pointer;
+      }
+
+      .search-tools .st-button:hover {
+        background: var(--surface);
+      }
+
+      .search-tools .st-note {
+        flex-basis: 100%;
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .search-tools #date-clear {
+        flex: 0 0 auto;
+      }
+
+      .search-tools #export-help {
+        flex: 1 1 0;
+      }
+
+      .search-tools .saved-searches {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 12px;
+        margin: 0 0 10px;
+        padding: 0;
+        list-style: none;
+        font-size: 0.85rem;
+      }
+
+      .search-tools .saved-searches li {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 2px;
+      }
+
+      .search-tools .saved-searches a:visited {
+        color: var(--link);
+      }
+
+      .search-tools .saved-searches a[aria-current="true"] {
+        color: var(--fg);
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .search-tools .saved-remove {
+        min-width: 24px;
+        min-height: 24px;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--muted);
+        font: inherit;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .search-tools .saved-remove:hover {
+        color: var(--fg);
+      }
+
+      @media (max-width: 420px) {
+        .search-tools .st-row {
+          gap: 8px;
+        }
+
+        .search-tools input[type="date"] {
+          padding: 4px 4px;
+          font-size: 0.85rem;
+        }
+
+        /* Two equal date fields fill the row; the clear button drops below. */
+        .search-tools #date-clear {
+          flex: 0 0 auto;
+          margin-right: auto;
+        }
+
+        .search-tools .st-row > label:nth-child(-n + 2) {
+          flex-basis: 40%;
+        }
+
+        .search-tools #date-clear:not([hidden]) {
+          order: 3;
+        }
+      }
+    </style>
+    <!-- /feature: search-upgrades -->
   </head>
   <body>
 
@@ -598,6 +738,37 @@
         <nav class="sections" id="sections" aria-label="Filter by section">
           <div class="section-filter" id="section-links" role="group" aria-label="Section"></div>
         </nav>
+
+        <!-- feature: search-upgrades -->
+        <section class="search-tools" id="search-tools" aria-label="Date range, saved searches, and export">
+          <div class="st-row" role="group" aria-label="Publication date range">
+            <label for="date-from">
+              <span>From date</span>
+              <input id="date-from" type="date" aria-controls="stories">
+            </label>
+            <label for="date-to">
+              <span>To date</span>
+              <input id="date-to" type="date" aria-controls="stories">
+            </label>
+            <button type="button" class="st-button" id="date-clear" hidden>Clear dates</button>
+            <p class="st-note" id="date-note" role="alert" hidden></p>
+          </div>
+          <form class="st-row" id="save-search-form" aria-label="Save this search">
+            <label for="save-search-name">
+              <span>Save this search as</span>
+              <input id="save-search-name" type="text" maxlength="40" autocomplete="off" placeholder="Short name">
+            </label>
+            <button type="submit" class="st-button">Save</button>
+          </form>
+          <ul class="saved-searches" id="saved-searches" aria-label="Saved searches" hidden></ul>
+          <p class="st-note" id="saved-note" hidden>Saved searches last only until this page closes, because this browser blocks storage.</p>
+          <div class="st-row">
+            <button type="button" class="st-button" id="export-csv">Download CSV</button>
+            <span class="st-note" id="export-help">All stories matching the search, section, and dates.</span>
+          </div>
+          <p class="visually-hidden" id="search-tools-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        </section>
+        <!-- /feature: search-upgrades -->
 
         <p
           class="visually-hidden"
@@ -640,6 +811,9 @@
       </footer>
     </div>
 
+    <!-- feature: search-upgrades -->
+    <script src="search-tools.js"></script>
+    <!-- /feature: search-upgrades -->
     <script>
       const storiesEl = document.getElementById("stories");
       const sectionLinksEl = document.getElementById("section-links");
@@ -695,6 +869,11 @@
         if (section !== "all") {
           parts.push(`section=${section}`);
         }
+        // feature: search-upgrades (search text and date range in the address)
+        if (window.CeruleanSearchTools) {
+          parts.push(...CeruleanSearchTools.currentHashParts());
+        }
+        // /feature: search-upgrades
         if (page > 1) {
           parts.push(`page=${page}`);
         }
@@ -969,7 +1148,7 @@
       }
 
       function renderStories() {
-        const items = groupStories(orderedItems(searchItems(sectionItems())));
+        const items = groupStories(filteredItems());
         const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
         const page = Math.min(activePage(), pageCount);
         const pageItems = items.slice((page - 1) * pageSize, page * pageSize);
@@ -983,8 +1162,8 @@
           const li = document.createElement("li");
           li.className = "status";
           li.setAttribute("role", "status");
-          li.textContent = activeSearchTerms().length > 0
-            ? "No stories match this search."
+          li.textContent = activeSearchTerms().length > 0 || hasDateRange()
+            ? "No stories match these filters."
             : "No stories match this section.";
           storiesEl.appendChild(li);
           return;
@@ -1152,6 +1331,11 @@
       }
 
       function renderAll() {
+        // feature: search-upgrades (copy search and dates from the address)
+        if (window.CeruleanSearchTools) {
+          CeruleanSearchTools.syncControls();
+        }
+        // /feature: search-upgrades
         renderSections();
         renderStories();
       }
@@ -1208,10 +1392,43 @@
         }
       }
 
+      // feature: search-upgrades
+      // The result set behind the page, before grouping. The date range and
+      // the CSV export both use it, so the file matches what the page counts.
+      function dateRangeItems(items) {
+        return window.CeruleanSearchTools ? CeruleanSearchTools.filterDates(items) : items;
+      }
+
+      function hasDateRange() {
+        return Boolean(document.getElementById("date-from")?.value ||
+          document.getElementById("date-to")?.value);
+      }
+
+      function filteredItems() {
+        return orderedItems(searchItems(dateRangeItems(sectionItems())));
+      }
+
+      function sectionLabelOf(item) {
+        return SECTION_OPTIONS.find((option) => option.id === itemSectionId(item)).label;
+      }
+
+      if (window.CeruleanSearchTools) {
+        CeruleanSearchTools.mount({
+          searchInput: searchInputEl,
+          getFilteredItems: filteredItems,
+          sectionLabel: sectionLabelOf,
+          onChange() {
+            history.replaceState(null, "", buildHash(1));
+            renderStories();
+          },
+        });
+      }
+      // /feature: search-upgrades
+
       searchInputEl.addEventListener("input", () => {
-        if (activePage() > 1) {
-          history.replaceState(null, "", buildHash(1));
-        }
+        // feature: search-upgrades (the search text now lives in the address)
+        history.replaceState(null, "", buildHash(1));
+        // /feature: search-upgrades
         renderStories();
       });
 
