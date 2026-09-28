@@ -218,7 +218,7 @@ test("default sources cover recurring clip-log outlets", () => {
         .join(" "),
     ).join(" "),
   ).replaceAll("+", " ");
-  assert.equal(DEFAULT_SOURCES.length, 146);
+  assert.equal(DEFAULT_SOURCES.length, 148);
 
   const expectedHosts = [
     "bcbs.com",
@@ -4940,6 +4940,8 @@ test("every curated source is either a registered Vermont outlet or an explicit 
     "The Keene Sentinel",
     "Press-Republican",
     "WAMC Northeast Public Radio",
+    "WMUR",
+    "NEWS10 ABC",
     "The Berkshire Eagle",
     // A curated backfill spans every outlet the team logged, so it has no
     // single home region of its own.

@@ -40,3 +40,12 @@ Even when collected, most national articles would then be rejected by the broad-
 6. **Brand body scan on four Vermont outlet feeds.** This raises request volume to those publishers, so it needs Oliver's sign-off.
 
 The clip-email seed makes every Blue Cross VT and Vermont clip must-include whatever the crawler misses. These fixes matter most for national coverage and for future articles before they appear in an email.
+
+## Outcome, 2026-09-28
+
+Oliver approved all four remaining fixes and asked for every Vermont source that can be added. The broad-national rule rewrite (item 3) is still paused.
+
+- **Topic terms** (e9e2024): these are in. The two false positives found in a check of 616 live items came from "insurance coverage", so that phrase and "group coverage" were dropped.
+- **Google News searches** (088c675): the three broken OR searches are now seven single-site searches. Vermont Health Search A is split into three, and Becker's Hospital Review has its own brand-scoped search.
+- **Body scans** (28c0f75): WCAX, VTDigger, Vermont Public, and the Times Argus scan every new article body for the brand, and so does the spelling-variant search. VermontBiz's feed already carries full article text. Its article pages answer the runner with 403, and a relay proposal (`docs/2026-09-28-vermontbiz-relay-proposal.md`) was declined.
+- **Sources** (81c8722 and the following commit): 44 were added from a verified inventory of 101 candidates. They include state health agencies, hospitals, neighboring outlets searched with Vermont in the query (WMUR, NEWS10, NHPR, the Keene Sentinel, the Press-Republican, WAMC, and the Berkshire Eagle), and Becker's ASC Review. Three moved hosts were fixed (Deerfield Valley News, The Bridge, the Hardwick Gazette).
