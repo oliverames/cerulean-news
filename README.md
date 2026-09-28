@@ -156,6 +156,16 @@ When several outlets report one event, the reader and RSS feed show it once, led
 
 The browser does not recrawl sources. GitHub Actions does the collection and deploys the latest feed several times a day; reloading the page loads the latest published feed.
 
+## Clip Email Draft
+
+Every run drafts the communications team's daily clip email. `src/digest.js` exports `buildDigest(items, { now, windowHours = 24 })`, a pure function that returns `{ subject, html, text, sections, itemCount }` and does no I/O, so a later job can send the same output by email. `src/digest-output.js` writes `site/digest.html` and `site/digest.json` beside the RSS output. The page previews the email and has a "Copy email" button that puts the HTML and a plain text alternative on the clipboard. `digest.json` holds `{ generatedAt, subject, text, html, sections }`. The page is marked `noindex` and is not in the sitemap. A failure while writing the digest is logged and never fails the run.
+
+- **Window.** Stories published or first seen in the last 24 hours. A future timestamp never counts.
+- **Sections.** Blue Cross VT News, Vermont Healthcare News, National Healthcare News, then More News, which holds Blue Cross Blue Shield Association pages. Empty sections are left out. Each section runs newest first.
+- **Left out.** Rejected items, BlueCrossVT.org posts, and social items.
+- **Entries.** The linked headline, the outlet, and the one-sentence summary when there is one. Blue Cross VT entries add the sentiment label and score. A story several outlets covered is one entry led by the newest report, with an "Also covered by" line. It sits in the newest report's section.
+- **Email safety.** Table layout, inline styles only, no scripts, no `<style>` block, no external CSS or fonts, and a 600 pixel column. The HTML stays under 100 KB, because Gmail clips longer messages. On a very busy day the oldest stories in the last sections are left out and the email says how many.
+
 ## Sentiment
 
 Press coverage that names Blue Cross VT carries a sentiment score on a
@@ -336,6 +346,8 @@ src/enrich.js      Google News decoding, article scanning, match enrichment
 src/relevance.js   Deterministic relevance, source type, access labels
 src/archive.js     Audit loading, archive retention, dedupe rules
 src/story-groups.js  Groups different outlets' reports of one event for display
+src/digest.js      Builds the daily clip email (HTML, text, sections) from items
+src/digest-output.js  Writes site/digest.html and site/digest.json
 src/summaries.js   Gemini prompt, batching, parsing, summary cache behavior
 src/alerts.js      Failure streaks and optional webhook alerts
 src/outputs.js     RSS, JSON Feed, audit JSON, file writes
