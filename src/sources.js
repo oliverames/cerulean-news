@@ -992,6 +992,31 @@ export const DEFAULT_SOURCES = [
     maxItemAgeDays: 7,
     maxItems: 25,
   },
+  // Share of voice charts MVP Health Care and UVM Health from 2026-01, so their
+  // stories are kept indefinitely (INDEFINITE_RETENTION_LABELS in matching.js)
+  // and these two searches are the ones a backfill rebounds to fill 2026.
+  // MVP also operates in New York, hence the Vermont scope. Measured live on
+  // 2026-09-28: 1 and 25 items in a 30-day window.
+  {
+    name: "Google News MVP Health Care Search",
+    homepage: "https://news.google.com/",
+    feedUrl: googleNewsSearchUrl('"MVP Health Care" (Vermont OR VT) when:30d'),
+    isSearchFeed: true,
+    scanArticle: false,
+    maxItemAgeDays: 30,
+    maxItems: 100,
+  },
+  {
+    name: "Google News UVM Health Search",
+    homepage: "https://news.google.com/",
+    feedUrl: googleNewsSearchUrl(
+      '("UVM Health" OR "UVM Health Network" OR "UVM Medical Center" OR "University of Vermont Health") when:30d',
+    ),
+    isSearchFeed: true,
+    scanArticle: false,
+    maxItemAgeDays: 30,
+    maxItems: 100,
+  },
   {
     name: "Google News Health Insurance Search",
     homepage: "https://news.google.com/",

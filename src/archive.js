@@ -16,6 +16,7 @@ import {
   categorizeTerms,
   CATEGORY_BRAND,
   findMentionTerms,
+  INDEFINITE_RETENTION_LABELS,
   MENTION_TERMS,
   TOPIC_TERMS,
 } from "./matching.js";
@@ -306,6 +307,15 @@ function isRejectedBySourceShape(item) {
 
 function isBrandCategoryItem(item) {
   return itemCategory(item) === CATEGORY_BRAND;
+}
+
+// MVP Health Care and UVM Health stories are kept as long as brand stories so
+// share of voice can chart them back to January 2026. Every other rule in the
+// merge filter still applies to them.
+function isLongRetentionItem(item) {
+  return canonicalizeMatchedTerms(item.matchedTerms || []).some((label) =>
+    INDEFINITE_RETENTION_LABELS.includes(label),
+  );
 }
 
 // Curated backfill entries are retained on the same footing as brand items,
@@ -815,7 +825,11 @@ export function mergeWithArchive(currentItems, archivedItems, now = new Date()) 
     if (Number.isFinite(publishedTime) && publishedTime > maxFutureTime) {
       return false;
     }
-    if (isBrandCategoryItem(item) || isCuratedItem(item)) {
+    if (
+      isBrandCategoryItem(item) ||
+      isCuratedItem(item) ||
+      isLongRetentionItem(item)
+    ) {
       return true;
     }
     const retentionTime = Number.isFinite(publishedTime)

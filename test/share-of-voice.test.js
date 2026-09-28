@@ -2,8 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   ENTITIES,
-  NON_BRAND_RETENTION_DAYS,
-  completeFromKey,
+  SHARE_OF_VOICE_START,
   entityKeysFor,
   isPressItem,
   monthlyShareOfVoice,
@@ -137,37 +136,41 @@ test("quiet months between coverage stay as zero rows with no share", () => {
   assert.deepEqual(monthlyShareOfVoice([bcvt({ relevant: false })]), []);
 });
 
-test("months before the retention window are marked partial", () => {
-  const months = monthlyShareOfVoice(
-    [
-      bcvt({ pubDate: "2026-05-05T00:00:00.000Z" }),
-      bcvt({ pubDate: "2026-06-20T00:00:00.000Z" }),
-      bcvt({ pubDate: "2026-07-05T00:00:00.000Z" }),
-    ],
-    { completeFrom: "2026-07" },
-  );
+test("share of voice starts at January 2026 and marks no month incomplete", () => {
+  assert.equal(SHARE_OF_VOICE_START, "2026-01");
+  const months = monthlyShareOfVoice([
+    // Before the start: left out, and does not stretch the axis back.
+    bcvt({ pubDate: "2025-12-20T00:00:00.000Z" }),
+    uvm({ pubDate: "2025-11-05T00:00:00.000Z" }),
+    bcvt({ pubDate: "2026-01-02T00:00:00.000Z" }),
+    mvp({ pubDate: "2026-01-31T23:00:00.000Z" }),
+    uvm({ pubDate: "2026-04-05T00:00:00.000Z" }),
+  ]);
   assert.deepEqual(
-    months.map((m) => [m.key, m.partial]),
+    months.map((m) => [m.key, m.total]),
     [
-      ["2026-05", true],
-      ["2026-06", true],
-      ["2026-07", false],
+      ["2026-01", 2],
+      ["2026-02", 0],
+      ["2026-03", 0],
+      ["2026-04", 1],
     ],
   );
-  // With no cutoff nothing is marked.
-  assert.ok(
-    monthlyShareOfVoice([bcvt()]).every((m) => m.partial === false),
+  // Quiet months stay as zero rows with no share, and nothing is flagged.
+  assert.equal(months[1].shares.bcvt, null);
+  assert.ok(months.every((m) => !("partial" in m)));
+  // Everything before the start is dropped entirely.
+  assert.deepEqual(
+    monthlyShareOfVoice([bcvt({ pubDate: "2025-12-31T23:00:00.000Z" })]),
+    [],
   );
-});
-
-test("completeFromKey is the first month that starts inside the retention window", () => {
-  assert.equal(NON_BRAND_RETENTION_DAYS, 92);
-  // 92 days before 2026-09-28 is 2026-06-28, so June is only partly held.
-  assert.equal(completeFromKey("2026-09-28T22:23:11.841Z"), "2026-07");
-  // A cutoff exactly at a month start keeps that month whole.
-  assert.equal(completeFromKey("2026-10-01T00:00:00.000Z", 30), "2026-09");
-  assert.equal(completeFromKey("2026-01-10T00:00:00.000Z"), "2025-11");
-  assert.equal(completeFromKey("not a date"), "");
+  // A caller can move the start, as the trends page does not.
+  assert.deepEqual(
+    monthlyShareOfVoice(
+      [bcvt({ pubDate: "2026-01-02T00:00:00.000Z" }), bcvt()],
+      { start: "2026-08" },
+    ).map((m) => m.key),
+    ["2026-08"],
+  );
 });
 
 test("totalsOf sums across the given months", () => {
@@ -235,9 +238,6 @@ test("the published feed fields drive the counts and agree with the sentiment co
       item.title,
     );
   }
-  const [aug] = monthlyShareOfVoice(summary.items, {
-    completeFrom: completeFromKey(summary.generatedAt),
-  });
+  const [aug] = monthlyShareOfVoice(summary.items);
   assert.deepEqual(aug.counts, { bcvt: 1, mvp: 1, uvm: 2 });
-  assert.equal(aug.partial, false);
 });

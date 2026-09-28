@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <code>148 default sources</code> &bull;
+  <code>150 default sources</code> &bull;
   <code>RSS + JSON Feed</code> &bull;
   <code>Cloudflare Pages refresh several times a day</code>
 </p>
@@ -34,7 +34,7 @@ The project is intentionally text-heavy. It follows the spirit of `text.npr.org`
 
 News monitoring gets messy when the search target is both narrow and broad. A direct BCBSVT mention is obvious. A hospital budget story, rate review hearing, Vermont Medicaid update, or Medicare Advantage policy story can matter just as much, but only when it fits the team’s actual geography and business context.
 
-This monitor is built around that judgment. It prioritizes Vermont and Blue Cross VT, keeps official BlueCrossVT.org posts available without letting them flood the default view, and archives direct Blue Cross VT mentions indefinitely so important coverage does not disappear when a source feed rolls over.
+This monitor is built around that judgment. It prioritizes Vermont and Blue Cross VT, keeps official BlueCrossVT.org posts available without letting them flood the default view, and archives direct Blue Cross VT mentions (and MVP Health Care and UVM Health stories) indefinitely so important coverage does not disappear when a source feed rolls over.
 
 It also keeps an audit trail. Rejected items, source failures, matched terms, summary reasons, comments, failure streaks, source cooldowns, crawler cache state, and crawl metrics all live in `feed-audit.json`, which makes the system inspectable instead of mysterious.
 
@@ -69,12 +69,27 @@ The default source list combines Vermont outlets, official Blue Cross and health
 | Other Vermont and neighboring outlets | Compass Vermont, Vermont Political Observer, Public Assets Institute, Daybreak, WVMT, WDEV, ORCA Media, Vermont Chamber of Commerce; New Hampshire Public Radio, WMUR, NEWS10 ABC, The Keene Sentinel, Press-Republican, WAMC, and The Berkshire Eagle | Neighboring outlets are searched with Vermont in the query |
 | Official pages | UVM Health Newsroom, BCBSA Association News | Public listing pages are parsed because normal RSS feeds are not available. The site does not request anything from bluecrossvt.org (policy in `src/politeness.js`) |
 | Curated backfill | A hand-kept clip log, read from `data/media-tracker-seed.json` | 186 clips. The file is not committed: the workflow materializes it from the `MEDIA_TRACKER_SEED_B64` secret (gzip + base64), and a local run needs a copy on disk. Re-emitted every run so the archive self-heals. Most of the list predates this crawler or sits behind outlets that block us, so no crawl can recover it |
-| Search feeds | Blue Cross VT brand searches (site-, phrase-, Boolean-, and full-name-scoped), Vermont health searches, health insurance search, single-site health searches for NYT, the Washington Post, WSJ, AP, Axios, NBC News, and Becker's Payer Issues, outlet fallbacks | Google News degrades long OR queries, so each brand search is split into small homogeneous chunks, and the national searches are one site each (the long OR versions returned mostly off-topic results on 2026-09-24); search feeds are capped and bounded to avoid turning the reader into generic health news |
+| Search feeds | Blue Cross VT brand searches (site-, phrase-, Boolean-, and full-name-scoped), Vermont health searches, MVP Health Care and UVM Health searches, health insurance search, single-site health searches for NYT, the Washington Post, WSJ, AP, Axios, NBC News, and Becker's Payer Issues, outlet fallbacks | Google News degrades long OR queries, so each brand search is split into small homogeneous chunks, and the national searches are one site each (the long OR versions returned mostly off-topic results on 2026-09-24); search feeds are capped and bounded to avoid turning the reader into generic health news |
 | National health feeds | ABC Health, CBS Health, CNN Health, STAT, Fierce Healthcare, Healthcare Dive, KFF Health News, The Hill, NPR Health | Broad national items are filtered unless they have a payer, policy, coverage, or regional angle |
 | Payer trade press | Becker's Payer Issues, Becker's Hospital Review, Becker's ASC Review, Modern Healthcare, Health Payer Specialist | All three block direct crawling (403, or a redirect to a login), so each is a Google News search naming Blue Cross VT explicitly. Scoping to "Vermont" alone was measurably too loose. Health Payer Specialist is barely indexed and normally returns nothing |
 | Social surfaces | Public Facebook pages for selected Vermont outlets | Parked by default; set `ENABLE_SOCIAL_SOURCES=true` for a deliberate one-off Facebook collection run |
 
-Direct Blue Cross VT mentions are kept indefinitely. Other stories are kept for three months. (The 2026 backfill search that covered Jan. 1 through June 13, 2026 has been retired; its items remain in the archive.)
+Direct Blue Cross VT mentions are kept indefinitely, and so are stories that match the MVP Health Care or UVM Health terms (`INDEFINITE_RETENTION_LABELS` in `src/matching.js`), because share of voice charts all three from January 2026. Every other story is kept for three months. The other archive rules still apply to the two labeled sets. (The 2026 backfill search that covered Jan. 1 through June 13, 2026 has been retired; its items remain in the archive.)
+
+#### One-off MVP and UVM Health backfill
+
+Two Google News searches, "Google News MVP Health Care Search" (Vermont-scoped, because MVP also operates in New York) and "Google News UVM Health Search", fill the 2026 history for those two organizations. Each keeps at most 100 items per window, so a single January-to-July sweep would lose most of it. Dispatch the publish workflow once per month, from Actions, with `backfill_after` and `backfill_before` set to these pairs (`backfill_before` is exclusive):
+
+| Run | `backfill_after` | `backfill_before` |
+| --- | --- | --- |
+| 1 | 2026-01-01 | 2026-02-01 |
+| 2 | 2026-02-01 | 2026-03-01 |
+| 3 | 2026-03-01 | 2026-04-01 |
+| 4 | 2026-04-01 | 2026-05-01 |
+| 5 | 2026-05-01 | 2026-06-01 |
+| 6 | 2026-06-01 | 2026-07-01 |
+
+A backfill run swaps every Google News search's rolling window for those dates, so it also revisits the other search feeds. The retention filter runs before Gemini summaries and Jev, so only stories the archive keeps reach them. Backfilled MVP and UVM Health stories are kept, so they do reach Gemini and Jev. Per-run caps (100 Gemini items and 25 Jev items by default) leave any remainder for later scheduled runs.
 
 ### Sections
 
@@ -279,7 +294,7 @@ Alerted keys live in `crawlState.brandAlerts` in `feed-audit.json`, hashed and b
 
 The trends page ends with a "Share of voice" section. It compares monthly press mentions of Blue Cross VT, MVP Health Care, and UVM Health, and each one's share of the combined total. The browser computes it from `feed.json`, and the counting lives in `site/share-of-voice.js` so the tests load the same code. Matched terms credit each organization. Blue Cross VT is the brand category, and the other two are stories carrying the `MVP Health Care` or `UVM Health` label. One story can count for several, so a share divides by combined mentions rather than by stories. Only relevant press counts. The insurer's own site, association pages, and social items are left out, as in the sentiment coverage set. Sentiment is scored only for Blue Cross VT, so none is shown for the others. The range and outlet filters apply, and every chart has a table.
 
-Two limits shape the numbers. Topic terms match feed text only, so a story that names MVP or UVM only in its body is missed. That understates both against Blue Cross VT. And stories that do not name Blue Cross VT are archived for 92 days while brand stories are kept indefinitely. The charts therefore start at the first month the archive holds in full, and earlier months appear only in the table, marked with an asterisk.
+Two limits shape the numbers. Topic terms match feed text only, so a story that names MVP or UVM only in its body is missed. That understates both against Blue Cross VT. MVP Health Care and UVM Health stories are kept indefinitely like Blue Cross VT's, and the charts start at January 2026 (`SHARE_OF_VOICE_START`). Coverage before July 2026 for those two comes from the Google News backfill above, so it is thinner than a full crawl would give, and a month the backfill has not reached shows as zero.
 
 ## Monthly report
 
@@ -320,7 +335,7 @@ The [storylines page](https://cerulean.news/storylines) follows ongoing subjects
 | `RSS_PREVIEW_BACKFILL_MAX_PER_RUN` | No | `25` | Maximum archived paywall stories to revisit for previews in one run |
 | `RSS_NEGATIVE_CACHE_TTL_DAYS` | No | `14` | Days to keep article cache entries written after an article fetch, including negative no-match results, before validating or refreshing. No-match verdicts caused by a failed fetch expire after one day, so a transient 429 or timeout cannot suppress matching for two weeks. |
 | `RSS_MAX_FUTURE_HOURS` | No | `6` | Future-dated item tolerance before exclusion |
-| `ARCHIVE_MAX_AGE_DAYS` | No | `92` | Maximum age for topic-only archived stories. Undated stories use their persisted first-seen date. |
+| `ARCHIVE_MAX_AGE_DAYS` | No | `92` | Maximum age for topic-only archived stories other than MVP Health Care and UVM Health stories, which are kept indefinitely. Undated stories use their persisted first-seen date. |
 | `FEED_URL` | No | empty | Public URL for the RSS self-link |
 | `JSON_FEED_URL` | No | empty | Public URL for the JSON Feed |
 | `SITE_URL` | No | empty | Public base URL for the channel link |

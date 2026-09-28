@@ -24,10 +24,10 @@ export const ENTITIES = [
   },
 ];
 
-// Non-brand stories leave the archive after this long (ARCHIVE_MAX_AGE_DAYS
-// in src/archive.js), while Blue Cross VT stories are kept indefinitely. Older
-// months therefore hold Blue Cross VT coverage but only a remnant of the rest.
-export const NON_BRAND_RETENTION_DAYS = 92;
+// Share of voice starts here. The archive keeps MVP Health Care and UVM Health
+// stories indefinitely, like Blue Cross VT (INDEFINITE_RETENTION_LABELS in
+// src/matching.js), and a Google News backfill fills 2026 for the two of them.
+export const SHARE_OF_VOICE_START = "2026-01";
 
 function termsOf(item) {
   return Array.isArray(item.matchedTerms) ? item.matchedTerms : [];
@@ -98,22 +98,6 @@ function nextMonthKey(key) {
   return `${year}-${String(month).padStart(2, "0")}`;
 }
 
-// The first month the archive holds in full for every entity: the first month
-// that starts on or after the retention cutoff. Earlier months are "partial".
-export function completeFromKey(
-  generatedAt,
-  retentionDays = NON_BRAND_RETENTION_DAYS,
-) {
-  const generated = new Date(generatedAt);
-  if (Number.isNaN(generated.getTime())) {
-    return "";
-  }
-  const cutoff = new Date(generated.getTime() - retentionDays * 86400000);
-  const key = cutoff.toISOString().slice(0, 7);
-  const monthStart = Date.UTC(cutoff.getUTCFullYear(), cutoff.getUTCMonth(), 1);
-  return monthStart >= cutoff.getTime() ? key : nextMonthKey(key);
-}
-
 function emptyCounts() {
   return Object.fromEntries(ENTITIES.map((entity) => [entity.key, 0]));
 }
@@ -129,9 +113,9 @@ function sharesOf(counts, total) {
 
 // Counts per month, sorted, from the first month with any mention to the last,
 // with quiet months in between kept as zero rows so the axis stays linear.
-// `total` is the combined mention count, so an item naming two entities adds
-// two. `partial` marks months before `completeFrom`.
-export function monthlyShareOfVoice(items, { completeFrom = "" } = {}) {
+// Stories before `start` are left out. `total` is the combined mention count,
+// so an item naming two entities adds two.
+export function monthlyShareOfVoice(items, { start = SHARE_OF_VOICE_START } = {}) {
   const byMonth = new Map();
   for (const item of items) {
     const keys = entityKeysFor(item);
@@ -139,6 +123,9 @@ export function monthlyShareOfVoice(items, { completeFrom = "" } = {}) {
       continue;
     }
     const month = monthKeyOf(item.pubDate);
+    if (month < start) {
+      continue;
+    }
     if (!byMonth.has(month)) {
       byMonth.set(month, emptyCounts());
     }
@@ -165,7 +152,6 @@ export function monthlyShareOfVoice(items, { completeFrom = "" } = {}) {
       counts,
       total,
       shares: sharesOf(counts, total),
-      partial: Boolean(completeFrom) && key < completeFrom,
     });
   }
   return months;
