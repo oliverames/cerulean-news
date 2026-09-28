@@ -458,6 +458,15 @@
         .site-notes dd::after { content: ""; display: block; margin-bottom: 6px; }
       }
 
+
+      /* feature: discoverability. One muted line of links under the title
+         bar, so the secondary pages are one click from the reader. */
+      .more-links {
+        margin: -8px 0 18px;
+        color: var(--muted);
+        font-size: 0.85rem;
+        line-height: 1.6;
+      }
     </style>
     <!-- feature: password-gate -->
     <link rel="stylesheet" href="gate.css">
@@ -500,12 +509,6 @@
     <div class="page" id="trends-page">
       <div class="topbar">
         <a class="button" href="./">Back to stories</a>
-        <!-- feature: storylines -->
-        <a class="button" href="storylines">Storylines</a>
-        <!-- /feature: storylines -->
-        <!-- feature: regulatory-calendar -->
-        <a class="button" href="calendar">Calendar</a>
-        <!-- /feature: regulatory-calendar -->
         <a class="button" href="feed.rss">RSS Feed</a>
         <a class="button" href="feed.json">JSON Feed</a>
       </div>
@@ -518,6 +521,15 @@
         <div class="tricolor" aria-hidden="true">
           <span class="c1"></span><span class="c2"></span><span class="c3"></span>
         </div>
+        <!-- feature: discoverability -->
+        <nav class="more-links" aria-label="More from Cerulean News">
+          <a href="storylines">Storylines</a> &middot;
+          <a href="calendar">Calendar</a> &middot;
+          <a href="reports/">Monthly reports</a> &middot;
+          <a href="digest">Clip email</a> &middot;
+          <a href="subscribe">Email updates</a>
+        </nav>
+        <!-- /feature: discoverability -->
 
         <div class="filters" id="filters" hidden>
           <span class="label">Range:</span>

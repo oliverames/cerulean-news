@@ -567,6 +567,15 @@
         }
       }
 
+
+      /* feature: discoverability. One muted line of links under the title
+         bar, so the secondary pages are one click from the reader. */
+      .more-links {
+        margin: -8px 0 18px;
+        color: var(--muted);
+        font-size: 0.85rem;
+        line-height: 1.6;
+      }
     </style>
     <!-- feature: search-upgrades -->
     <style>
@@ -755,6 +764,15 @@
         <div class="tricolor" aria-hidden="true">
           <span class="c1"></span><span class="c2"></span><span class="c3"></span>
         </div>
+        <!-- feature: discoverability -->
+        <nav class="more-links" aria-label="More from Cerulean News">
+          <a href="storylines">Storylines</a> &middot;
+          <a href="calendar">Calendar</a> &middot;
+          <a href="reports/">Monthly reports</a> &middot;
+          <a href="digest">Clip email</a> &middot;
+          <a href="subscribe">Email updates</a>
+        </nav>
+        <!-- /feature: discoverability -->
 
         <!-- Section filter. The three sections match the headings of the
              communications team's daily clip email. BlueCrossVT.org posts and
