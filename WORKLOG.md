@@ -1,7 +1,8 @@
 ## Open items
 
-- Decide how Jev should honor the 2026-09-24 exclusions: the aligned profile decides on scope questions that lack them, so the Label Desk rejections are still published (since 2026-09-28; [#15](https://github.com/oliverames/cerulean-news/issues/15))
-- After PR #9 deploys and the new cohort is re-evaluated (about five hours at 25 per run), re-score Oliver's 43 decided labels in the [Label Desk](https://claude.ai/artifact/EQH9mfaJk5FcPuGXTmP9wE) against the key, and check the keep and drop lists in `docs/2026-09-24-issue-8-followups.md` (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
+- Finish the #15 re-check. Confirm manual run 36482800012 (`jev_max_items` 175, `jev_concurrency` 6) deployed, then dispatch one more run with the same inputs. That completes the 350 calls Oliver approved. Then re-score his 43 decided Label Desk labels against the live audit (38/43 before the re-check; the misses were the four rejected single-state stories and "Sens. Sanders and Welch asked about AI development"). The re-score script needs `labels-joined.json`, rebuilt from the Label Desk `labels` store and `docs/review/2026-09-24-label-desk-key.json` (since 2026-09-28; [#15](https://github.com/oliverames/cerulean-news/issues/15))
+- Decide the publish cadence. GitHub drops most scheduled runs (about five a day against the 48 the cron asks for). Options: accept it and correct the docs; have each run dispatch the next with `GITHUB_TOKEN` (the documented `workflow_dispatch` exception); or add a small external cron, such as a Cloudflare Worker, that dispatches the workflow with a fine-grained token. The last two need Oliver's approval (since 2026-09-28)
+- Finish sentiment scoring. The v2 profile invalidated every cached Jev answer, so all 246 eligible brand stories need fresh odds from the cap left after new articles. The score now shows whenever odds exist. The Gemini archive re-score still waits on its quota (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
 - Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Sample the 451 proposed additions and 234 removals from `artifacts/jev-evaluation/` into the Label Desk from a Mac session (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - After the clip-email seed is live: rewrite the broad-national code rule against the 967 national rows, measure Jev on held-out recent digests, then re-judge the archive with Jev at a raised cap (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
@@ -11,13 +12,36 @@
 - Decide whether the six projects whose Mac builds were disabled get self-hosted runners on the MacBook Pro and home-server, or stay manual (since 2026-09-16) (unverified)
 - Establish why `xcode-27` appears as a `runs-on` label with no registered runner before that label is reused (since 2026-09-16)
 - `ames-plugins-local/marketplace-validation.yml` is still on `macos-latest`, which bills at 10x if it fires (since 2026-09-16)
-- Finish sentiment scoring: the Jev 0-100 odds backfill (244 entries left on 2026-09-24, runs on spare cap) and the Gemini archive re-score after its quota resets (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
 - Remaining discoverability work: client-rendered stories, a 1200x630 share image, and URL Inspection once Google crawls the new property (since 2026-09-24; [#13](https://github.com/oliverames/cerulean-news/issues/13))
 - Decide whether Jev should re-judge the pre-boundary archive (inclusion and sentiment) at a raised cap; it spends TypeSafe credits and changes historical decisions (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Prove the `data/coverage-context.json` VT Basic storyline in production with a re-score sweep that completes (`rescore_sentiment` with a small `summary_max_requests`) (since 2026-08-27) (unverified)
 - The calendar and briefs recall gap is a product decision that needs Oliver's call before any matcher work (since 2026-08-27) (unverified)
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
+
+## 2026-09-28 - Jev honors the shared exclusions, learns from rejections, and scores more stories
+
+**Request**: Fix #15 with the recommended option, add Oliver's Label Desk rejections as references, and address the deep dive's top findings. Oliver chose to show the score whenever Jev has odds, to run the re-check as one approved burst of 350 calls, and to store rejections as hashes. He asked why the schedule can't simply be fixed.
+
+**What changed**:
+- **#15** (1324b5e). The regional and national scope questions, which decide inclusion, now carry `INCLUSION_PRIORITIES` and `INCLUSION_RULES`. The national question no longer says any US geography qualifies. The profile is now `editorial-examples-v2`.
+- **Rejections** (1324b5e). Oliver's 17 exclusions are `include:false` references, committed only as URL hashes, with headline and excerpt read from the archive. Each request reserves the two closest.
+- **Score** (c5f8119). `sentimentScore` is published whenever Jev returned odds. The label still changes only at 0.7 confidence, and the reader explains that the two can differ.
+- **Metrics** (5714f5e). Disagreements are measured against `jevBaseline`.
+- **Workflow**. New `jev_max_items` and `jev_concurrency` dispatch inputs.
+
+**Verification**:
+- `npm test` 279 pass. Each commit passed on its own, and every new test failed when its fix was removed.
+- All 17 rejection hashes resolved against the live archive.
+- Push run 36481324476 deployed. The audit shows v2 loaded with 1,567 inclusion, 17 rejection, and 68 sentiment references. 25 of 25 calls succeeded, with 296 post-boundary articles pending.
+- On fresh articles, Jev excluded both Minnesota Medicaid copies (0.05 and 0.06) and kept the national Medicare Advantage and mRNA flu vaccine stories.
+- Label Desk agreement before the re-check reached those items: 38 of 43.
+
+**Cadence**: GitHub documents that scheduled runs are delayed under load and may be dropped. The workflow already runs off the hour, so nothing in the cron can fix it.
+
+**Left off at**: Manual run 36482800012 was in progress at 21:04Z. See Open items for the second batch, the Label Desk re-score, and the cadence decision.
+
+---
 
 ## 2026-09-28 - Jev selection and sentiment deep dive
 

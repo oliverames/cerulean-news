@@ -5,6 +5,14 @@ Author: Oliver Ames
 
 This review traces how an article reaches the feed and how its sentiment is scored. It compares the code with the live audit and with the history recorded in `WORKLOG.md`, the dated reports, and GitHub issues #1 to #14. The live figures come from `https://cerulean.news/feed-audit.json`, generated 2026-09-28T16:01:44Z (run 36447952877). The code is `main` at `14279ae`, where `npm test` passes 276 of 276.
 
+## Status after the same day's fixes
+
+- Finding 1: fixed in 1324b5e (#15).
+- Finding 2: partly addressed by Oliver's 17 rejections as references. The enlarged library is still unmeasured.
+- Finding 3: the score now appears whenever Jev has odds (c5f8119).
+- Finding 5: fixed in 5714f5e.
+- Finding 4 (cadence): awaiting Oliver's decision. See `WORKLOG.md`.
+
 ## Summary
 
 Jev works as designed in one important way and against its intended policy in another.
