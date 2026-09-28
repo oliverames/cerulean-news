@@ -1,0 +1,44 @@
+/* Password gate. A presentation gate, not access control: the feeds stay
+   public and the check runs in the browser. Restored 2026-09-28. */
+html:not(.authenticated) .page { display: none; }
+html:not(.authenticated),
+html:not(.authenticated) body { overflow: hidden; height: 100%; }
+html.authenticated .password-gate { display: none !important; }
+
+.password-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: var(--bg, #fff);
+}
+.password-card { width: 100%; max-width: 360px; text-align: center; }
+.password-card .tricolor { margin: 0 0 20px; }
+.password-card h1 { margin: 0 0 6px; font-size: 1.35rem; font-weight: 700; }
+.password-card p { margin: 0 0 18px; color: var(--muted, #555); font-size: 0.9rem; line-height: 1.45; }
+.password-form { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+.password-form input[type="password"] {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--fg, #111);
+  background: #fff;
+  color: var(--fg, #111);
+  font: inherit;
+}
+.password-form button {
+  appearance: none;
+  padding: 8px 12px;
+  border: 1px solid var(--fg, #111);
+  background: var(--bar-1, #0033a0);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.password-form button:hover { background: var(--bar-1-hover, #002677); }
+.password-error { min-height: 1.2em; margin: 2px 0 0; color: #b00020; font-size: 0.84rem; visibility: hidden; }
+.password-error.visible { visibility: visible; }

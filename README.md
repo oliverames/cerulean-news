@@ -137,7 +137,7 @@ The relevance gate then removes common false positives:
 
 The reader is a static HTML page that loads `feed.json` in the browser. It shows the newest 25 stories first, supports simple search, and keeps comments hidden behind a per-story button. The section filter UI is switched off (since 2026-09-03; the markup and script remain), so the reader always shows the default selection: every news category, with the insurer's own posts and social items excluded.
 
-The reader page has no access control. A client-side password gate existed until 2026-09-03 and is commented out in both pages rather than deleted; it was only ever a presentation gate, since the feed files were always fetchable by direct URL.
+The reader and trends pages carry a password gate again, restored on 2026-09-28 at Oliver's request. It is a presentation gate, not access control. The check runs in the browser, `site/gate.js` holds only the password's SHA-256 hash, and `feed.json`, `feed.rss`, and the audit feed stay public by choice. A page opts in with `gate.css`, a one-line early check in `<head>`, and `gate.js` at the start of `<body>`. Pages that must stay open, such as email signup, leave it out. A returning visitor is remembered in `localStorage`.
 
 Each story can include:
 

@@ -3925,16 +3925,26 @@ test("roundup previews publish only when they match the selected brief", () => {
   assert.match(alignedTopic.items[0].previewText, /Vermont hospice/);
 });
 
-test("reader is visible without a gate and exposes comment disclosure state", async () => {
+test("reader carries the restored presentation gate and exposes comment disclosure state", async () => {
   const reader = await readFile(
     path.resolve(process.cwd(), "site", "index.html"),
     "utf8",
   );
+  const trends = await readFile(path.resolve(process.cwd(), "site", "trends.html"), "utf8");
+  const gate = await readFile(path.resolve(process.cwd(), "site", "gate.js"), "utf8");
 
-  // The reader is public and no longer ships the disabled presentation gate.
+  // The presentation gate came back on 2026-09-28: gate.css in <head>, the
+  // early check for returning visitors, and gate.js at the start of <body>.
+  // The page container stays plain; gate.css hides it until unlocked.
   assert.match(reader, /<div class="page" id="reader-page">/);
-  assert.doesNotMatch(reader, /id="reader-page" hidden/);
-  assert.doesNotMatch(reader, /password-gate|authenticated|blueNewsAuth/);
+  for (const page of [reader, trends]) {
+    assert.match(page, /<link rel="stylesheet" href="gate\.css">\s*<script>\s*try \{ if \(localStorage\.getItem\("blueNewsAuth"\) === "true"\)/);
+    assert.match(page, /<body>\s*<!-- feature: password-gate -->\s*<script src="gate\.js"><\/script>/);
+  }
+  assert.match(trends, /CeruleanGate\.whenUnlocked\(start\)/);
+  // The password is stored only as a hash; the plain value never ships.
+  assert.match(gate, /PASSWORD_SHA256 = "[0-9a-f]{64}"/);
+  assert.doesNotMatch(gate + reader + trends, /kukui-webworm-gradus/);
   assert.match(reader, /<title>Cerulean News[^<]*<\/title>/);
   assert.equal((reader.match(/>Cerulean News<\/h1>/g) || []).length, 1);
   assert.match(reader, /<div class="title-row">/);

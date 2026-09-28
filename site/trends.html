@@ -457,8 +457,17 @@
       }
 
     </style>
+    <!-- feature: password-gate -->
+    <link rel="stylesheet" href="gate.css">
+    <script>
+      try { if (localStorage.getItem("blueNewsAuth") === "true") document.documentElement.classList.add("authenticated"); } catch (e) {}
+    </script>
+    <!-- /feature: password-gate -->
   </head>
   <body>
+    <!-- feature: password-gate -->
+    <script src="gate.js"></script>
+    <!-- /feature: password-gate -->
 
     <div class="page" id="trends-page">
       <div class="topbar">
@@ -1751,7 +1760,8 @@
         load();
       }
 
-      start();
+      // The charts measure the page column, so they wait for the gate.
+      window.CeruleanGate ? window.CeruleanGate.whenUnlocked(start) : start();
     </script>
   </body>
 </html>
