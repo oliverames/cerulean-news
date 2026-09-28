@@ -161,13 +161,20 @@ export const TOPIC_TERMS = [
   },
   // Payers and coverage programs
   { label: "MVP Health Care", pattern: /\bmvp\s+health\b/i },
+  // The national payers the team's clip emails follow. Anthem needs a
+  // qualifier, or every national-anthem story would match.
+  {
+    label: "National insurers",
+    pattern:
+      /\bunitedhealth\w*|\bunited\s+healthcare\b|\baetna\b|\bcigna\b|\bhumana\b|\belevance\s+health\b|\banthem\s+(?:blue|health|inc)\w*|\bcentene\b|\bmolina\s+health\w*|\bcvs\s+health\b|\bkaiser\s+permanente\b|\bhighmark\b|\boptum\w*|\bexpress\s+scripts\b|\bcaremark\b/i,
+  },
   { label: "Medicare Advantage", pattern: /\bmedicare\s+advantage\b/i },
   { label: "Medicare", pattern: /\bmedicare\b/i },
   { label: "Medicaid", pattern: /\bmedicaid\b/i },
   {
     label: "Health insurance",
     pattern:
-      /\bhealth\s+insur\w*|\binsurers?\b|\bhealth\s+plans?\b|\bhealth\s+coverage\b|\buninsured\b/i,
+      /\bhealth\s+insur\w*|\binsurers?\b|\bhealth\s+plans?\b|\bhealth\s+coverage\b|\buninsured\b|\bICHRAs?\b|\bindividual\s+coverage\s+(?:health\s+)?reimbursement\b/i,
   },
   {
     label: "ACA & marketplace",
@@ -182,7 +189,7 @@ export const TOPIC_TERMS = [
   {
     label: "Vermont hospitals & providers",
     pattern:
-      /\bbrattleboro\s+(?:memorial|retreat|hospital)\b|\brutland\s+regional\b|\bcopley\s+hospital\b|\bgifford\s+(?:medical|health)\b|\bporter\s+(?:medical|hospital)\b|\bgrace\s+cottage\b|\bspringfield\s+hospital\b|\bnorth\s+country\s+hospital\b|\bnortheastern\s+vermont\s+regional\b|\bNVRH\b|\bnorthwestern\s+medical\s+center\b|\bcentral\s+vermont\s+medical\s+center\b|\bCVMC\b|\bmt\.?\s+ascutney\b|\bsouthwestern\s+vermont\s+(?:medical|health)\b|\bSVMC\b|\bchamplain\s+valley\s+physicians\b|\bCVPH\b|\balice\s+hyde\b|\bdartmouth[\s-]+(?:hitchcock|health)\b|\bhoward\s+center\b|\bnortheast\s+kingdom\s+human\s+services\b|\blamoille\s+health\b|\bbattenkill\s+valley\b/i,
+      /\bbrattleboro\s+(?:memorial|retreat|hospital)\b|\brutland\s+regional\b|\bcopley\s+hospital\b|\bgifford\s+(?:medical|health)\b|\bporter\s+(?:medical|hospital)\b|\bgrace\s+cottage\b|\bspringfield\s+hospital\b|\bnorth\s+country\s+hospital\b|\bnortheastern\s+vermont\s+regional\b|\bNVRH\b|\bnorthwestern\s+medical\s+center\b|\bcentral\s+vermont\s+medical\s+center\b|\bCVMC\b|\bmt\.?\s+ascutney\b|\bsouthwestern\s+vermont\s+(?:medical|health)\b|\bSVMC\b|\bchamplain\s+valley\s+physicians\b|\bCVPH\b|\balice\s+hyde\b|\bdartmouth[\s-]+(?:hitchcock|health)\b|\bRRMC\b|\bhoward\s+center\b|\bnortheast\s+kingdom\s+human\s+services\b|\blamoille\s+health\b|\bbattenkill\s+valley\b/i,
     strip: TRANSPORT_IDIOM,
   },
   {
@@ -207,19 +214,19 @@ export const TOPIC_TERMS = [
   {
     label: "Prescription drugs & pharmacy",
     pattern:
-      /\bprescription\s+drug\w*|\bpharmac(?:y|ies|ist)\b|\bPBM\b|\bpharmacy\s+benefit\w*|\bArrayRx\b|\bdrug\s+(?:prices?|costs?|discounts?|shortages?)\b|\bmedicine\s+shortages?\b|\bshortages?\s+of\s+(?:many\s+)?medicines?\b/i,
+      /\bprescription\s+drug\w*|\bpharmac(?:y|ies|ist)\b|\bPBMs?\b|\bdrug\s+pric\w*|\bpharmacy\s+benefit\w*|\bArrayRx\b|\bdrug\s+(?:prices?|costs?|discounts?|shortages?)\b|\bmedicine\s+shortages?\b|\bshortages?\s+of\s+(?:many\s+)?medicines?\b/i,
   },
   {
     label: "Prior authorization & claims",
     pattern:
-      /\bprior\s+authorization\b|\bclaim\s+denial\w*|\bcoverage\s+denial\w*|\bdenied\s+claims?\b/i,
+      /\bprior\s+auth(?:orization)?s?\b|\bclaim\s+denial\w*|\bcoverage\s+denial\w*|\bdenied\s+claims?\b/i,
   },
   {
     label: "Premiums & rate review",
     pattern:
       /\b(?:health\s+insurance|insurance|health\s+plan|coverage)\s+premiums?\b|\bpremiums?\s+(?:for|on)\s+(?:health\s+insurance|insurance|health\s+plans?|coverage)\b|\b(?:rate|premium)\s+(?:filing|review|increase|decrease|request)s?\b/i,
   },
-  { label: "Vaccines", pattern: /\bvaccin\w*|\bimmuniz\w*/i },
+  { label: "Vaccines", pattern: /\bvaccin\w*|\bimmuniz\w*|\bflu\s+shots?\b/i },
   {
     label: "Hospital & nurse labor",
     pattern:
@@ -227,7 +234,7 @@ export const TOPIC_TERMS = [
   },
   {
     label: "Rural health",
-    pattern: /\brural\s+(?:health|hospital|medical)\w*|\bcritical\s+access\b/i,
+    pattern: /\brural\s+(?:health|hospital|medical)\w*|\bcritical\s+access\b|\brural\s+(?:health\s+)?transformation\b/i,
   },
   {
     label: "Universal health care",
@@ -237,13 +244,13 @@ export const TOPIC_TERMS = [
   {
     label: "Medical costs & billing",
     pattern:
-      /\bmedical\s+(?:debt|bills?|billing)\b|\bbilling\s+(?:abuse|disputes?)\b|\bsurprise\s+bill\w*|\bno\s+surprises\s+act\b|\bhealth\s+(?:care\s+)?costs?\b|\bhealth\s+care\s+affordability\b|\bhospital\s+pric\w*|\breference[-\s]based\s+pricing\b|\bhealth\s+care\s+spending\b/i,
+      /\bmedical\s+(?:debt|bills?|billing)\b|\bbilling\s+(?:abuse|disputes?)\b|\bsurprise\s+bill\w*|\bno\s+surprises\s+act\b|\bhealth\s+(?:care\s+)?costs?\b|\bhealth\s*care\s+affordability\b|\bhealthcare\s+(?:costs?|spending)\b|\bhospital\s+pric\w*|\breference[-\s]based\s+pricing\b|\bhealth\s+care\s+spending\b/i,
   },
   { label: "Telehealth", pattern: /\btelehealth\b|\btelemedicine\b/i },
   { label: "Public health", pattern: /\bpublic\s+health\b/i },
   {
     label: "Maternity & birthing",
-    pattern: /\bbirthing\b|\bmaternity\b|\bmidwi(?:fe|ves|fery)\b|\bOB-?\s?GYNs?\b/i,
+    pattern: /\bbirthing\b|\bmaternity\b|\bmidwi(?:fe|ves|fery)\b|\bOB-?\s?GYNs?\b|\bpostpartum\b|\bprenatal\b/i,
   },
   {
     label: "Opioids & addiction",
@@ -258,7 +265,7 @@ export const TOPIC_TERMS = [
   {
     label: "Reproductive health",
     pattern:
-      /\babortion\w*|\breproductive\s+(?:health|care)\b|\bgender-affirming\b/i,
+      /\babortion\w*|\breproductive\s+(?:health|care)\b|\bgender-affirming\b|\bbirth\s+control\b|\bcontracepti\w*/i,
   },
   {
     label: "Women's health",
@@ -281,7 +288,7 @@ export const TOPIC_TERMS = [
   {
     label: "Physician workforce",
     pattern:
-      /\bphysicians?\b|\bdoctor\s+shortage\b|\bnurse\s+practitioners?\b|\bphysician\s+assistants?\b|\bscope\s+of\s+practice\b|\bmedical\s+residen\w*/i,
+      /\bphysicians?\b|\bdoctor\s+shortage\b|\bnurse\s+practitioners?\b|\bphysician\s+assistants?\b|\bscope\s+of\s+practice\b|\bmedical\s+residen\w*|\bfamily\s+medicine\b|\bmedical\s+(?:school|students?|education)\b|\bphysician\s+training\b|\bresidency\s+programs?\b/i,
   },
   {
     label: "Private equity in health care",
@@ -290,7 +297,7 @@ export const TOPIC_TERMS = [
   {
     label: "Senior & long-term care",
     pattern:
-      /\bnursing\s+homes?\b|\blong-?term\s+care\b|\bhome\s+health\b|\bassisted\s+living\b|\bhospice\b|\bsenior\s+(?:care|health)\b/i,
+      /\bnursing\s+homes?\b|\blong-?term\s+care\b|\bhome\s+health\b|\bassisted\s+living\b|\bhospice\b|\bsenior\s+(?:care|health)\b|\bhome[-\s]based\s+care\b/i,
   },
   { label: "Dental care", pattern: /\bdental\s+clinics?\b|\bdentists?\b/i },
   {

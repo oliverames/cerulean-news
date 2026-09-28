@@ -82,6 +82,7 @@ import {
   freshUntilFromHeaders,
   politenessPolicyFor,
   TOPIC_TERMS,
+  MENTION_TERMS,
 } from "../src/index.js";
 
 test("findMentionTerms catches requested and similar Blue Cross VT variants", () => {
@@ -6731,4 +6732,25 @@ test("applyBackfillWindow leaves non-search and non-Google sources untouched", (
   assert.deepEqual(applyBackfillWindow([rss, social, other], window), [rss, social, other]);
   // No window means no change at all.
   assert.deepEqual(applyBackfillWindow([rss, social, other], null), [rss, social, other]);
+});
+
+test("topic terms added from the clip-email misses match health stories and skip look-alikes", () => {
+  const labels = (text) => findMentionTerms(text, [...MENTION_TERMS, ...TOPIC_TERMS]);
+  assert.ok(labels("UnitedHealthcare, Cigna, Centene join national credentialing program").includes("National insurers"));
+  assert.ok(labels("Optum Health taps CEO for AI").includes("National insurers"));
+  assert.ok(labels("Anthem Blue Cross drops a hospital system").includes("National insurers"));
+  assert.ok(labels("Employers weigh ICHRA plans for 2027").includes("Health insurance"));
+  assert.ok(labels("AMA pushes CMS on electronic prior auth deadline").includes("Prior authorization & claims"));
+  assert.ok(labels("Trump boasts on drug pricing policy").includes("Prescription drugs & pharmacy"));
+  assert.ok(labels("Healthcare costs keep rising for families").includes("Medical costs & billing"));
+  assert.ok(labels("Vermont's rural health transformation grant").includes("Rural health"));
+  assert.ok(labels("RRMC adds cardiology staff").includes("Vermont hospitals & providers"));
+  assert.ok(labels("Postpartum support expands in Addison County").includes("Maternity & birthing"));
+  assert.ok(labels("Access to birth control after the ruling").includes("Reproductive health"));
+  assert.ok(labels("Where to get a flu shot this fall").includes("Vaccines"));
+  assert.ok(labels("Home-based care program for seniors").includes("Senior & long-term care"));
+  assert.ok(labels("Regulators want more transparency on medical education").includes("Physician workforce"));
+  // Look-alikes that are not health coverage.
+  assert.deepEqual(labels("Singer performs the national anthem at the game"), []);
+  assert.deepEqual(labels("Many homeowners have a big insurance coverage gap"), []);
 });

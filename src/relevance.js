@@ -80,6 +80,7 @@ const NATIONAL_POLICY_TOPIC_LABELS = new Set([
   "Medical costs & billing",
   "Medicare",
   "Medicare Advantage",
+  "National insurers",
   "Maternity & birthing",
   "PBM",
   "Physician workforce",
