@@ -28,6 +28,7 @@ import {
   triggerWebhooks,
 } from "./alerts.js";
 import { buildJsonSummary, buildRss, writeOutput } from "./outputs.js";
+import { writeMonthlyReports } from "./monthly-report.js";
 
 function resolveRssOutputPath() {
   if (process.env.RSS_OUTPUT_PATH) {
@@ -265,6 +266,11 @@ export async function generateFeed({
     jsonOutputPath,
     auditJsonOutputPath,
   );
+  // Monthly leadership report pages, beside the feed. Never fails the run.
+  await writeMonthlyReports(jsonSummary.items, {
+    outputDir: path.join(path.dirname(rssOutputPath), "reports"),
+    now,
+  });
   if (articleCacheStore) {
     await articleCacheStore.persist(
       crawlState.articleCache,
@@ -445,3 +451,4 @@ export {
   webhookTargetId,
 } from "./alerts.js";
 export { buildJsonSummary, buildRss } from "./outputs.js";
+export { buildMonthlyReport, renderMonthlyReportEmail } from "./monthly-report.js";

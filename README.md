@@ -221,6 +221,16 @@ Because Google News search feeds name the query rather than the publisher,
 every item also carries an `outlet` field, resolved from the article link. The
 trends page groups by that rather than by `sourceName`.
 
+## Monthly report
+
+Every feed build also writes a one-page summary of brand coverage for leadership, one page per month from June 2026 through the current month, at `site/reports/YYYY-MM.html` with a list at `site/reports/index.html`. The current month is marked "to date" and is compared with the whole prior month. Each page has print styles, so a browser's Save as PDF gives one or two clean pages. The trends page links the list from its footer. The pages carry `noindex` and are not in the sitemap.
+
+`src/monthly-report.js` holds the logic and is pure. `buildMonthlyReport(items, { month: "YYYY-MM", now })` returns brand volume and the change from the prior month, net sentiment and the label mix, the mean `sentimentScore` with how many stories carry one, the top five outlets, the three most and least favorable stories, the top themes, Vermont health care volume from the `section` values, and a templated plain-language paragraph. There are no model calls. `renderMonthlyReportEmail(report)` returns `{ subject, html, text }` with table layout and inline styles only, ready for a later email step. Nothing sends it yet.
+
+The definitions are the trends page's own. The coverage set is items with `sentimentEligible` and a date, volume counts all of them including any not yet scored, and net sentiment is the mean of the five labels mapped to +2 through -2 over the scored ones. Months run on Eastern time, where the trends page uses UTC, so a story published after 8 pm on the last evening of a month counts in that month. The favorable and adverse lists show each group of repeated reports once and never place a story on the wrong side of neutral.
+
+The pages are written by `npm run generate`, and `node scripts/build-monthly-reports.js [siteDir]` rebuilds them from a `feed.json` without a crawl. A static-only deploy does not run the generator, so it carries no `reports/` folder until the next full run.
+
 ## Configuration
 
 | Variable | Required | Default | Description |
@@ -339,6 +349,7 @@ src/story-groups.js  Groups different outlets' reports of one event for display
 src/summaries.js   Gemini prompt, batching, parsing, summary cache behavior
 src/alerts.js      Failure streaks and optional webhook alerts
 src/outputs.js     RSS, JSON Feed, audit JSON, file writes
+src/monthly-report.js  Monthly leadership report: numbers, email rendering, and pages
 src/utils.js       Shared text, date, URL, and concurrency helpers
 src/fsx.js         Indirection over file reads and writes, so the generator can
                    run somewhere without a filesystem
