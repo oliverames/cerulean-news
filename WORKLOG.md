@@ -1,6 +1,5 @@
 ## Open items
 
-- "Sens. Sanders and Welch asked about AI development" is the one decided Label Desk item the feed still misses (Oliver: include; Jev: exclude). Decide whether it matters before touching the regional scope wording (since 2026-09-28; [#15](https://github.com/oliverames/cerulean-news/issues/15))
 - Finish sentiment scoring. The v2 profile invalidated every cached Jev answer. After the re-check, 184 of 246 eligible brand stories still need fresh odds from the cap left after new articles. The score now shows whenever odds exist. The Gemini archive re-score still waits on its quota (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
 - Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Sample the 451 proposed additions and 234 removals from `artifacts/jev-evaluation/` into the Label Desk from a Mac session (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
@@ -17,6 +16,22 @@
 - The calendar and briefs recall gap is a product decision that needs Oliver's call before any matcher work (since 2026-08-27) (unverified)
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
+
+## 2026-09-28 - Plan in progress: archive re-check and missing-article fixes
+
+**Decisions (Oliver, 2026-09-28)**:
+- Leave "Sens. Sanders and Welch asked about AI development" out.
+- Skip the TypeSafe billing check for now.
+- Apply a Jev inclusion re-check to the pre-boundary archive directly, at about 2,900 calls.
+- Make all four missing-article fixes (topic terms, replacement Google News searches, new sources, more body scans), and find every Vermont news source that can be added.
+
+**Plan and resume point**:
+1. Add a `jev_rejudge_archive` dispatch input that lifts the enforcement boundary for one run. Push it, then dispatch runs in batches until the archive is re-checked.
+2. A research agent inventories Vermont news sources not yet in `src/sources.js` and verifies their feeds (read-only).
+3. Add topic terms, replace the broken Google News searches, add sources, and widen body scans. Validate each against live fetches and the archive, then test.
+4. Record the results here and in `docs/2026-09-24-missing-articles.md`.
+
+---
 
 ## 2026-09-28 - Human exclusions decide their own articles; cadence accepted
 
