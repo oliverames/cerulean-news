@@ -1,6 +1,5 @@
 ## Open items
 
-- Decide on the VermontBiz relay proposal in `docs/2026-09-28-vermontbiz-relay-proposal.md`. The recommendation is to ask VermontBiz to allow the crawler or publish a deeper feed first, and to add the missed Snelling Center story by hand (since 2026-09-28)
 - Finish sentiment scoring. The v2 profile invalidated every cached Jev answer. After the re-check, 184 of 246 eligible brand stories still need fresh odds from the cap left after new articles. The score now shows whenever odds exist. The Gemini archive re-score still waits on its quota (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
 - Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Sample the 451 proposed additions and 234 removals from `artifacts/jev-evaluation/` into the Label Desk from a Mac session (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
@@ -25,6 +24,8 @@
 - Skip the TypeSafe billing check for now.
 - Apply a Jev inclusion re-check to the pre-boundary archive directly, at about 2,900 calls.
 - Make all four missing-article fixes (topic terms, replacement Google News searches, new sources, more body scans), and find every Vermont news source that can be added.
+
+**VermontBiz**: Oliver declined the relay proposal (`docs/2026-09-28-vermontbiz-relay-proposal.md`) and chose to leave VermontBiz as it is. Its RSS feed carries full article text, and 11 of 12 known 2026 brand stories are in the archive.
 
 **Plan and resume point**:
 1. Add a `jev_rejudge_archive` dispatch input that lifts the enforcement boundary for one run. Push it, then dispatch runs in batches until the archive is re-checked.

@@ -3,7 +3,7 @@
 September 28, 2026
 Author: Oliver Ames
 
-Status: proposal only. Nothing described here has been changed.
+Status: declined on 2026-09-28. Oliver chose to leave VermontBiz coverage as it is. Nothing described here has been changed.
 
 ## Summary
 
