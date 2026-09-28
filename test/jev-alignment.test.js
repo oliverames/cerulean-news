@@ -6,6 +6,7 @@ import path from "node:path";
 import { buildReferenceExamples, exampleId, sameExampleStory, selectReferenceExamples } from "../src/jev-examples.js";
 import { addEditorialAlignment, alignedInclusionAnswer, loadAlignmentProfile } from "../src/jev-alignment.js";
 import { applyJevRelevance, buildJevRequest, classifyItemRelevance, normalizeJevCache, loadRelevanceRubric, loadSentimentRubric } from "../src/jev-relevance.js";
+import { INCLUSION_PRIORITIES, INCLUSION_RULES } from "../src/summaries.js";
 
 const target = { title: "Vermont hospitals review their annual operating budgets", link: "https://vtdigger.org/budgets?utm_source=test",
   snippet: "A hospital budget hearing in Vermont.", category: "brand", matchedTerms: ["BCBSVT"], sourceName: "VTDigger", relevant: false };
@@ -78,7 +79,7 @@ test("known story groups prevent leakage across different titles and outlets", (
 });
 
 test("production profile sends private human guidance on future requests and versions safe caches", async () => {
-  const alignment = await loadAlignmentProfile("src/rubrics/editorial-alignment-v1.json");
+  const alignment = await loadAlignmentProfile("src/rubrics/editorial-alignment-v2.json");
   const referenceExamples = buildReferenceExamples(seed);
   const item = { title: "Blue Cross VT launches new member support program", link: "https://new.test/support",
     snippet: "Blue Cross and Blue Shield of Vermont expands support for members.", matchedTerms: ["BCBSVT"], relevant: true, sentiment: "neutral" };
@@ -92,7 +93,7 @@ test("production profile sends private human guidance on future requests and ver
   const options = { env: {}, mode: "shadow", alignment, referenceExamples, callJev, cache, metrics };
   assert.deepEqual(await applyJevRelevance([item], options), [item]);
   assert.equal(metrics.status, "complete");
-  assert.equal(metrics.alignmentVersion, "editorial-examples-v1");
+  assert.equal(metrics.alignmentVersion, "editorial-examples-v2");
   assert.equal(metrics.sentimentReferences, 3);
   assert.ok(calls[0].questions.scope_policy.instructions.reference_examples.length);
   assert.ok(calls[0].questions.sentiment.instructions.reference_examples.length);
@@ -109,7 +110,7 @@ test("production profile sends private human guidance on future requests and ver
 
 test("missing human references stop the aligned pass and preserve existing output", async () => {
   const metrics = {};
-  const alignment = await loadAlignmentProfile("src/rubrics/editorial-alignment-v1.json");
+  const alignment = await loadAlignmentProfile("src/rubrics/editorial-alignment-v2.json");
   const output = await applyJevRelevance([target], { mode: "enforce", alignment, metrics,
     env: { JEV_EXAMPLES_PATH: "/private/tmp/nonexistent-jev-seed-fixture.json" }, callJev: async () => assert.fail("must not call Jev without references") });
   assert.deepEqual(output, [target]);
@@ -121,7 +122,7 @@ test("missing human references stop the aligned pass and preserve existing outpu
 test("workflow environment loads references, admits new human examples, and preserves exclusions", async () => {
   const directory = await mkdtemp(path.join(tmpdir(), "jev-human-reference-"));
   try {
-    const profile = await loadAlignmentProfile("src/rubrics/editorial-alignment-v1.json");
+    const profile = await loadAlignmentProfile("src/rubrics/editorial-alignment-v2.json");
     profile.references.excludedIds = [exampleId(seed.articles[0].url)];
     const profilePath = path.join(directory, "profile.json"), seedPath = path.join(directory, "seed.json");
     await writeFile(profilePath, JSON.stringify(profile));
@@ -140,5 +141,60 @@ test("workflow environment loads references, admits new human examples, and pres
     assert.equal(metrics.status, "complete");
     assert.equal(metrics.inclusionReferences, 3);
     assert.equal(metrics.sentimentReferences, 3);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test("the scope questions that decide inclusion carry the shared exclusion rules (#15)", async () => {
+  const rubric = await loadRelevanceRubric();
+  const premiums = { title: "Missouri consumers could see health insurance premiums rise 26% in 2027",
+    link: "https://missourinet.test/premiums", snippet: "Missouri marketplace premium filings.", matchedTerms: ["Health insurance"], category: "topic" };
+  const request = addEditorialAlignment(buildJevRequest(premiums, rubric), premiums,
+    { examples: buildReferenceExamples(seed), strategy: "atomic-references" });
+  for (const name of ["scope_regional", "scope_policy"]) {
+    const instructions = request.questions[name].instructions;
+    assert.equal(instructions.rules, INCLUSION_RULES);
+    assert.equal(instructions.priorities, INCLUSION_PRIORITIES);
+    assert.ok(instructions.reference_examples.length);
+  }
+  const policy = request.questions.scope_policy.instructions.question;
+  assert.match(policy, /Another state's own Medicaid administration, marketplace premiums/);
+  assert.doesNotMatch(policy, /Any US geography qualifies/);
+  assert.match(request.questions.scope_policy.criteria.false, /single state's own program/);
+  // Brand scope keeps its own wording; the rules concern regional and national reach.
+  assert.equal(typeof request.questions.scope_brand.instructions.question, "string");
+  assert.equal(request.questions.scope_brand.instructions.rules, undefined);
+});
+
+test("Label Desk rejections become include:false references drawn from the archive", async () => {
+  const rejected = { title: "Colorado insurer premiums climb for employer plans", link: "https://colorado.test/premiums?utm_source=x",
+    snippet: "A single state's premium filing.", sourceName: "Colorado Test" };
+  const alsoRejected = { title: "Celebrity overdose highlights addiction risk", link: "https://celebrity.test/overdose", snippet: "Entertainment news." };
+  const unrelated = { title: "Unrelated story left alone", link: "https://other.test/story" };
+  const rejectedIds = [exampleId(rejected.link), exampleId(alsoRejected.link), exampleId(seed.articles[1].url), exampleId("https://gone.test/aged-out")];
+  const examples = buildReferenceExamples(seed, [rejected, alsoRejected, unrelated, { link: seed.articles[1].url, title: "Insurer wins community award" }], { rejectedIds });
+  const rejections = examples.filter((row) => row.include === false);
+  // A must-include seed row wins a conflict, and an article no longer archived is skipped.
+  assert.deepEqual(rejections.map((row) => row.url).sort(), [alsoRejected.link, rejected.link].sort());
+  assert.ok(rejections.every((row) => row.sentiment === null && row.provenance === "human label review"));
+  // Retrieval reserves slots so a rejection is shown despite far more inclusions.
+  const many = [...examples, ...Array.from({ length: 30 }, (_, index) => ({ id: `id-${index}`, url: `https://kept.test/${index}`,
+    title: `Colorado premiums item alpha${index}zz`, outlet: "", excerpt: "", context: "", include: true, sentiment: null }))];
+  const candidate = { title: "Colorado insurer premiums climb again next year", link: "https://new.test/colorado" };
+  const inclusion = selectReferenceExamples(candidate, many, { task: "inclusion", limit: 8 });
+  assert.equal(inclusion.length, 8);
+  assert.equal(inclusion.filter((entry) => entry.expected.include === false).length, 2);
+  assert.equal(selectReferenceExamples(candidate, many, { task: "sentiment", limit: 16 }).some((entry) => entry.expected.include === false), false);
+  // An article is never shown its own rejection.
+  const own = selectReferenceExamples(rejected, many, { task: "inclusion", limit: 8 });
+  assert.ok(own.every((entry) => entry.article.title !== rejected.title));
+  // The committed profile carries the 17 decisions as hashes and nothing else.
+  const profile = await loadAlignmentProfile("src/rubrics/editorial-alignment-v2.json");
+  assert.equal(profile.references.rejectedIds.length, 17);
+  assert.ok(profile.references.rejectedIds.every((id) => /^[a-f0-9]{64}$/.test(id)));
+  const directory = await mkdtemp(path.join(tmpdir(), "jev-rejections-"));
+  try {
+    const bad = path.join(directory, "profile.json");
+    await writeFile(bad, JSON.stringify({ ...profile, references: { ...profile.references, rejectedIds: ["https://colorado.test"] } }));
+    await assert.rejects(loadAlignmentProfile(bad));
   } finally { await rm(directory, { recursive: true, force: true }); }
 });

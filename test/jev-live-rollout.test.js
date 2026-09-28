@@ -23,7 +23,7 @@ function answer(include = 0.98, confidence = 0.9) {
 }
 
 test("live scope protects history, prioritizes new articles, and saves original decisions once", async () => {
-  const alignment = await loadAlignmentProfile("src/rubrics/editorial-alignment-v1.json");
+  const alignment = await loadAlignmentProfile("src/rubrics/editorial-alignment-v2.json");
   const old = { ...brand, firstSeenAt: new Date("2026-09-20T12:00:00Z") };
   const fresh = { ...brand, link: "https://vtdigger.org/new-program", firstSeenAt: now };
   const missingDate = { ...brand, link: "https://vtdigger.org/missing-discovery" };
@@ -48,7 +48,7 @@ test("live scope protects history, prioritizes new articles, and saves original 
 });
 
 test("invalid activation dates fail closed and low confidence preserves sentiment", async () => {
-  const alignment = await loadAlignmentProfile("src/rubrics/editorial-alignment-v1.json");
+  const alignment = await loadAlignmentProfile("src/rubrics/editorial-alignment-v2.json");
   const fresh = { ...brand, firstSeenAt: now };
   for (const enforceAfter of [undefined, "pending", "not-a-date"]) {
     const metrics = {};
@@ -93,7 +93,7 @@ test("dated history stays before activation across audit migrations and rediscov
 });
 
 test("an added article's note gives its subject and the scope it fits", async () => {
-  const alignment = await loadAlignmentProfile("src/rubrics/editorial-alignment-v1.json");
+  const alignment = await loadAlignmentProfile("src/rubrics/editorial-alignment-v2.json");
   const national = { title: "Trump administration to remove 760,000 Affordable Care Act enrollees over fraud claims",
     snippet: "Officials allege 760,000 marketplace enrollees were fraudulently enrolled.", link: "https://www.npr.org/aca-fraud",
     matchedTerms: ["ACA & marketplace"], sourceName: "NPR Health", pubDate: now, firstSeenAt: now,
@@ -143,7 +143,7 @@ test("a first-review line that states a rejection never leads an inclusion note"
 });
 
 test("a removal note does not name the model", async () => {
-  const alignment = await loadAlignmentProfile("src/rubrics/editorial-alignment-v1.json");
+  const alignment = await loadAlignmentProfile("src/rubrics/editorial-alignment-v2.json");
   const offTopic = { title: "Local restaurant opens second location", snippet: "A diner expands downtown.",
     link: "https://example.test/diner", matchedTerms: ["Health care"], sourceName: "VTDigger", pubDate: now,
     firstSeenAt: now, relevant: true, reason: "Old wording from the Jev relevance classifier." };

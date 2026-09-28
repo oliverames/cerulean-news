@@ -3,6 +3,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { cleanText } from "./utils.js";
+import { itemOutletName } from "./relevance.js";
 import { normalizeSentiment, SENTIMENT_VALUES } from "./summaries.js";
 
 export function exampleUrl(value) {
@@ -37,7 +38,7 @@ export function sameExampleStory(left, right) {
   return Math.min(at.size, bt.size) >= 5 && overlap(at, bt) >= 0.85;
 }
 
-export function buildReferenceExamples(seed, items = [], { conflictIds = [], excludedIds = [], storyGroupById = {} } = {}) {
+export function buildReferenceExamples(seed, items = [], { conflictIds = [], excludedIds = [], rejectedIds = [], storyGroupById = {} } = {}) {
   const byUrl = new Map(items.map((item) => [exampleUrl(item.link || item.url), item]));
   const conflicts = new Set(conflictIds), excluded = new Set(excludedIds);
   const rows = Array.isArray(seed?.articles) ? seed.articles : [];
@@ -50,7 +51,7 @@ export function buildReferenceExamples(seed, items = [], { conflictIds = [], exc
     if (labelsById.get(id).size > 1) conflicts.add(id);
   }
   const seen = new Set();
-  return rows.flatMap((row) => {
+  const included = rows.flatMap((row) => {
     const url = cleanText(row.url || ""), id = exampleId(url);
     if (!/^https?:\/\//i.test(url) || !cleanText(row.title || "") || seen.has(id) || excluded.has(id)) return [];
     seen.add(id);
@@ -65,6 +66,27 @@ export function buildReferenceExamples(seed, items = [], { conflictIds = [], exc
       include: true, sentiment: SENTIMENT_VALUES.includes(sentiment) ? sentiment : null,
       storyGroup: storyGroupById[id] || null, provenance: "human media tracker", sentimentConflict: conflicts.has(id) }];
   });
+  return [...included, ...buildRejectionExamples(items, { rejectedIds, excludedIds, storyGroupById, seen })];
+}
+
+// Human exclusion decisions, stored in Git only as URL hashes. The headline
+// and excerpt come from the archive copy, so a rejection whose article has
+// left the archive simply stops being offered. A URL the seed also lists as
+// a must-include clip is a conflict, and the inclusion wins.
+export function buildRejectionExamples(items = [], { rejectedIds = [], excludedIds = [], storyGroupById = {}, seen = new Set() } = {}) {
+  const wanted = new Set(rejectedIds), excluded = new Set(excludedIds);
+  const examples = [];
+  for (const item of items) {
+    const url = cleanText(item?.link || item?.url || ""), id = exampleId(url);
+    if (!wanted.has(id) || seen.has(id) || excluded.has(id) || !/^https?:\/\//i.test(url) || !cleanText(item.title || "")) continue;
+    seen.add(id);
+    examples.push({ id, url, title: cleanText(item.title).slice(0, 300),
+      outlet: cleanText(itemOutletName(item)).slice(0, 160),
+      excerpt: cleanText(item.snippet || item.description || "").slice(0, 700), context: "",
+      include: false, sentiment: null, storyGroup: storyGroupById[id] || null,
+      provenance: "human label review", sentimentConflict: false });
+  }
+  return examples;
 }
 
 export async function loadReferenceExamples(items, { env = process.env, config = {} } = {}) {
@@ -78,12 +100,14 @@ export async function loadReferenceExamples(items, { env = process.env, config =
   }
 }
 
+const REJECTION_SLOTS = 2;
+
 export function selectReferenceExamples(item, examples, { task, limit = 16, storyGroupById = {} } = {}) {
   if (!Number.isInteger(limit) || limit < 0 || limit > 200) throw new Error("Example limit must be 0–200");
   const query = terms([item.title, item.snippet, item.description].filter(Boolean).join(" "));
   const targetGroup = storyGroupById[exampleId(item.link || item.url)];
   const eligible = examples.filter((example) => !(targetGroup && targetGroup === example.storyGroup) && !sameExampleStory(item, example) &&
-    (task !== "sentiment" || SENTIMENT_VALUES.includes(example.sentiment)));
+    (task !== "sentiment" || (example.include !== false && SENTIMENT_VALUES.includes(example.sentiment))));
   const ranked = eligible.map((example) => ({ example, score: overlap(query, terms(`${example.title} ${example.context} ${example.excerpt}`)) }))
     .sort((left, right) => right.score - left.score || left.example.id.localeCompare(right.example.id));
   const chosen = [];
@@ -92,6 +116,12 @@ export function selectReferenceExamples(item, examples, { task, limit = 16, stor
   if (task === "sentiment") for (const label of SENTIMENT_VALUES) {
     const entry = ranked.find(({ example }) => example.sentiment === label);
     if (entry && chosen.length < limit && !chosen.some((existing) => sameExampleStory(existing, entry.example))) chosen.push(entry.example);
+  }
+  // Rejections are few beside more than a thousand inclusions, so ranking
+  // alone would almost never show one. Reserve the closest two, so every
+  // request shows where the team drew the line as well as what it kept.
+  if (task === "inclusion") for (const { example } of ranked.filter(({ example }) => example.include === false).slice(0, Math.min(REJECTION_SLOTS, Math.floor(limit / 4)))) {
+    if (!chosen.some((existing) => sameExampleStory(existing, example))) chosen.push(example);
   }
   for (const { example } of ranked) {
     if (chosen.length >= limit) break;

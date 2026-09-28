@@ -1,5 +1,5 @@
 {
-  "version": "editorial-examples-v1",
+  "version": "editorial-examples-v2",
   "profile": "atomic-references16",
   "references": {
     "knownTrainingIds": [
@@ -394,7 +394,26 @@
       "fea0f4d1736e221ea521944427d7e6a538d42364ee41ed6198bf812f3ddf99b1": "753ae4dcfbebf6e0610acaa5dde016f693adc06d661e00bdd07083d74396ba1a",
       "ff6a961fe16258b2cd773326d95b1899ca226b41cf481fab2f2ed6bfe5b1a03f": "699d08ae774638e2b39253c82e1af6304bbeec1bb18d13ba296b909d8232f900"
     },
-    "unknownIdPolicy": "eligible-from-current-human-seed"
+    "unknownIdPolicy": "eligible-from-current-human-seed",
+    "rejectedIds": [
+      "0749ba846b6fdd61c1c2e69b64942f26a3a8bf7abeb626aa3b90c5fd66b05aeb",
+      "0d0216d917d41f272159373266c52508356ec2ed73082d58a6e17cd1a99896e1",
+      "1b8f8cef97da12ec1b9015d245af1b163dcb46e713a87eccc305b424cddcc611",
+      "229ecc8ae5ec185266dbf8f44f9b542b718d53f59be9b99f9df71e61d94f60e6",
+      "327eb5050995e2329aefb87c8fecad7f7d2ef51d06e7a77e1cf211173005d713",
+      "3488d9dce8985cdc007db8bb6a2ea8fae8bbf37b0ae001c6a482ce091f1540dd",
+      "3741e55827d856154ccb2c75b76d2125037cbd3f41cb264be3b3de3ad89ae786",
+      "56b7aa60b7770fa54e0546f8d2e316619c27aa55b8d898b296d451fe28561959",
+      "631c2ab6ab74810b304ee11b4456ad1cc5995db519d13d86ac234eb5505619ff",
+      "722fb8895b22d86fb679f2dadbf456d9f59824e6a9627fe7365f2db3cc271882",
+      "806d8c2d211ca0b23bb45a876ec95b9d29b694b9407c74fa2292f32f488946bd",
+      "9d132a878a130a4f03b51a3460b5aa0dd2c4323a3d7190487a1530c7fa38c54a",
+      "ab1bbd1ac93b368d53fb80397863ad521770594730c5e09cec1997bec49e65de",
+      "adde5b96c18ae6b7eb5aa2a014a6a916c02380985b8462b0b5670747c14d60e5",
+      "af01c731996da3101eaab7f6b3da75662a0a35dab58cc252080afee6d00c58cf",
+      "c54220d65c175d7f53385ce103fac2517b74523211763e30b3678ffc8387180c",
+      "e4afb49bdc73cf3400315b5b620f6a15bb06106e8dda767e684229b9042d3ffe"
+    ]
   },
   "provenance": {
     "method": "Fixed grouped retrospective split; no validation model outputs used to construct this manifest.",
@@ -402,7 +421,8 @@
     "groupIdFunction": "SHA-256 of cerulean-story-group-v1, newline, and sorted member exampleIds joined by newlines.",
     "sourceSeedDigest": "3183b9d0e12f422b258d9207fd3d1d27170b73c1789168856d280cf3ed7c4d68",
     "sourceSeedDigestPurpose": "Audit reference only. Future authorized seed additions remain eligible unless explicitly excluded.",
-    "rawReferenceSource": "data/media-tracker-seed.json, privately materialized from the existing workflow secret."
+    "rawReferenceSource": "data/media-tracker-seed.json, privately materialized from the existing workflow secret.",
+    "rejectedIds": "Human exclusion decisions from the 2026-09-24 Label Desk review (exampleId of each rejected URL). Headline and excerpt are read from the archive at run time; nothing else is stored."
   },
   "strategy": "atomic-references",
   "inclusionExamples": 8,

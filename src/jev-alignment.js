@@ -1,8 +1,9 @@
 // Supported request-level adaptation, not customer-specific model weights.
 import { readFile } from "node:fs/promises";
 import { selectReferenceExamples } from "./jev-examples.js";
+import { INCLUSION_PRIORITIES, INCLUSION_RULES } from "./summaries.js";
 
-export const ALIGNMENT_VERSION = "editorial-examples-v1";
+export const ALIGNMENT_VERSION = "editorial-examples-v2";
 
 const SCOPE_QUESTIONS = {
   scope_brand: {
@@ -12,13 +13,13 @@ const SCOPE_QUESTIONS = {
   },
   scope_regional: {
     type: "noul",
-    instructions: "Is the article substantively about health care in Vermont or New England, or a nearby provider serving Vermont such as CVPH? Include small local provider operations, access, budgets, leadership, public health, mental-health awareness, and community health events. A local publisher can identify local institutions but does not make a syndicated foreign/national story local. Incidental treatment in a crash/crime brief is not health-care reporting.",
+    instructions: "Is the article substantively about health care in Vermont or New England, or a nearby provider serving Vermont such as CVPH? Include small local provider operations, access, budgets, leadership, public health, mental-health awareness, and community health events. A local publisher can identify local institutions but does not make a syndicated foreign/national story local. Incidental treatment in a crash/crime brief is not health-care reporting. Health news from another state outside New England is not regional, and company, vendor, or law-firm promotions from outside New England do not qualify. Apply the supplied priorities and rules.",
     criteria: { true: "Substantive Vermont/New England or Vermont-serving provider/public-health coverage.", false: "Health care is incidental, or the subject is outside the region with no Vermont-serving provider connection." },
   },
   scope_policy: {
     type: "noul",
-    instructions: "Is the article substantively about US health insurance/payer business, health coverage or benefits, health policy/regulation/public financing, or drug coverage? Any US geography qualifies, with no requirement to mention Vermont. Include Medicare/Medicaid, insurance premiums, prior authorization, coverage guidance, government health grants, health-care legislation, and hospital-payer contracts. Exclude general clinical advice, isolated foreign outbreaks, unrelated politics, and a provider/vendor advertisement with no substantive payer/policy/coverage development.",
-    criteria: { true: "US payer/insurance, benefit/coverage, health-policy, or drug-coverage reporting or substantive commentary.", false: "No substantive qualifying payer, policy, or coverage subject." },
+    instructions: "Is the article substantively national US health news of the kind the supplied priorities list: federal health policy and programs (ACA, Medicare, Medicare Advantage, Medicaid), the insurance/payer industry and PBMs, drugs, vaccines, and FDA decisions, national public-health data, health costs and affordability, or health politics? National reporting qualifies without mentioning Vermont. Another state's own Medicaid administration, marketplace premiums, rate filings, lawsuits, or a single employer's health plan outside New England does NOT qualify, even when it names national companies, unless it involves a Blue Cross or Blue Shield plan or the Blue Cross Blue Shield Association, or federal or multi-state policy. Also exclude individual out-of-region patient, crime, or human-interest stories, consumer how-to advice, isolated foreign outbreaks, unrelated politics, and company, vendor, or law-firm promotions outside New England. Apply the supplied priorities and rules.",
+    criteria: { true: "National US health policy, program, payer-industry, drug, public-health, cost, or health-politics reporting or substantive commentary.", false: "No qualifying national subject, or a single state's own program, market, lawsuit, or employer plan outside New England, a how-to, or an out-of-region promotion." },
   },
 };
 
@@ -31,15 +32,24 @@ export function addEditorialAlignment(request, item, { examples = [], strategy =
   const old = result.questions.include.instructions;
   result.questions.include.instructions = {
     ...(typeof old === "object" ? old : { question: old }),
-    reference_guidance: "Evaluate only article. The paired reference articles show the communications team's human inclusion decisions. Generalize their editorial purpose to new articles; shared words alone do not establish relevance. These positive examples do not imply that every candidate belongs.",
+    reference_guidance: "Evaluate only article. The paired reference articles show the communications team's human inclusion decisions: articles it kept (include true) and articles it left out (include false). Generalize their editorial purpose to new articles; shared words alone do not establish relevance. Most examples are inclusions, which does not imply that every candidate belongs.",
     reference_examples: includeRefs,
   };
   if (strategy.startsWith("atomic")) {
     Object.assign(result.questions, structuredClone(SCOPE_QUESTIONS));
+    // The decision uses these scope answers, not the include answer, so the
+    // regional and national scopes carry the shared editorial policy. Without
+    // it, rule changes made for Gemini and the include question never reached
+    // the decision (#15).
+    for (const name of ["scope_regional", "scope_policy"]) {
+      result.questions[name].instructions = { question: result.questions[name].instructions,
+        priorities: INCLUSION_PRIORITIES, rules: INCLUSION_RULES };
+    }
     if (useReferences && includeRefs.length) for (const name of Object.keys(SCOPE_QUESTIONS)) {
+      const scoped = result.questions[name].instructions;
       result.questions[name].instructions = {
-        question: result.questions[name].instructions,
-        reference_guidance: "These are human examples of OVERALL inclusion, not labels for this individual scope question. Learn the editorial intent, then assess whether the target article satisfies this specific scope. A reference can qualify through a different scope.",
+        ...(typeof scoped === "object" ? scoped : { question: scoped }),
+        reference_guidance: "These are human examples of OVERALL inclusion and exclusion, not labels for this individual scope question. Learn the editorial intent, then assess whether the target article satisfies this specific scope. A reference can qualify through a different scope.",
         reference_examples: includeRefs,
       };
     }
@@ -81,6 +91,7 @@ export async function loadAlignmentProfile(filename) {
       profile.inclusionExamples < 1 || profile.inclusionExamples > 16 ||
       !Number.isInteger(profile.sentimentExamples) || profile.sentimentExamples < 1 || profile.sentimentExamples > 32 ||
       !profile.references || !Array.isArray(profile.references.excludedIds) || !Array.isArray(profile.references.conflictIds) ||
+      (profile.references.rejectedIds !== undefined && (!Array.isArray(profile.references.rejectedIds) || !profile.references.rejectedIds.every(id => hash.test(id)))) ||
       !profile.references.excludedIds.every(id => hash.test(id)) || !profile.references.conflictIds.every(id => hash.test(id)) ||
       !profile.references.storyGroupById || typeof profile.references.storyGroupById !== "object" ||
       !Object.entries(profile.references.storyGroupById).every(([id, group]) => hash.test(id) && hash.test(group))) {

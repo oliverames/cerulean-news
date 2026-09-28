@@ -18,6 +18,14 @@ on:
         description: "Gemini requests this run (10 items each). Raise to sweep the archive in one pass."
         type: string
         default: ""
+      jev_max_items:
+        description: "Jev evaluations this run. Raise once to re-check the post-boundary cohort after a rubric change; empty keeps the repository setting."
+        type: string
+        default: ""
+      jev_concurrency:
+        description: "Jev requests in flight this run (default 2). Each takes about 25 seconds, so a raised cap needs more to finish inside the job timeout."
+        type: string
+        default: ""
       rebuild_brand_excerpts:
         description: "Refetch brand articles whose excerpt never names Blue Cross VT, and rebuild those excerpts (one-time repair)"
         type: boolean
@@ -213,8 +221,11 @@ jobs:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
           JEV_RELEVANCE: ${{ vars.JEV_RELEVANCE || 'shadow' }}
           JEV_ENFORCE_AFTER: ${{ vars.JEV_ENFORCE_AFTER || 'pending' }}
-          JEV_ALIGNMENT_PROFILE: src/rubrics/editorial-alignment-v1.json
-          JEV_RELEVANCE_MAX_ITEMS: ${{ vars.JEV_RELEVANCE_MAX_ITEMS || '25' }}
+          JEV_ALIGNMENT_PROFILE: src/rubrics/editorial-alignment-v2.json
+          # A manual dispatch can raise the cap for one run; scheduled runs
+          # keep the repository setting.
+          JEV_RELEVANCE_MAX_ITEMS: ${{ inputs.jev_max_items || vars.JEV_RELEVANCE_MAX_ITEMS || '25' }}
+          JEV_RELEVANCE_CONCURRENCY: ${{ inputs.jev_concurrency || vars.JEV_RELEVANCE_CONCURRENCY || '2' }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           # One-shot re-passes, opt-in from the Actions "Run workflow" dialog.

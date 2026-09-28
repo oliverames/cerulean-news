@@ -258,20 +258,20 @@ trends page groups by that rather than by `sourceName`.
 | `FACEBOOK_PAGE_MAX_POSTS` | No | `10` | Maximum post links to read from each configured Facebook page when social sources are enabled |
 | `JEV_RELEVANCE` | No | `off` locally, `enforce` in Actions | Jev evaluation: `off`, `shadow` (compare inclusion and sentiment), or `enforce` (apply confident verdicts) |
 | `JEV_ENFORCE_AFTER` | For aligned enforcement | repository activation timestamp | Only articles first discovered on or after this boundary can receive live Jev decisions |
-| `JEV_ALIGNMENT_PROFILE` | No | `src/rubrics/editorial-alignment-v1.json` in Actions | Human example guidance and independent editorial scope questions for incoming articles |
+| `JEV_ALIGNMENT_PROFILE` | No | `src/rubrics/editorial-alignment-v2.json` in Actions | Human example guidance and independent editorial scope questions for incoming articles |
 | `JEV_EXAMPLES_PATH` | No | `data/media-tracker-seed.json` | Private human reference seed, supplied by the existing Actions secret |
 | `JEV_RELEVANCE_RUBRIC_PATH` | No | `src/rubrics/relevance-v2.json` | Alternate rubric file, for trying a wording change without editing the versioned one |
 | `TYPESAFE_API_KEY` | For live Jev calls | empty | TypeSafe credential, supplied from the Actions secret of the same name |
 | `JEV_CLI_PATH` | No | empty | Explicit authenticated CLI fallback when no TypeSafe API key is supplied |
-| `JEV_RELEVANCE_MAX_ITEMS` | No | `25` | Maximum new article evaluations per run; cached evaluations do not consume this cap |
-| `JEV_RELEVANCE_CONCURRENCY` | No | `2` | Jev requests in flight at once |
+| `JEV_RELEVANCE_MAX_ITEMS` | No | `25` | Maximum new article evaluations per run; cached evaluations do not consume this cap. The publish workflow's `jev_max_items` dispatch input raises it for one manual run |
+| `JEV_RELEVANCE_CONCURRENCY` | No | `2` | Jev requests in flight at once. Each request takes about 25 seconds, so a raised cap needs more in flight to fit the 30-minute job; the `jev_concurrency` dispatch input sets it for one run |
 | `JEV_RELEVANCE_TIMEOUT_MS` | No | `30000` | Timeout for a single Jev request |
 
 ### Jev article evaluation
 
 Changing `JEV_RELEVANCE` back to `shadow` stops further changes but does not undo earlier applied decisions. The audit preserves each touched article's original judgment in `jevBaseline` for targeted restoration. Do not replace the entire archive, which would discard later arrivals.
 
-The human reference library is supplied with every new evaluation. Jev does not retain customer-specific model training. The current profile draws from 101 verified human selections, including 50 unambiguous sentiment labels. It retrieves up to eight inclusion examples and 16 sentiment examples per request. Selection checks brand coverage, regional health care, and national payer or health policy independently, then combines the qualifying scope signals. Word overlap selects reference context, while Jev judges editorial meaning.
+The human reference library is supplied with every new evaluation. Jev does not retain customer-specific model training. The profile (`editorial-examples-v2`) draws on every row of the private seed: tracker clips and clip-email rows as inclusions (1,567 on 2026-09-28), 68 unambiguous sentiment labels, and 17 exclusions Oliver made in the 2026-09-24 Label Desk review. The exclusions are committed only as URL hashes. Their headlines and excerpts come from the archive, so one stops being offered when its article leaves the archive. Each request retrieves up to eight inclusion examples, two of them reserved for the closest exclusions, and 16 sentiment examples. Selection checks brand coverage, regional health care, and national health news independently, then takes the strongest of the three. The regional and national questions carry the same `INCLUSION_PRIORITIES` and `INCLUSION_RULES` as Gemini, because those scope answers, not the `include` answer, decide inclusion ([#15](https://github.com/oliverames/cerulean-news/issues/15)). Word overlap selects reference context, while Jev judges editorial meaning.
 
 The versioned profile reserves evaluation groups and excludes known conflicting sentiment labels. It removes the candidate itself and known same-story examples before retrieval. Raw articles and labels remain in the existing private tracker input. Future articles receive this guidance automatically. New human feedback enters when the private seed is updated, rather than from recycling model judgments. Missing references preserve existing decisions and produce an explicit audit status.
 
@@ -293,7 +293,7 @@ Successful evaluations are cached by the exact request, rubric versions, and mod
 
 ### Offline archive comparison
 
-`node scripts/evaluate-jev.js --snapshot PATH --holdout PRIVATE_LABELS --output artifacts/jev-evaluation/RUN_NAME` evaluates every retained candidate with the same requests and deterministic rules as publishing. Supply `TYPESAFE_API_KEY` through 1Password runtime injection. Add `--alignment src/rubrics/editorial-alignment-v1.json` to evaluate the deployed human-example configuration, using the same private seed. `--concurrency` defaults to four; `--limit` supports a bounded initial run.
+`node scripts/evaluate-jev.js --snapshot PATH --holdout PRIVATE_LABELS --output artifacts/jev-evaluation/RUN_NAME` evaluates every retained candidate with the same requests and deterministic rules as publishing. Supply `TYPESAFE_API_KEY` through 1Password runtime injection. Add `--alignment src/rubrics/editorial-alignment-v2.json` to evaluate the deployed human-example configuration, using the same private seed. `--concurrency` defaults to four; `--limit` supports a bounded initial run.
 
 Use a fixed audit snapshot and private labels keyed by URL, with `expectedSentiment`, `isCleanHoldout`, and `isCleanConservativeHoldout` flags. Those labels join after request construction and never enter model input. The evaluator records all deterministic skips, model uncertainty, selection changes, sentiment confidence, paired human-label comparisons, per-label performance, and an always-positive reference score. It distinguishes source excerpts from generated-summary fallback. Existing model judgments are a comparison baseline, not truth.
 

@@ -577,7 +577,9 @@ export async function applyJevRelevance(items, options = {}) {
       ? { status: "loaded", examples: options.referenceExamples }
       : await loadReferenceExamples(items, { env, config: alignment.references });
     Object.assign(metrics, { alignmentVersion: alignment.version, referenceStatus: reference.status,
-      inclusionReferences: reference.examples.length, sentimentReferences: reference.examples.filter(row => row.sentiment).length });
+      inclusionReferences: reference.examples.filter(row => row.include !== false).length,
+      rejectionReferences: reference.examples.filter(row => row.include === false).length,
+      sentimentReferences: reference.examples.filter(row => row.sentiment).length });
     if (reference.status !== "loaded" || !reference.examples.length) {
       metrics.status = "examples_unavailable";
       console.warn(`Jev evaluation (${mode}): human references ${reference.status}; keeping existing decisions.`);
