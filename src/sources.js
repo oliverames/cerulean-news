@@ -70,16 +70,23 @@ export const DEFAULT_SOURCES = [
     homepage: "https://www.wcax.com/",
     feedUrl:
       "https://www.wcax.com/arc/outboundfeeds/whiz-rss/category/news/?outputType=xml&size=50&sort=display_date%3Adesc",
+    // Brand body scan: every article is fetched unless its feed text already
+    // names us, because a brief or roundup can name Blue Cross VT only in the
+    // body. These four outlets carry the most hand-logged clips among direct
+    // feeds (VermontBiz has more but refuses the runner with 403).
+    articleScanMode: "brandBody",
   },
   {
     name: "VTDigger",
     homepage: "https://vtdigger.org/",
     feedUrl: "https://vtdigger.org/feed/",
+    articleScanMode: "brandBody",
   },
   {
     name: "Vermont Public",
     homepage: "https://www.vermontpublic.org/",
     feedUrl: "https://www.vermontpublic.org/local-news.rss",
+    articleScanMode: "brandBody",
   },
   {
     name: "Seven Days",
@@ -158,6 +165,7 @@ export const DEFAULT_SOURCES = [
       "https://www.timesargus.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc",
     fallbackFeed: localOutletFallbackFeed("timesargus.com"),
     ...TOWNNEWS_SEARCH_THROTTLE,
+    articleScanMode: "brandBody",
   },
   {
     name: "Times Argus UVM Health Search",
@@ -543,7 +551,8 @@ export const DEFAULT_SOURCES = [
     ),
     isSearchFeed: true,
     searchFallbackTerms: ["Blue Cross"],
-    scanArticle: false,
+    // Scanned since 2026-09-28 at Oliver's request: a spelling-variant hit
+    // whose snippet omits the brand is confirmed from the article body.
     maxItemAgeDays: 30,
     maxItems: 10,
   },

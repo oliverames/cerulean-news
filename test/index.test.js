@@ -6756,3 +6756,15 @@ test("topic terms added from the clip-email misses match health stories and skip
   assert.deepEqual(labels("Singer performs the national anthem at the game"), []);
   assert.deepEqual(labels("Many homeowners have a big insurance coverage gap"), []);
 });
+
+test("the outlets with the most hand-logged clips scan article bodies for the brand", () => {
+  const byName = new Map(DEFAULT_SOURCES.map((source) => [source.name, source]));
+  for (const name of ["WCAX", "VTDigger", "Vermont Public", "Times Argus"]) {
+    assert.equal(byName.get(name).articleScanMode, "brandBody", name);
+  }
+  // VermontBiz refuses the runner, so it is not body-scanned.
+  assert.equal(byName.get("Vermont Business Magazine").articleScanMode, undefined);
+  const variant = byName.get("Google News Blue Cross Spelling Variant Search");
+  assert.notEqual(variant.scanArticle, false);
+  assert.deepEqual(variant.searchFallbackTerms, ["Blue Cross"]);
+});
