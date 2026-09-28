@@ -11,7 +11,7 @@
 <p align="center">
   <code>97 default sources</code> &bull;
   <code>RSS + JSON Feed</code> &bull;
-  <code>Cloudflare Pages refresh every 30 minutes</code>
+  <code>Cloudflare Pages refresh several times a day</code>
 </p>
 
 <p align="center">
@@ -151,7 +151,7 @@ Each story can include:
 
 When several outlets report one event, the reader and RSS feed show it once, led by the newest report. An "Also covered by" line beneath it links each other outlet's report by name, with that report's headline on hover. `src/story-groups.js` compares headlines and summaries published within three days, including shared figures such as "760,000." An article joins a group only when it matches more than half of the group's articles. Blue Cross VT coverage, letters, columns, and roundups are not grouped, and one outlet's own articles group only when their headlines are nearly identical. Grouping is display only. The JSON Feed keeps every article and marks group members with a shared `storyGroupId`, so coverage counts and the trends page are unchanged. Search runs before grouping, so a search for one outlet still finds its report.
 
-The browser does not recrawl sources. GitHub Actions does the collection and deploys the latest feed about every 30 minutes; reloading the page loads the latest published feed.
+The browser does not recrawl sources. GitHub Actions does the collection and deploys the latest feed several times a day; reloading the page loads the latest published feed.
 
 ## Sentiment
 
@@ -263,7 +263,7 @@ trends page groups by that rather than by `sourceName`.
 | `JEV_RELEVANCE_RUBRIC_PATH` | No | `src/rubrics/relevance-v2.json` | Alternate rubric file, for trying a wording change without editing the versioned one |
 | `TYPESAFE_API_KEY` | For live Jev calls | empty | TypeSafe credential, supplied from the Actions secret of the same name |
 | `JEV_CLI_PATH` | No | empty | Explicit authenticated CLI fallback when no TypeSafe API key is supplied |
-| `JEV_RELEVANCE_MAX_ITEMS` | No | `25` | Maximum new article evaluations per run; cached evaluations do not consume this cap. The publish workflow's `jev_max_items` dispatch input raises it for one manual run |
+| `JEV_RELEVANCE_MAX_ITEMS` | No | `25` | Maximum new article evaluations per run; cached evaluations do not consume this cap. At about five scheduled runs a day, the default allows roughly 125 evaluations a day. The publish workflow's `jev_max_items` dispatch input raises it for one manual run |
 | `JEV_RELEVANCE_CONCURRENCY` | No | `2` | Jev requests in flight at once. Each request takes about 25 seconds, so a raised cap needs more in flight to fit the 30-minute job; the `jev_concurrency` dispatch input sets it for one run |
 | `JEV_RELEVANCE_TIMEOUT_MS` | No | `30000` | Timeout for a single Jev request |
 
@@ -404,7 +404,7 @@ RSS_ARTICLE_SCAN=false \
 npm run generate
 ```
 
-The publish workflow runs on pushes to `main`, manual dispatches, and a schedule of every 30 minutes (at :17 and :47). Every run installs dependencies and runs the test suite. Scheduled and manual runs then generate the feed. Pushes that only change static reader or documentation files reuse the live feed seeded into `site/` and deploy the static artifact without crawling every source again.
+The publish workflow runs on pushes to `main`, manual dispatches, and a schedule. The cron asks for every 30 minutes (at :17 and :47), but GitHub [delays scheduled runs under load and may drop them](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows). From 2026-09-26 to 09-28, runs started about five times a day, 2.5 to 8.3 hours apart. Nothing in the cron can change that, so plan capacity on about five runs a day and use a manual dispatch for an immediate refresh. Every run installs dependencies and runs the test suite. Scheduled and manual runs then generate the feed. Pushes that only change static reader or documentation files reuse the live feed seeded into `site/` and deploy the static artifact without crawling every source again.
 
 ## License
 
