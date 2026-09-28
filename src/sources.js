@@ -592,11 +592,29 @@ export const DEFAULT_SOURCES = [
     maxItems: 15,
   },
   {
+    // The three-clause OR form returned 2 items on 2026-09-28; its clauses
+    // alone returned 33, 55, and 17, so each clause is its own search.
     name: "Google News Vermont Health Search A",
     homepage: "https://news.google.com/",
-    feedUrl: googleNewsSearchUrl(
-      '((Vermont AND "healthcare") OR (Vermont AND "health care") OR (Vermont AND "hospitals")) when:7d',
-    ),
+    feedUrl: googleNewsSearchUrl('Vermont "healthcare" when:7d'),
+    isSearchFeed: true,
+    scanArticle: false,
+    maxItemAgeDays: 7,
+    maxItems: 25,
+  },
+  {
+    name: "Google News Vermont Health Search F",
+    homepage: "https://news.google.com/",
+    feedUrl: googleNewsSearchUrl('Vermont "health care" when:7d'),
+    isSearchFeed: true,
+    scanArticle: false,
+    maxItemAgeDays: 7,
+    maxItems: 25,
+  },
+  {
+    name: "Google News Vermont Health Search G",
+    homepage: "https://news.google.com/",
+    feedUrl: googleNewsSearchUrl("Vermont hospitals when:7d"),
     isSearchFeed: true,
     scanArticle: false,
     maxItemAgeDays: 7,
@@ -645,20 +663,6 @@ export const DEFAULT_SOURCES = [
     scanArticle: false,
     maxItemAgeDays: 7,
     maxItems: 25,
-  },
-  {
-    name: "Google News Kristina Source Search",
-    homepage: "https://news.google.com/",
-    feedUrl: googleNewsSearchUrl(
-      [
-        "(site:burlingtonfreepress.com OR site:wsj.com OR site:abcnews.go.com OR site:cbsnews.com OR site:cnn.com OR site:beckershospitalreview.com OR site:samessenger.com OR site:vermontdailychronicle.com)",
-        '("Vermont" OR "Blue Cross" OR "health care" OR healthcare OR "health insurance" OR Medicare OR Medicaid OR hospital OR insurer OR payer)',
-      ].join(" ") + " when:14d",
-    ),
-    isSearchFeed: true,
-    scanArticle: false,
-    maxItemAgeDays: 14,
-    maxItems: 75,
   },
   {
     name: "Google News Health Insurance Search",
@@ -764,6 +768,21 @@ export const DEFAULT_SOURCES = [
     maxItemAgeDays: 180,
   },
   {
+    // Becker's Hospital Review recurs in the team's clip log. Google ignores
+    // topic scoping for this site and returns its whole feed, so it is
+    // brand-scoped like the other trade press. Formerly reached through the
+    // retired Kristina source search.
+    name: "Becker's Hospital Review",
+    homepage: "https://www.beckershospitalreview.com/",
+    feedUrl: googleNewsSearchUrl(
+      `site:beckershospitalreview.com ${TRADE_PRESS_BRAND_QUERY}`,
+    ),
+    isSearchFeed: true,
+    scanArticle: false,
+    maxItems: 25,
+    maxItemAgeDays: 180,
+  },
+  {
     name: "Modern Healthcare",
     homepage: "https://www.modernhealthcare.com/",
     feedUrl: googleNewsSearchUrl(
@@ -813,33 +832,74 @@ export const DEFAULT_SOURCES = [
     scanArticle: false,
     maxItems: 50,
   },
+  // Short single-site searches replace three long OR queries (Health Trade,
+  // National Health Policy, and the Kristina source list) that on 2026-09-24
+  // returned mostly off-topic or years-old results. Each one returned 46-100
+  // in-window items on 2026-09-28. Outlets with a direct feed here are left
+  // out, and so are Becker's Hospital Review and Modern Healthcare, whose
+  // volume would crowd out the per-run summary and Jev caps.
   {
-    name: "Google News Health Trade Search",
+    name: "Google News NYT Health Search",
     homepage: "https://news.google.com/",
-    feedUrl: googleNewsSearchUrl(
-      [
-        "(site:modernhealthcare.com OR site:beckerspayer.com OR site:beckershospitalreview.com OR site:fiercehealthcare.com OR site:statnews.com OR site:healthcaredive.com)",
-        '("Medicare Advantage" OR "prior authorization" OR PBM OR "No Surprises Act" OR Medicaid OR Medicare OR "health insurers" OR "health plans" OR "medical debt" OR "GLP-1" OR payer OR "price transparency" OR "reimbursement cuts" OR "claim denials" OR "rural hospitals" OR physicians OR "340B")',
-      ].join(" ") + " when:14d",
-    ),
+    feedUrl: googleNewsSearchUrl("site:nytimes.com health when:7d"),
     isSearchFeed: true,
     scanArticle: false,
-    maxItemAgeDays: 14,
-    maxItems: 75,
+    maxItemAgeDays: 7,
+    maxItems: 40,
   },
   {
-    name: "Google News National Health Policy Search",
+    name: "Google News Washington Post Health Search",
     homepage: "https://news.google.com/",
-    feedUrl: googleNewsSearchUrl(
-      [
-        "(site:abcnews.go.com OR site:apnews.com OR site:cbsnews.com OR site:cnn.com OR site:nbcnews.com OR site:nytimes.com OR site:washingtonpost.com OR site:wsj.com OR site:axios.com OR site:npr.org OR site:thehill.com OR site:kffhealthnews.org OR site:newsfromthestates.com OR site:stateline.org)",
-        '("Medicare Advantage" OR "prior authorization" OR Medicaid OR Medicare OR Obamacare OR ACA OR "medical debt" OR "No Surprises Act" OR GLP-1 OR vaccines OR "health insurance" OR "health care costs" OR "price transparency" OR menopause OR maternity OR "private equity")',
-      ].join(" ") + " when:14d",
-    ),
+    feedUrl: googleNewsSearchUrl("site:washingtonpost.com health when:7d"),
     isSearchFeed: true,
     scanArticle: false,
-    maxItemAgeDays: 14,
-    maxItems: 75,
+    maxItemAgeDays: 7,
+    maxItems: 40,
+  },
+  {
+    name: "Google News WSJ Health Search",
+    homepage: "https://news.google.com/",
+    feedUrl: googleNewsSearchUrl("site:wsj.com health when:7d"),
+    isSearchFeed: true,
+    scanArticle: false,
+    maxItemAgeDays: 7,
+    maxItems: 40,
+  },
+  {
+    name: "Google News AP Health Search",
+    homepage: "https://news.google.com/",
+    feedUrl: googleNewsSearchUrl("site:apnews.com health when:7d"),
+    isSearchFeed: true,
+    scanArticle: false,
+    maxItemAgeDays: 7,
+    maxItems: 40,
+  },
+  {
+    name: "Google News Axios Health Search",
+    homepage: "https://news.google.com/",
+    feedUrl: googleNewsSearchUrl("site:axios.com health when:7d"),
+    isSearchFeed: true,
+    scanArticle: false,
+    maxItemAgeDays: 7,
+    maxItems: 40,
+  },
+  {
+    name: "Google News NBC News Health Search",
+    homepage: "https://news.google.com/",
+    feedUrl: googleNewsSearchUrl("site:nbcnews.com health when:7d"),
+    isSearchFeed: true,
+    scanArticle: false,
+    maxItemAgeDays: 7,
+    maxItems: 40,
+  },
+  {
+    name: "Google News Becker's Payer Search",
+    homepage: "https://news.google.com/",
+    feedUrl: googleNewsSearchUrl("site:beckerspayer.com when:7d"),
+    isSearchFeed: true,
+    scanArticle: false,
+    maxItemAgeDays: 7,
+    maxItems: 40,
   },
 ];
 
@@ -1105,15 +1165,24 @@ export const VERMONT_SOURCE_NAMES = new Set([
 
 export const BROAD_NATIONAL_SOURCE_NAMES = new Set([
   "ABC News Health",
+  "Becker's Hospital Review",
   "Becker's Payer Issues",
   "CBS News Health",
   "CNN Health",
   "Fierce Healthcare",
   "Health Payer Specialist",
   "Google News Health Insurance Search",
+  // Retired searches stay listed so their archived items keep this rule.
   "Google News Health Trade Search",
   "Google News Kristina Source Search",
   "Google News National Health Policy Search",
+  "Google News NYT Health Search",
+  "Google News Washington Post Health Search",
+  "Google News WSJ Health Search",
+  "Google News AP Health Search",
+  "Google News Axios Health Search",
+  "Google News NBC News Health Search",
+  "Google News Becker's Payer Search",
   "Healthcare Dive",
   "KFF Health News",
   "Modern Healthcare",

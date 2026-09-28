@@ -218,7 +218,7 @@ test("default sources cover recurring clip-log outlets", () => {
         .join(" "),
     ).join(" "),
   ).replaceAll("+", " ");
-  assert.equal(DEFAULT_SOURCES.length, 97);
+  assert.equal(DEFAULT_SOURCES.length, 104);
 
   const expectedHosts = [
     "bcbs.com",
@@ -348,9 +348,9 @@ test("default sources cover recurring clip-log outlets", () => {
     '"Blue Cross and Blue Shield" AND Vermont',
     '"Blue Cross and Blue Shield" AND VT',
     '"Bluecross Blueshield" AND Vermont',
-    'Vermont AND "healthcare"',
-    'Vermont AND "health care"',
-    'Vermont AND "hospitals"',
+    'Vermont "healthcare"',
+    'Vermont "health care"',
+    "Vermont hospitals",
     '"health insurers"',
     '"health care" AND affordability',
     '"UVM Health"',
@@ -402,7 +402,7 @@ test("current Google News searches apply their freshness window to the full quer
     (source) => source.name === "Google News Blue Cross Boolean Search A",
   );
   const vermontHealth = DEFAULT_SOURCES.filter(
-    (source) => /^Google News Vermont Health Search [A-E]$/.test(source.name),
+    (source) => /^Google News Vermont Health Search [A-G]$/.test(source.name),
   );
   const siteSearchQuery = new URL(siteSearch.feedUrl).searchParams.get("q");
   const blueCrossQuery = new URL(currentBlueCross.feedUrl).searchParams.get("q");
@@ -411,22 +411,22 @@ test("current Google News searches apply their freshness window to the full quer
   assert.equal(siteSearchQuery.split(/\s+/).includes("bluecrossvt.org"), false);
   assert.match(blueCrossQuery, /\) when:30d$/);
   assert.equal(currentBlueCross.maxItemAgeDays, 30);
-  assert.equal(vermontHealth.length, 5);
+  assert.equal(vermontHealth.length, 7);
 
   const healthQueries = vermontHealth.map((source) =>
     new URL(source.feedUrl).searchParams.get("q"),
   );
   for (const [index, query] of healthQueries.entries()) {
-    assert.match(query, /^\(.+\) when:7d$/);
+    assert.match(query, / when:7d$/);
     assert.ok(query.length <= 120, `${vermontHealth[index].name}: ${query.length}`);
     assert.equal(vermontHealth[index].maxItemAgeDays, 7);
   }
 
   const combinedQueries = healthQueries.join(" ");
   for (const term of [
-    'Vermont AND "healthcare"',
-    'Vermont AND "health care"',
-    'Vermont AND "hospitals"',
+    'Vermont "healthcare"',
+    'Vermont "health care"',
+    "Vermont hospitals",
     '"health insurers"',
     '"health care" AND affordability',
     '"UVM Health"',
@@ -4928,6 +4928,8 @@ test("every curated source is either a registered Vermont outlet or an explicit 
     "Google News Vermont Health Search C",
     "Google News Vermont Health Search D",
     "Google News Vermont Health Search E",
+    "Google News Vermont Health Search F",
+    "Google News Vermont Health Search G",
     "Google News Kristina Source Search",
     "Google News Health Insurance Search",
     "Google News Health Trade Search",
