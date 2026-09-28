@@ -1,0 +1,54 @@
+# Cerulean News mail Worker: subscriptions and delivery through Cloudflare
+# Email Service. A separate Worker from the parked fetch-relay build in
+# ../wrangler.toml. Setup steps are in README.md.
+name = "cerulean-news-mail"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+# The confirmation, unsubscribe, and preferences links all live on
+# cerulean.news, so the Worker has no workers.dev address.
+workers_dev = false
+preview_urls = false
+
+# The route takes /api/mail/* ahead of the Pages site on the same zone.
+routes = [
+  { pattern = "cerulean.news/api/mail/*", zone_name = "cerulean.news" },
+]
+
+[vars]
+SITE_URL = "https://cerulean.news"
+MAIL_FROM = "news@cerulean.news"
+MAIL_FROM_NAME = "Cerulean News"
+
+# All three fire in UTC, which does not follow daylight saving time.
+#   */30 * * * *   alerts every 30 minutes, plus digest and monthly catch-up
+#   5 11 * * *     daily digest: 7:05 a.m. EDT, 6:05 a.m. EST
+#   5 13 1 * *     monthly report on day 1: 9:05 a.m. EDT, 8:05 a.m. EST
+# Keep these strings identical to CRON_ALERTS, CRON_DIGEST, and CRON_MONTHLY
+# in worker.js.
+[triggers]
+crons = ["*/30 * * * *", "5 11 * * *", "5 13 1 * *"]
+
+# TODO(Oliver): replace database_id with the id printed by
+#   npx wrangler@4 d1 create cerulean-news-mail
+# The deploy workflow refuses to run while the placeholder is still here.
+[[d1_databases]]
+binding = "DB"
+database_name = "cerulean-news-mail"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+# The binding can send only from this address, so a bug or a leaked deploy
+# token cannot make the Worker send as anyone else on the domain.
+[[send_email]]
+name = "EMAIL"
+allowed_sender_addresses = ["news@cerulean.news"]
+
+[observability]
+enabled = true
+
+# Secret (never in this file): MAIL_SIGNING_SECRET, set with
+#   npx wrangler@4 secret put MAIL_SIGNING_SECRET
+# Optional vars, all with defaults in worker.js settings(): MAX_SENDS_PER_RUN,
+# SEND_CONCURRENCY, SUBSCRIBE_LIMIT_PER_HOUR, MAX_CONFIRMATIONS_PER_DAY,
+# CONFIRM_TTL_HOURS, DIGEST_MAX_AGE_HOURS, ALERTS_MAX_AGE_HOURS.
