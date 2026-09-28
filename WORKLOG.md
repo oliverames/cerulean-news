@@ -17,6 +17,27 @@
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
 
+## 2026-09-28 - Plan in progress: ten reader and pipeline features, and the password gate
+
+**Request**: Oliver asked for features 1-7 and 9-11 from the brainstorm, built by Sonnet sub-agents with this session orchestrating and reviewing, and for the password gate to come back. The ten features:
+1. Daily clip-email draft
+2. Feedback buttons that feed Jev
+3. Brand-mention alerts
+4. Share of voice
+5. Storyline timelines
+6. Regulatory calendar
+7. Monthly leadership report
+9. Spokesperson quote tracking
+10. Reader search upgrades
+11. Prerendered first page and share image
+
+**Plan and resume point**:
+- Features 1, 3, 4, 5, 6, 7, 9, and 10 each go to a sub-agent in its own git worktree. Each agent commits on its own branch and does not push. This session reviews each branch, merges it into `main`, runs the full suite, and pushes.
+- Features 2 and 11 wait on the gate design, because vote storage needs authentication and a gate blocks search indexing.
+- The archive re-check continues from this session: one final batch after the push runs.
+
+---
+
 ## 2026-09-28 - Plan in progress: archive re-check and missing-article fixes
 
 **Decisions (Oliver, 2026-09-28)**:
