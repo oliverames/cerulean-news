@@ -17,6 +17,20 @@
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
 
+## 2026-09-28 - Plan in progress: January history, report findings, and feedback buttons
+
+**Decisions (Oliver, 2026-09-28)**:
+- Share of voice goes back to Jan. 1, 2026. Keep MVP Health Care and UVM Health stories indefinitely, like Blue Cross VT stories, and backfill them from Google News. Monthly reports also start in January, with Vermont totals marked incomplete where the archive no longer holds them.
+- Add an AI-written "What stood out" section to the monthly report, labeled as AI-generated. The template summary and the numbers stay deterministic.
+- Feedback buttons (Keep, Drop, Sentiment is wrong): votes from team-flagged subscribers apply automatically on the next run, and Oliver can undo any of them.
+- When everything is done, run the wrap-up and file what remains as GitHub issues.
+
+**Plan and resume point**:
+- Three Sonnet agents in worktrees: A (share-of-voice history), B (monthly report), C (feedback buttons). This session reviews, merges, and pushes.
+- After A lands: backfill dispatches for Jan. through Jun. 2026 in monthly windows, then the final Jev archive re-check batch, so it also covers the backfilled stories.
+
+---
+
 ## 2026-09-28 - Plan in progress: ten reader and pipeline features, and the password gate
 
 **Request**: Oliver asked for features 1-7 and 9-11 from the brainstorm, built by Sonnet sub-agents with this session orchestrating and reviewing, and for the password gate to come back. The ten features:
