@@ -20,15 +20,17 @@
     <meta property="og:title" content="Cerulean News: Vermont health care storylines">
     <meta property="og:description" content="Ongoing Vermont health care storylines with weekly coverage volume and Blue Cross VT sentiment over time. Not affiliated with any insurer.">
     <meta property="og:url" content="https://cerulean.news/storylines">
-    <meta property="og:image" content="https://cerulean.news/icon-512.png">
+    <meta property="og:image" content="https://cerulean.news/share-card.png">
     <meta property="og:image:type" content="image/png">
-    <meta property="og:image:width" content="512">
-    <meta property="og:image:height" content="512">
-    <meta property="og:image:alt" content="Cerulean News logo">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Cerulean News: Vermont health care and health insurance news, white text on a blue background">
     <meta property="og:locale" content="en_US">
-    <meta name="twitter:card" content="summary">
+    <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Cerulean News: Vermont health care storylines">
     <meta name="twitter:description" content="Ongoing Vermont health care storylines with weekly coverage volume and Blue Cross VT sentiment over time. Not affiliated with any insurer.">
+    <meta name="twitter:image" content="https://cerulean.news/share-card.png">
+    <meta name="twitter:image:alt" content="Cerulean News: Vermont health care and health insurance news, white text on a blue background">
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -343,8 +345,17 @@
         .site-notes dd::after { content: ""; display: block; margin-bottom: 6px; }
       }
     </style>
+    <!-- feature: password-gate -->
+    <link rel="stylesheet" href="gate.css">
+    <script>
+      try { if (localStorage.getItem("blueNewsAuth") === "true") document.documentElement.classList.add("authenticated"); } catch (e) {}
+    </script>
+    <!-- /feature: password-gate -->
   </head>
   <body>
+    <!-- feature: password-gate -->
+    <script src="gate.js"></script>
+    <!-- /feature: password-gate -->
 
     <div class="page" id="storylines-page">
       <div class="topbar">

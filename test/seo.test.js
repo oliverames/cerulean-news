@@ -56,6 +56,35 @@ test("each page has a unique title and a description that fits a result snippet"
   }
 });
 
+test("each page names the 1200 by 630 share image in Open Graph and Twitter tags", async () => {
+  const image = `${SITE}/share-card.png`;
+  for (const { file } of PAGES) {
+    const html = await readSite(file);
+    assert.equal(metaContent(html, "property", "og:image"), image, file);
+    assert.equal(metaContent(html, "property", "og:image:type"), "image/png", file);
+    assert.equal(metaContent(html, "property", "og:image:width"), "1200", file);
+    assert.equal(metaContent(html, "property", "og:image:height"), "630", file);
+    assert.ok(metaContent(html, "property", "og:image:alt"), `${file} needs og:image:alt`);
+    assert.equal(metaContent(html, "name", "twitter:card"), "summary_large_image", file);
+    assert.equal(metaContent(html, "name", "twitter:image"), image, file);
+  }
+});
+
+test("the share image is a 1200 by 630 PNG under 150 KB and stays out of the deploy source list", async () => {
+  const png = await readFile(new URL("../site/share-card.png", import.meta.url));
+  assert.deepEqual([...png.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  // IHDR width and height sit at bytes 16 and 20, big-endian.
+  assert.equal(png.readUInt32BE(16), 1200);
+  assert.equal(png.readUInt32BE(20), 630);
+  assert.ok(png.length < 150 * 1024, `share-card.png is ${png.length} bytes`);
+
+  // The template is the source of the PNG, not a page to index or ship.
+  const template = await readSite("../site/share-card.html");
+  assert.match(template, /<meta name="robots" content="noindex">/);
+  assert.match(template, /Cerulean News/);
+  assert.match(await readSite("../site/.assetsignore"), /^share-card\.html$/m);
+});
+
 test("each page advertises both feeds and exactly one h1", async () => {
   for (const { file } of PAGES) {
     const html = await readSite(file);

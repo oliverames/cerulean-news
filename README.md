@@ -176,6 +176,14 @@ Every run drafts the communications team's daily clip email. `src/digest.js` exp
 - **Entries.** The linked headline, the outlet, and the one-sentence summary when there is one. Blue Cross VT entries add the sentiment label and score. A story several outlets covered is one entry led by the newest report, with an "Also covered by" line. It sits in the newest report's section.
 - **Email safety.** Table layout, inline styles only, no scripts, no `<style>` block, no external CSS or fonts, and a 600 pixel column. The HTML stays under 100 KB, because Gmail clips longer messages. On a very busy day the oldest stories in the last sections are left out and the email says how many.
 
+### Prerendered first page
+
+The reader builds its list in the browser from a `feed.json` of several megabytes, so a crawler or a visitor without JavaScript would otherwise see only "Loading stories". `src/prerender.js` writes the newest 25 stories into `site/index.html` at generation time, between `<!-- prerender:start -->` and `<!-- prerender:end -->` inside the story list, along with a JSON-LD `ItemList` of the same stories between `<!-- prerender-jsonld:start -->` and `<!-- prerender-jsonld:end -->` in the head. It uses the reader's default view (every news section, the insurer's own posts and social items left out, reports of one event collapsed under the newest) and the reader's markup and classes. Every feed value is HTML-escaped. Comments are not prerendered. The reader's script replaces the list once the feed loads and keeps the prerendered stories on screen until then.
+
+The committed page keeps both marker pairs empty, and a test enforces that. Running `npm run generate` locally rewrites the pair in your working copy of `site/index.html`, so do not commit that change. Running the prerender again replaces the block. Static-only deploys skip generation, so the workflow runs `node src/prerender.js` on the live `feed.json` it reuses. To prerender by hand, run `node src/prerender.js site/index.html site/feed.json`.
+
+The share image for link previews is `site/share-card.png`, 1200 by 630 pixels, rendered from `site/share-card.html` with `NODE_PATH=$(npm root -g) node scripts/render-share-card.mjs` (needs Playwright with Chromium, which is not a project dependency). The template is kept out of the Worker bundle by `site/.assetsignore` and marked `noindex`, since a Pages deploy still serves it.
+
 ## Sentiment
 
 Press coverage that names Blue Cross VT carries a sentiment score on a
@@ -399,6 +407,7 @@ src/brand-alerts.js  New brand coverage alerts and the subscriber email renderer
 src/outputs.js     RSS, JSON Feed, audit JSON, file writes
 src/monthly-report.js  Monthly leadership report: numbers, email rendering, and pages
 src/utils.js       Shared text, date, URL, and concurrency helpers
+src/prerender.js   Prerenders the reader's first page and an ItemList into site/index.html
 src/fsx.js         Indirection over file reads and writes, so the generator can
                    run somewhere without a filesystem
 src/egress.js      Routes hosts that refuse the runtime's IP range through a relay
