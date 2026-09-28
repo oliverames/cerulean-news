@@ -53,6 +53,7 @@ The generator writes:
 | JSON Feed | `site/feed.json` | Public reader data and machine-readable feed |
 | Audit JSON | `site/feed-audit.json` | Rejected items, source status, summary cache, and archive state |
 | Reader | `site/index.html` | Text-only browser with search and paging |
+| Storylines | `site/storylines.json` | Weekly volume, brand sentiment, and stories for each tracked storyline |
 
 The live reader is published at [cerulean.news](https://cerulean.news/), with shortcuts at [/sentiment](https://cerulean.news/sentiment), [/rss](https://cerulean.news/rss), and [/json](https://cerulean.news/json). The old oliverames.github.io/vt-news-rss-bcbs address redirects there.
 
@@ -220,6 +221,14 @@ neutral midpoint; volume and themes are magnitude, so they use a single hue.
 Because Google News search feeds name the query rather than the publisher,
 every item also carries an `outlet` field, resolved from the article link. The
 trends page groups by that rather than by `sourceName`.
+
+## Storylines
+
+The [storylines page](https://cerulean.news/storylines) follows ongoing subjects over time. Each section shows a weekly volume strip, the Blue Cross VT sentiment marks for the same weeks, and a dated list of the stories, newest first.
+
+`data/storylines.json` defines what to follow: an `id`, a `name`, a one-line `description`, `match` phrases, and optionally `exclude` phrases and a `start` date. All terms are lowercase substrings checked against a story's title, summary, and snippet. The file is for tracking only. Notes that steer sentiment scoring stay in `data/coverage-context.json`, which the communications team owns. A missing or malformed file means no storylines and never stops a run.
+
+`src/storylines.js` loads the file once. Each published item in `feed.json` gets a `storylines` array of ids when it belongs to one, and every run writes `site/storylines.json` with weekly counts, weekly sentiment counts, and the story list per storyline. Weeks start on Monday, UTC. Sentiment counts only scored brand press coverage, so a storyline about federal policy may show none.
 
 ## Configuration
 

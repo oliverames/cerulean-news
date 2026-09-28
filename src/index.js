@@ -28,6 +28,10 @@ import {
   triggerWebhooks,
 } from "./alerts.js";
 import { buildJsonSummary, buildRss, writeOutput } from "./outputs.js";
+import {
+  resolveStorylinesOutputPath,
+  writeStorylinesSummary,
+} from "./storylines.js";
 
 function resolveRssOutputPath() {
   if (process.env.RSS_OUTPUT_PATH) {
@@ -264,6 +268,11 @@ export async function generateFeed({
     rssOutputPath,
     jsonOutputPath,
     auditJsonOutputPath,
+  );
+  await writeStorylinesSummary(
+    matchedItems,
+    resolveStorylinesOutputPath(rssOutputPath),
+    now,
   );
   if (articleCacheStore) {
     await articleCacheStore.persist(

@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-X1CZ0X5LMG"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-X1CZ0X5LMG');
+    </script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cerulean News: Vermont health care storylines</title>
+    <meta name="description" content="Ongoing Vermont health care storylines with weekly coverage volume and Blue Cross VT sentiment over time. Not affiliated with any insurer.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://cerulean.news/storylines">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cerulean News">
+    <meta property="og:title" content="Cerulean News: Vermont health care storylines">
+    <meta property="og:description" content="Ongoing Vermont health care storylines with weekly coverage volume and Blue Cross VT sentiment over time. Not affiliated with any insurer.">
+    <meta property="og:url" content="https://cerulean.news/storylines">
+    <meta property="og:image" content="https://cerulean.news/icon-512.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:image:alt" content="Cerulean News logo">
+    <meta property="og:locale" content="en_US">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Cerulean News: Vermont health care storylines">
+    <meta name="twitter:description" content="Ongoing Vermont health care storylines with weekly coverage volume and Blue Cross VT sentiment over time. Not affiliated with any insurer.">
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "@id": "https://cerulean.news/storylines#webpage",
+        "name": "Cerulean News: Vermont health care storylines",
+        "url": "https://cerulean.news/storylines",
+        "inLanguage": "en-US",
+        "isPartOf": {
+          "@type": "WebSite",
+          "@id": "https://cerulean.news/#website",
+          "name": "Cerulean News",
+          "url": "https://cerulean.news/"
+        },
+        "description": "Ongoing Vermont health care storylines with weekly coverage volume and Blue Cross VT sentiment over time. Not affiliated with any insurer.",
+        "isAccessibleForFree": true,
+        "publisher": { "@type": "Organization", "name": "Ames Consulting, LLC" },
+        "about": [
+          "Vermont health care",
+          "Green Mountain Care Board rate review",
+          "UVM Health Network",
+          "Medicaid work requirements",
+          "Affordable Care Act enrollment"
+        ]
+      }
+    </script>
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="manifest" href="site.webmanifest">
+    <link rel="alternate" type="application/rss+xml" title="Cerulean News" href="feed.rss">
+    <link rel="alternate" type="application/feed+json" title="Cerulean News JSON Feed" href="feed.json">
+    <meta name="theme-color" content="#0033a0">
+    <style>
+      :root {
+        --fg: #111;
+        --muted: #555;
+        --link: #0000cc;
+        --visited: #551a8b;
+        --rule: #ccc;
+        --rule-soft: #e1e1e1;
+        --surface: #f5f8fc;
+        --rule-blue: #b7cbe9;
+        --bar-1: #0033a0;
+        --bar-2: #111;
+        --bar-3: #418fde;
+
+        /* The trends page's diverging sentiment ramp, unchanged. Colour
+           follows the sentiment, never its rank. */
+        --s-pos: #0d4c9e;
+        --s-npos: #4a90d9;
+        --s-neu: #dcdcd9;
+        --s-nneg: #e8883a;
+        --s-neg: #b02a1f;
+
+        /* Volume is magnitude, so it takes the single sequential hue. */
+        --mag: #2f6db5;
+      }
+
+      body {
+        margin: 0;
+        background: #fff;
+        color: var(--fg);
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1.45;
+      }
+
+      .page {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 18px 16px 48px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 0.9rem;
+        margin-bottom: 24px;
+      }
+
+      .topbar .button {
+        display: inline-block;
+        padding: 4px 12px;
+        border: 1px solid var(--fg);
+        color: var(--fg);
+        text-decoration: none;
+      }
+
+      .topbar .button:hover { background: var(--surface); }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      h1 { margin: 0 0 6px; font-size: 1.65rem; font-weight: 700; }
+
+      .title-row {
+        display: flex;
+        align-items: baseline;
+        gap: 24px;
+        margin: 0 0 6px;
+      }
+
+      .title-row h1 { flex: 0 0 auto; margin: 0; }
+
+      .tricolor { display: flex; height: 5px; margin: 0 0 18px; }
+      .tricolor span { flex: 1; }
+      .tricolor .c1 { background: var(--bar-1); }
+      .tricolor .c2 { background: var(--bar-2); }
+      .tricolor .c3 { background: var(--bar-3); }
+
+      .dateline {
+        font-style: italic;
+        margin: 0 0 0 auto;
+        text-align: right;
+      }
+
+      a { color: var(--link); }
+      a:visited { color: var(--visited); }
+      a:hover { text-decoration-thickness: 2px; }
+
+      a:focus-visible,
+      button:focus-visible,
+      summary:focus-visible {
+        outline: 3px solid var(--bar-3);
+        outline-offset: 2px;
+      }
+
+      @media (max-width: 640px) {
+        .title-row { display: block; }
+        .title-row h1 { margin-bottom: 4px; }
+        .dateline { margin: 0; text-align: left; }
+      }
+
+      .intro { margin: 0 0 14px; color: var(--muted); font-size: 0.92rem; }
+
+      .status { color: var(--muted); font-style: italic; }
+
+      .status .retry-link {
+        appearance: none;
+        background: none;
+        border: 0;
+        color: var(--link);
+        cursor: pointer;
+        font: inherit;
+        padding: 0;
+        text-decoration: underline;
+      }
+
+      /* Legend: identity is never colour alone, so swatches sit beside labels */
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 14px;
+        margin: 0 0 8px;
+        padding: 0;
+        list-style: none;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+
+      .legend li { display: flex; align-items: center; gap: 5px; }
+
+      .swatch {
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        flex: 0 0 auto;
+        border: 1px solid rgba(0, 0, 0, 0.18);
+      }
+
+      /* One section per storyline */
+      .storyline {
+        margin: 26px 0 0;
+        padding: 18px 0 0;
+        border-top: 1px solid var(--rule);
+      }
+
+      .storyline h2 { margin: 0 0 4px; font-size: 1.25rem; line-height: 1.25; }
+      .storyline .desc { margin: 0 0 6px; }
+
+      .storyline .facts {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      figure { margin: 0 0 12px; }
+
+      figcaption { margin: 0 0 3px; font-size: 0.85rem; font-weight: 700; }
+
+      svg { display: block; max-width: 100%; }
+
+      .baseline { stroke: var(--rule); stroke-width: 1; }
+      .vol { fill: var(--mag); }
+      .seg { stroke: #fff; stroke-width: 1; }
+
+      .axis {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 2px 0 0;
+        color: var(--muted);
+        font-size: 0.75rem;
+      }
+
+      .note { margin: 2px 0 0; color: var(--muted); font-size: 0.8rem; }
+
+      /* Dated story list, newest first */
+      .story-list {
+        margin: 14px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .story-list li {
+        padding: 7px 0;
+        border-top: 1px solid var(--rule-soft);
+      }
+
+      .story-list .headline { display: block; overflow-wrap: anywhere; }
+
+      .story-list .meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 2px 8px;
+        margin: 1px 0 0;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .story-list .sent { display: inline-flex; align-items: center; gap: 5px; color: var(--fg); }
+
+      details.more { margin: 0; }
+
+      details.more summary {
+        margin: 6px 0 0;
+        color: var(--link);
+        cursor: pointer;
+        font-size: 0.85rem;
+      }
+
+      footer {
+        margin-top: 32px;
+        font-size: 0.8rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      footer::before {
+        content: "";
+        display: block;
+        height: 5px;
+        margin-bottom: 16px;
+        background: linear-gradient(
+          to right,
+          var(--bar-1) 0 33.333%,
+          var(--bar-2) 33.333% 66.666%,
+          var(--bar-3) 66.666% 100%
+        );
+      }
+
+      .affiliation {
+        margin: 0 0 14px;
+        padding: 10px 12px;
+        border: 2px solid var(--bar-1);
+        border-radius: 4px;
+        color: var(--fg);
+        font-size: 15px;
+        line-height: 1.45;
+      }
+
+      .affiliation strong { color: var(--bar-1); }
+
+      .copyright {
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .site-notes {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        column-gap: 10px;
+        row-gap: 5px;
+        margin: 0;
+      }
+
+      .site-notes dt { color: var(--fg); font-weight: 700; }
+      .site-notes dd { margin: 0; }
+      footer a { color: var(--muted); }
+
+      @media (max-width: 520px) {
+        .site-notes { display: block; }
+        .site-notes dt { display: inline; }
+        .site-notes dt::after { content: ": "; }
+        .site-notes dd { display: inline; }
+        .site-notes dd::after { content: ""; display: block; margin-bottom: 6px; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <div class="page" id="storylines-page">
+      <div class="topbar">
+        <a class="button" href="./">Back to stories</a>
+        <a class="button" href="trends">Trends</a>
+        <a class="button" href="feed.rss">RSS Feed</a>
+        <a class="button" href="feed.json">JSON Feed</a>
+      </div>
+
+      <main aria-labelledby="storylines-title">
+        <div class="title-row">
+          <h1 id="storylines-title" tabindex="-1">Storylines</h1>
+          <p class="dateline" id="dateline">Loading&hellip;</p>
+        </div>
+        <div class="tricolor" aria-hidden="true">
+          <span class="c1"></span><span class="c2"></span><span class="c3"></span>
+        </div>
+
+        <p class="intro">
+          Ongoing subjects the monitor follows, with how much was written each
+          week and how coverage naming the insurer read.
+        </p>
+
+        <ul class="legend" id="legend" aria-label="Sentiment colours" hidden></ul>
+
+        <p class="status" id="status" role="status" aria-live="polite">
+          Loading storylines&hellip;
+        </p>
+
+        <div id="storylines"></div>
+      </main>
+
+      <footer>
+        <p class="affiliation">
+          <strong>Not affiliated.</strong> Cerulean News is an independent personal
+          project. It is not affiliated with, endorsed by, or operated by Blue
+          Cross and Blue Shield of Vermont or the Blue Cross Blue Shield
+          Association.
+        </p>
+        <dl class="site-notes">
+          <dt>Storylines</dt>
+          <dd>
+            A story joins a storyline when its headline or summary contains
+            one of that storyline&rsquo;s search phrases. The phrases are hand-kept,
+            so a story can be missed or, rarely, included by mistake. One story
+            can belong to several storylines.
+          </dd>
+          <dt>Volume</dt>
+          <dd>
+            Stories per week, Monday to Sunday, counting each outlet&rsquo;s
+            report. Stories with no date appear in the list only.
+          </dd>
+          <dt>Sentiment</dt>
+          <dd>
+            Shown only for press coverage that names the insurer, so most
+            storylines carry few or no marks. Each bar shows the share of that
+            week&rsquo;s scored stories at each point on the five-point scale.
+            Tone is judged toward the insurer, not toward the story overall.
+            Scores are AI-generated, a first pass rather than a substitute for
+            reading the story.
+          </dd>
+          <dt>Stories</dt>
+          <dd><a href="./">Back to the reader</a>, or take the <a href="feed.rss">RSS</a> or <a href="feed.json">JSON</a> feed.</dd>
+        </dl>
+        <p class="copyright">&copy; <span id="copyright-year">2026</span> Ames Consulting, LLC. The site's source code is released under the <a href="https://opensource.org/license/mit">MIT License</a>; email <a href="mailto:oliver@ames.consulting">oliver@ames.consulting</a> for a copy.</p>
+        <script>
+          document.getElementById("copyright-year").textContent = String(new Date().getFullYear());
+        </script>
+      </footer>
+    </div>
+
+    <script>
+      // ==========================================================
+      // STORYLINE TIMELINES
+      // Reads storylines.json, which the generator writes beside
+      // feed.json: per-storyline weekly counts, brand sentiment, and
+      // the dated story list, all from one run so they always agree.
+      // ==========================================================
+
+      // Same scale, colours, and order as the trends page: positive on top.
+      const SCALE = [
+        { key: "positive", label: "Positive", score: 2, color: "var(--s-pos)" },
+        { key: "neutral to positive", label: "Neutral to positive", score: 1, color: "var(--s-npos)" },
+        { key: "neutral", label: "Neutral", score: 0, color: "var(--s-neu)" },
+        { key: "neutral to negative", label: "Neutral to negative", score: -1, color: "var(--s-nneg)" },
+        { key: "negative", label: "Negative", score: -2, color: "var(--s-neg)" },
+      ];
+      const SCALE_BY_KEY = new Map(SCALE.map((s) => [s.key, s]));
+      const SVG_NS = "http://www.w3.org/2000/svg";
+      // Stories shown before the rest fold into "show more".
+      const VISIBLE_STORIES = 10;
+      const VOLUME_HEIGHT = 56;
+      const MARKS_HEIGHT = 30;
+
+      const statusEl = document.getElementById("status");
+      const rootEl = document.getElementById("storylines");
+      const legendEl = document.getElementById("legend");
+      const datelineEl = document.getElementById("dateline");
+
+      let data = null;
+      // Charts redraw on resize, so each remembers where to draw and what.
+      let drawers = [];
+
+      function svgEl(tag, attrs = {}, title) {
+        const node = document.createElementNS(SVG_NS, tag);
+        for (const [key, value] of Object.entries(attrs)) {
+          node.setAttribute(key, String(value));
+        }
+        if (title) {
+          const t = document.createElementNS(SVG_NS, "title");
+          t.textContent = title;
+          node.appendChild(t);
+        }
+        return node;
+      }
+
+      function htmlEl(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+      }
+
+      function plural(count, one, many) {
+        return `${count} ${count === 1 ? one : many}`;
+      }
+
+      // Week keys are plain dates. Building the Date from parts keeps a
+      // local-time viewer from sliding a Monday back to Sunday.
+      function dayOf(key) {
+        const [year, month, day] = String(key).split("-").map(Number);
+        return new Date(year, month - 1, day);
+      }
+
+      function shortDay(key) {
+        return dayOf(key).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      }
+
+      function monthYear(key) {
+        return dayOf(key).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+      }
+
+      function storyDate(iso) {
+        const date = new Date(iso);
+        if (!iso || Number.isNaN(date.getTime())) return "Date unknown";
+        return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      }
+
+      function safeHref(url) {
+        try {
+          const parsed = new URL(url);
+          return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.href : "";
+        } catch {
+          return "";
+        }
+      }
+
+      function swatch(color) {
+        const node = htmlEl("span", "swatch");
+        node.style.background = color;
+        node.setAttribute("aria-hidden", "true");
+        return node;
+      }
+
+      function renderLegend() {
+        legendEl.replaceChildren();
+        for (const step of SCALE) {
+          const item = htmlEl("li");
+          item.append(swatch(step.color), document.createTextNode(step.label));
+          legendEl.appendChild(item);
+        }
+        legendEl.hidden = false;
+      }
+
+      // Slot width for one week. Bars keep a hairline gap once they are wide
+      // enough to spare one, and never fall under one pixel.
+      function layout(width, weekCount) {
+        const slot = width / Math.max(1, weekCount);
+        const gap = slot >= 4 ? 1 : 0;
+        return { slot, barWidth: Math.max(1, slot - gap) };
+      }
+
+      function drawVolume(host, weeks, width) {
+        const max = Math.max(1, ...weeks.map((w) => w.count));
+        const { slot, barWidth } = layout(width, weeks.length);
+        const svg = svgEl("svg", {
+          width,
+          height: VOLUME_HEIGHT,
+          viewBox: `0 0 ${width} ${VOLUME_HEIGHT}`,
+          "aria-hidden": "true",
+        });
+        weeks.forEach((week, index) => {
+          const title = `Week of ${shortDay(week.week)}: ${plural(week.count, "story", "stories")}`;
+          if (week.count > 0) {
+            const height = Math.max(2, (week.count / max) * (VOLUME_HEIGHT - 3));
+            svg.appendChild(svgEl("rect", {
+              class: "vol",
+              x: index * slot,
+              y: VOLUME_HEIGHT - 1 - height,
+              width: barWidth,
+              height,
+            }, title));
+          }
+        });
+        svg.appendChild(svgEl("line", {
+          class: "baseline", x1: 0, x2: width, y1: VOLUME_HEIGHT - 0.5, y2: VOLUME_HEIGHT - 0.5,
+        }));
+        host.replaceChildren(svg);
+      }
+
+      // One stacked bar per week that has scored stories: the share at each
+      // point on the scale, positive on top, as on the trends page's mix chart.
+      function drawMarks(host, weeks, width) {
+        const { slot, barWidth } = layout(width, weeks.length);
+        const svg = svgEl("svg", {
+          width,
+          height: MARKS_HEIGHT,
+          viewBox: `0 0 ${width} ${MARKS_HEIGHT}`,
+          "aria-hidden": "true",
+        });
+        weeks.forEach((week, index) => {
+          if (!week.scored) return;
+          const parts = SCALE.filter((step) => week.sentiment[step.key])
+            .map((step) => `${week.sentiment[step.key]} ${step.label.toLowerCase()}`);
+          const title = `Week of ${shortDay(week.week)}: ${plural(week.scored, "scored story", "scored stories")} (${parts.join(", ")})`;
+          const group = svgEl("g", {}, title);
+          let cursor = 0;
+          for (const step of SCALE) {
+            const count = week.sentiment[step.key] || 0;
+            if (!count) continue;
+            const height = (count / week.scored) * MARKS_HEIGHT;
+            group.appendChild(svgEl("rect", {
+              class: "seg",
+              x: index * slot,
+              y: cursor,
+              width: barWidth,
+              height: Math.max(1, height),
+              fill: step.color,
+            }));
+            cursor += height;
+          }
+          svg.appendChild(group);
+        });
+        svg.appendChild(svgEl("line", {
+          class: "baseline", x1: 0, x2: width, y1: MARKS_HEIGHT - 0.5, y2: MARKS_HEIGHT - 0.5,
+        }));
+        host.replaceChildren(svg);
+      }
+
+      // Average on the trends page's +2 to -2 scale.
+      function netScore(weeks) {
+        let scored = 0;
+        let sum = 0;
+        for (const week of weeks) {
+          for (const [key, count] of Object.entries(week.sentiment || {})) {
+            scored += count;
+            sum += (SCALE_BY_KEY.get(key)?.score || 0) * count;
+          }
+        }
+        return scored ? { scored, net: sum / scored } : null;
+      }
+
+      function signed(value) {
+        const rounded = Math.round(value * 10) / 10;
+        return `${rounded > 0 ? "+" : rounded < 0 ? "−" : ""}${Math.abs(rounded).toFixed(1)}`;
+      }
+
+      function storyItem(story) {
+        const item = htmlEl("li");
+        const href = safeHref(story.url);
+        const headline = href ? htmlEl("a", "headline", story.title || href) : htmlEl("span", "headline", story.title);
+        if (href) {
+          headline.href = href;
+          headline.rel = "noopener";
+        }
+        const meta = htmlEl("p", "meta");
+        const when = htmlEl("time", "", storyDate(story.date));
+        if (story.date) when.dateTime = story.date.slice(0, 10);
+        meta.append(when, htmlEl("span", "", story.outlet || "Unknown outlet"));
+        const step = SCALE_BY_KEY.get(story.sentiment);
+        if (step) {
+          const sent = htmlEl("span", "sent");
+          sent.append(swatch(step.color), document.createTextNode(step.label));
+          meta.appendChild(sent);
+        }
+        item.append(headline, meta);
+        return item;
+      }
+
+      function renderStoryline(storyline, index) {
+        const section = htmlEl("section", "storyline");
+        section.id = storyline.id;
+        const headingId = `${storyline.id}-title`;
+        section.setAttribute("aria-labelledby", headingId);
+
+        const heading = htmlEl("h2", "", storyline.name);
+        heading.id = headingId;
+        section.append(heading, htmlEl("p", "desc", storyline.description || ""));
+
+        const weeks = storyline.weeks || [];
+        const stories = storyline.stories || [];
+        const facts = [plural(storyline.total || stories.length, "story", "stories")];
+        if (weeks.length) {
+          facts.push(`${monthYear(weeks[0].week)} to ${monthYear(weeks[weeks.length - 1].week)}`);
+        }
+        const sentiment = netScore(weeks);
+        if (sentiment) {
+          facts.push(`${plural(sentiment.scored, "scored story", "scored stories")}, net ${signed(sentiment.net)} on a −2 to +2 scale`);
+        }
+        section.appendChild(htmlEl("p", "facts", facts.join(" · ")));
+
+        if (weeks.length) {
+          const peak = weeks.reduce((best, week) => (week.count > best.count ? week : best), weeks[0]);
+          const volume = htmlEl("figure");
+          volume.appendChild(htmlEl("figcaption", "", "Stories per week"));
+          const volumeHost = htmlEl("div");
+          volume.setAttribute("role", "img");
+          volume.setAttribute("aria-label",
+            `Weekly story volume from ${shortDay(weeks[0].week)} to ${shortDay(weeks[weeks.length - 1].week)}. ` +
+            `Peak: ${plural(peak.count, "story", "stories")} in the week of ${shortDay(peak.week)}.`);
+          const axis = htmlEl("div", "axis");
+          axis.setAttribute("aria-hidden", "true");
+          axis.append(
+            htmlEl("span", "", monthYear(weeks[0].week)),
+            htmlEl("span", "", `Peak ${peak.count}, week of ${shortDay(peak.week)}`),
+            htmlEl("span", "", monthYear(weeks[weeks.length - 1].week)),
+          );
+          volume.append(volumeHost, axis);
+          section.appendChild(volume);
+          drawers.push((width) => drawVolume(volumeHost, weeks, width));
+
+          const marks = htmlEl("figure");
+          marks.appendChild(htmlEl("figcaption", "", "Coverage naming Blue Cross VT, by sentiment"));
+          if (sentiment) {
+            const marksHost = htmlEl("div");
+            marks.setAttribute("role", "img");
+            marks.setAttribute("aria-label",
+              `Sentiment of ${plural(sentiment.scored, "scored story", "scored stories")}, net ${signed(sentiment.net)} on a −2 to +2 scale.`);
+            marks.appendChild(marksHost);
+            drawers.push((width) => drawMarks(marksHost, weeks, width));
+          } else {
+            marks.appendChild(htmlEl("p", "note",
+              "No scored coverage. Sentiment is scored only for stories that name Blue Cross VT."));
+          }
+          section.appendChild(marks);
+        }
+
+        if (stories.length) {
+          const list = htmlEl("ol", "story-list");
+          list.setAttribute("aria-label", `${storyline.name} stories, newest first`);
+          stories.slice(0, VISIBLE_STORIES).forEach((story) => list.appendChild(storyItem(story)));
+          section.appendChild(list);
+          if (stories.length > VISIBLE_STORIES) {
+            const more = htmlEl("details", "more");
+            more.appendChild(htmlEl("summary", "", `Show ${stories.length - VISIBLE_STORIES} more stories`));
+            const rest = htmlEl("ol", "story-list");
+            stories.slice(VISIBLE_STORIES).forEach((story) => rest.appendChild(storyItem(story)));
+            more.appendChild(rest);
+            section.appendChild(more);
+          }
+        } else {
+          section.appendChild(htmlEl("p", "note", "No stories in this storyline yet."));
+        }
+        return section;
+      }
+
+      function chartWidth() {
+        return Math.max(200, Math.floor(rootEl.clientWidth));
+      }
+
+      function redraw() {
+        const width = chartWidth();
+        for (const draw of drawers) draw(width);
+      }
+
+      function render() {
+        drawers = [];
+        rootEl.replaceChildren();
+        const storylines = Array.isArray(data?.storylines) ? data.storylines : [];
+        if (storylines.length === 0) {
+          statusEl.textContent = "No storylines are being tracked right now.";
+          return;
+        }
+        statusEl.hidden = true;
+        renderLegend();
+        storylines.forEach((storyline, index) => rootEl.appendChild(renderStoryline(storyline, index)));
+        redraw();
+      }
+
+      async function load() {
+        try {
+          const response = await fetch("storylines.json", { cache: "no-cache" });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          data = await response.json();
+          const generated = data.generatedAt ? new Date(data.generatedAt) : null;
+          datelineEl.textContent =
+            generated && !Number.isNaN(generated.getTime())
+              ? generated.toLocaleString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })
+              : "";
+          render();
+        } catch (error) {
+          datelineEl.textContent = "";
+          statusEl.hidden = false;
+          statusEl.replaceChildren(document.createTextNode("Could not load the storylines. "));
+          const retry = htmlEl("button", "retry-link", "Try again");
+          retry.type = "button";
+          retry.addEventListener("click", () => {
+            statusEl.textContent = "Loading storylines…";
+            load();
+          });
+          statusEl.appendChild(retry);
+        }
+      }
+
+      let resizeTimer = null;
+      window.addEventListener("resize", () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(redraw, 150);
+      });
+      load();
+    </script>
+  </body>
+</html>
