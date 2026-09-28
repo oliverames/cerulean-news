@@ -8,10 +8,10 @@ This review traces how an article reaches the feed and how its sentiment is scor
 ## Status after the same day's fixes
 
 - Finding 1: fixed in 1324b5e (#15).
-- Finding 2: partly addressed by Oliver's 17 rejections as references. The enlarged library is still unmeasured.
+- Finding 2: partly addressed. Oliver's 20 rejections serve as references, and they exclude their own articles outright (c294a7d). The enlarged library is still unmeasured.
 - Finding 3: the score now appears whenever Jev has odds (c5f8119).
 - Finding 5: fixed in 5714f5e.
-- Finding 4 (cadence): awaiting Oliver's decision. See `WORKLOG.md`.
+- Finding 4 (cadence): Oliver accepted about five runs a day, and the docs now say so (a12c513).
 
 ## Summary
 
