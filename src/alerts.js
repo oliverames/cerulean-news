@@ -123,7 +123,7 @@ export function buildFailureAlertMessages(
   ).map((batch) => batch.message);
 }
 
-async function postWebhookBatches(target, batches) {
+export async function postWebhookBatches(target, batches) {
   try {
     for (const batch of batches) {
       const response = await fetch(target.url, {

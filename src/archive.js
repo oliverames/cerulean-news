@@ -2,6 +2,7 @@
 // with archived ones, and dedupe resolved links and titles.
 import { readText } from "./fsx.js";
 import { normalizeJevCache, normalizeJevBaseline } from "./jev-relevance.js";
+import { normalizeBrandAlertState } from "./brand-alerts.js";
 import {
   cleanStorySnippet,
   cleanText,
@@ -123,6 +124,7 @@ export function normalizeCrawlState(value = {}) {
     sourceState: normalizeSourceState(value.sourceState),
     articleCache: normalizeArticleCache(value.articleCache),
     jevCache: normalizeJevCache(value.jevCache),
+    brandAlerts: normalizeBrandAlertState(value.brandAlerts),
   };
 }
 
