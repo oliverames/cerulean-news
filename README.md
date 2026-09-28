@@ -258,6 +258,7 @@ trends page groups by that rather than by `sourceName`.
 | `FACEBOOK_PAGE_MAX_POSTS` | No | `10` | Maximum post links to read from each configured Facebook page when social sources are enabled |
 | `JEV_RELEVANCE` | No | `off` locally, `enforce` in Actions | Jev evaluation: `off`, `shadow` (compare inclusion and sentiment), or `enforce` (apply confident verdicts) |
 | `JEV_ENFORCE_AFTER` | For aligned enforcement | repository activation timestamp | Only articles first discovered on or after this boundary can receive live Jev decisions |
+| `JEV_REJUDGE_ARCHIVE` | No | empty | Set to `true` for one run (the workflow's `jev_rejudge_archive` dispatch input) to let Jev apply confident inclusion decisions to articles first seen before `JEV_ENFORCE_AFTER`. Later runs keep those decisions, and `jevBaseline` keeps the originals |
 | `JEV_ALIGNMENT_PROFILE` | No | `src/rubrics/editorial-alignment-v2.json` in Actions | Human example guidance and independent editorial scope questions for incoming articles |
 | `JEV_EXAMPLES_PATH` | No | `data/media-tracker-seed.json` | Private human reference seed, supplied by the existing Actions secret |
 | `JEV_RELEVANCE_RUBRIC_PATH` | No | `src/rubrics/relevance-v2.json` | Alternate rubric file, for trying a wording change without editing the versioned one |

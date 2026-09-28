@@ -369,3 +369,25 @@ test("disagreements are measured against the decision before Jev, not Jev's own 
   { mode: "enforce", metrics: rescored, callJev: async () => answer(0.99, "positive") });
   assert.equal(rescored.sentimentDisagreements, 1);
 });
+
+test("an archive re-check applies inclusion to history for that run only", async () => {
+  const boundary = "2026-09-21T00:00:00Z";
+  const older = article(30, { firstSeenAt: "2026-06-01T00:00:00Z" });
+  const cache = {};
+  const base = { mode: "enforce", enforceAfter: boundary, cache, callJev: async () => answer(0.05) };
+  // Without the switch, history is not even evaluated.
+  const skipped = {};
+  const [untouched] = await applyJevRelevance([older], { ...base, metrics: skipped });
+  assert.equal(untouched.relevant, true);
+  assert.equal(skipped.requested, 0);
+  const metrics = {};
+  const [rejudged] = await applyJevRelevance([older], { ...base, rejudgeArchive: "true", metrics });
+  assert.equal(metrics.rejudgeArchive, true);
+  assert.equal(rejudged.relevant, false);
+  assert.equal(rejudged.jevBaseline.relevant, true);
+  // A later ordinary run keeps the applied decision and makes no call.
+  let calls = 0;
+  const [later] = await applyJevRelevance([rejudged], { ...base, callJev: async () => { calls++; return answer(0.99); } });
+  assert.equal(later.relevant, false);
+  assert.equal(calls, 0);
+});

@@ -594,8 +594,13 @@ export async function applyJevRelevance(items, options = {}) {
   const enforceAfter = options.enforceAfter ?? env.JEV_ENFORCE_AFTER;
   const boundedEnforcement = Boolean(alignment) || enforceAfter !== undefined;
   const cutoff = parseDate(enforceAfter);
-  const mayEnforce = item => !boundedEnforcement || Boolean(cutoff && parseDate(item.firstSeenAt) &&
+  // A one-run archive re-check lifts the boundary: every candidate is
+  // evaluated and confident inclusion decisions apply to history too. Later
+  // runs keep those applied decisions, and jevBaseline keeps the originals.
+  const rejudgeArchive = String(options.rejudgeArchive ?? env.JEV_REJUDGE_ARCHIVE ?? "").trim().toLowerCase() === "true";
+  const mayEnforce = item => rejudgeArchive || !boundedEnforcement || Boolean(cutoff && parseDate(item.firstSeenAt) &&
     parseDate(item.firstSeenAt).valueOf() >= cutoff.valueOf());
+  if (rejudgeArchive) metrics.rejudgeArchive = true;
   if (boundedEnforcement) {
     metrics.enforceAfter = cutoff?.toISOString() || null;
     metrics.historicalProtected = items.filter(item => !mayEnforce(item)).length;

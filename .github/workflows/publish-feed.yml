@@ -26,6 +26,10 @@ on:
         description: "Jev requests in flight this run (default 2). Each takes about 25 seconds, so a raised cap needs more to finish inside the job timeout."
         type: string
         default: ""
+      jev_rejudge_archive:
+        description: "Let Jev apply inclusion decisions to articles first seen before the enforcement boundary, this run only. Pair with a raised jev_max_items."
+        type: boolean
+        default: false
       rebuild_brand_excerpts:
         description: "Refetch brand articles whose excerpt never names Blue Cross VT, and rebuild those excerpts (one-time repair)"
         type: boolean
@@ -69,7 +73,8 @@ jobs:
     # Runs are serialized (cancel-in-progress: false), so without a timeout a
     # hung build would hold the queue for GitHub's 360-minute default and back
     # up hours of scheduled runs. A healthy run finishes well under 30 minutes.
-    timeout-minutes: 30
+    # An archive re-check run spends up to an hour on Jev calls.
+    timeout-minutes: ${{ inputs.jev_rejudge_archive && 75 || 30 }}
 
     steps:
       - name: Check out repository
@@ -229,6 +234,7 @@ jobs:
           # keep the repository setting.
           JEV_RELEVANCE_MAX_ITEMS: ${{ inputs.jev_max_items || vars.JEV_RELEVANCE_MAX_ITEMS || '25' }}
           JEV_RELEVANCE_CONCURRENCY: ${{ inputs.jev_concurrency || vars.JEV_RELEVANCE_CONCURRENCY || '2' }}
+          JEV_REJUDGE_ARCHIVE: ${{ inputs.jev_rejudge_archive }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           # One-shot re-passes, opt-in from the Actions "Run workflow" dialog.
