@@ -589,7 +589,14 @@ export const DEFAULT_SOURCES = [
   {
     name: "Office of the Health Care Advocate",
     homepage: "https://vtlawhelp.org/health",
-    feedUrl: "https://vtlawhelp.org/rss.xml",
+    // The site's RSS answers GitHub's runners with HTTP 403 (it works from
+    // other networks), so read it through a Google News site search, as for
+    // NVRH. Measured 2026-09-28: 40 items in a 90-day window.
+    feedUrl: googleNewsSearchUrl("site:vtlawhelp.org when:90d"),
+    isSearchFeed: true,
+    scanArticle: false,
+    maxItemAgeDays: 90,
+    maxItems: 25,
   },
   {
     name: "Northwestern Medical Center",
