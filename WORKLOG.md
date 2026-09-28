@@ -1,5 +1,6 @@
 ## Open items
 
+- Decide how Jev should honor the 2026-09-24 exclusions: the aligned profile decides on scope questions that lack them, so the Label Desk rejections are still published (since 2026-09-28; [#15](https://github.com/oliverames/cerulean-news/issues/15))
 - After PR #9 deploys and the new cohort is re-evaluated (about five hours at 25 per run), re-score Oliver's 43 decided labels in the [Label Desk](https://claude.ai/artifact/EQH9mfaJk5FcPuGXTmP9wE) against the key, and check the keep and drop lists in `docs/2026-09-24-issue-8-followups.md` (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Sample the 451 proposed additions and 234 removals from `artifacts/jev-evaluation/` into the Label Desk from a Mac session (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
@@ -17,6 +18,18 @@
 - The calendar and briefs recall gap is a product decision that needs Oliver's call before any matcher work (since 2026-08-27) (unverified)
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
+
+## 2026-09-28 - Jev selection and sentiment deep dive
+
+**Request**: Review the repository, how Jev selects articles and scores sentiment, and the earlier sessions' requests and work logs.
+
+**Findings** (`docs/2026-09-28-jev-deep-dive.md`): The aligned profile decides inclusion on the maximum of three scope answers and discards Jev's `include` answer, so the 2026-09-24 exclusions never reach Jev. The Duke, Ohio, and Missouri stories Oliver rejected, and every item on that day's drop list, are still published (live audit 2026-09-28T16:01Z). Filed as #15. The reference library is 1,567 inclusion and 68 sentiment examples, against 101 and 50 when validated, and every inclusion example is positive. The 0-100 score sits at each label's fixed point and appears on 73 of 246 eligible items, 58 of them positive, because only confident Jev labels carry it. Scheduled runs arrive about five times a day, not every 30 minutes, which cuts real Jev capacity to roughly 125 calls a day.
+
+**Verification**: `npm test` 276 pass. Live figures come from the audit feed and the Actions run list, both read on 2026-09-28. No code changed.
+
+**Left off at**: Decisions for Oliver are listed at the end of the report. #15 holds the fix options.
+
+---
 
 ## 2026-09-24 - Jev 0-100 sentiment score
 
