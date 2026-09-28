@@ -14,3 +14,6 @@ data/clip-emails.json
 
 # Private model evaluations include withheld human tracker labels.
 artifacts/jev-evaluation/
+
+# Agent worktrees created during orchestrated sessions
+.claude/worktrees/
