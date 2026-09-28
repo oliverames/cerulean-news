@@ -36,6 +36,12 @@
 - Features 2 and 11 wait on the gate design, because vote storage needs authentication and a gate blocks search indexing.
 - The archive re-check continues from this session: one final batch after the push runs.
 
+**Progress (2026-09-28, evening)**:
+- Merged and pushed: features 1, 3, 4, 5, 6, 7, 9, 10, and 11, email subscriptions (`mail/`, not deployed), and the password gate. Suite: 490 pass.
+- Design pass (f5e6e95): the reader keeps its original top bar. Storylines and Calendar are on the Trends bar and in a new "More" footer note. Search tools sit in a closed disclosure. The new pages are light only, like the rest of the site, and share of voice uses the site's tricolor.
+- Mail contracts (df80262): every run writes `site/alerts.json`, and the report build writes `site/reports/latest-email.json`.
+- Remaining: feature 2 (feedback buttons), Oliver's Cloudflare setup steps in `mail/README.md`, and the final archive batch.
+
 ---
 
 ## 2026-09-28 - Plan in progress: archive re-check and missing-article fixes
