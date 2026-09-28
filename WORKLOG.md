@@ -1,8 +1,8 @@
 ## Open items
 
-- Finish the #15 re-check. Confirm manual run 36482800012 (`jev_max_items` 175, `jev_concurrency` 6) deployed, then dispatch one more run with the same inputs. That completes the 350 calls Oliver approved. Then re-score his 43 decided Label Desk labels against the live audit (38/43 before the re-check; the misses were the four rejected single-state stories and "Sens. Sanders and Welch asked about AI development"). The re-score script needs `labels-joined.json`, rebuilt from the Label Desk `labels` store and `docs/review/2026-09-24-label-desk-key.json` (since 2026-09-28; [#15](https://github.com/oliverames/cerulean-news/issues/15))
+- Three how-to or out-of-region items survived the #15 re-check: "St. Lawrence County hosts Medicare info sessions," the Cotiviti platform announcement, and an ElderLawAnswers Medicare Advantage denial how-to. If they should go, add them to the Label Desk as exclusions, or tighten the scope wording. "Sens. Sanders and Welch asked about AI development" is the one decided label still missed (Oliver: include; Jev: exclude) (since 2026-09-28; [#15](https://github.com/oliverames/cerulean-news/issues/15))
 - Decide the publish cadence. GitHub drops most scheduled runs (about five a day against the 48 the cron asks for). Options: accept it and correct the docs; have each run dispatch the next with `GITHUB_TOKEN` (the documented `workflow_dispatch` exception); or add a small external cron, such as a Cloudflare Worker, that dispatches the workflow with a fine-grained token. The last two need Oliver's approval (since 2026-09-28)
-- Finish sentiment scoring. The v2 profile invalidated every cached Jev answer, so all 246 eligible brand stories need fresh odds from the cap left after new articles. The score now shows whenever odds exist. The Gemini archive re-score still waits on its quota (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
+- Finish sentiment scoring. The v2 profile invalidated every cached Jev answer. After the re-check, 184 of 246 eligible brand stories still need fresh odds from the cap left after new articles. The score now shows whenever odds exist. The Gemini archive re-score still waits on its quota (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
 - Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Sample the 451 proposed additions and 234 removals from `artifacts/jev-evaluation/` into the Label Desk from a Mac session (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - After the clip-email seed is live: rewrite the broad-national code rule against the 967 national rows, measure Jev on held-out recent digests, then re-judge the archive with Jev at a raised cap (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
@@ -39,7 +39,11 @@
 
 **Cadence**: GitHub documents that scheduled runs are delayed under load and may be dropped. The workflow already runs off the hour, so nothing in the cron can fix it.
 
-**Left off at**: Manual run 36482800012 was in progress at 21:04Z. See Open items for the second batch, the Label Desk re-score, and the cadence decision.
+**Re-check**: Manual runs 36482800012 (174 of 175 succeeded) and 36483943051 (137 of 137) finished the post-boundary cohort, with 0 pending. The manual runs made 312 calls, within the 350 Oliver approved, and each Jev phase took about 5.4 minutes at six in flight. The re-check changed 21 inclusion decisions.
+
+Label Desk agreement is now 42 of 43. All four rejected single-state stories are out. From the 2026-09-24 drop list, both Colorado premium stories, the Florida PBM suit, and the California law-firm release are out. St. Lawrence County, Cotiviti, and the Medicare Advantage denial how-to remain. The score now covers 102 of 246 eligible stories, up from 73.
+
+**Left off at**: See Open items for the three remaining drop-list items, the sentiment backfill, and the cadence decision.
 
 ---
 
