@@ -493,7 +493,7 @@
       .sov-legend { margin-top: 10px; }
       .sov-legend .figures { color: var(--fg); font-variant-numeric: tabular-nums; }
       .sov .method { margin: 0 0 12px; font-size: 0.84rem; line-height: 1.5; }
-      .sov .partial-note { margin: 8px 0 14px; }
+      .sov .backfill-note { margin: 8px 0 14px; }
       @media (max-width: 560px) {
         #sov-table { font-size: 0.74rem; }
         #sov-table th, #sov-table td { padding: 4px 3px; }
@@ -692,7 +692,11 @@
               </div>
             </figure>
 
-            <p class="figure-note partial-note" id="sov-partial-note" hidden></p>
+            <p class="figure-note backfill-note">
+              MVP Health Care and UVM Health coverage before July 2026 comes
+              from a Google News backfill, like Blue Cross VT&rsquo;s own 2026
+              backfill.
+            </p>
 
             <p class="method">
               <strong>Method.</strong> A story counts for an organization when
@@ -1837,7 +1841,6 @@
           const items = Array.isArray(feed.items) ? feed.items : [];
           // feature: share-of-voice
           feedItems = items;
-          feedGeneratedAt = feed.generatedAt || "";
           // Older feeds predate sentimentEligible; fall back to "has a score"
           // so the page still works against an archived feed.
           coverageItems = items.filter(
@@ -1918,7 +1921,6 @@
       sovModule.catch(() => {});
       // Every published item, since MVP and UVM coverage is not brand coverage.
       let feedItems = [];
-      let feedGeneratedAt = "";
 
       function pctText(share) {
         return share === null ? "n/a" : `${Math.round(share * 100)}%`;
@@ -2226,7 +2228,7 @@
         for (const m of months.filter((month) => month.total > 0)) {
           const tr = document.createElement("tr");
           const cells = [
-            monthLongLabel(m.key) + (m.partial ? " *" : ""),
+            monthLongLabel(m.key),
             String(m.counts.bcvt),
             String(m.counts.mvp),
             String(m.counts.uvm),
@@ -2261,29 +2263,11 @@
           ...entity,
           color: SOV_COLORS[entity.key],
         }));
-        const completeFrom = sov.completeFromKey(feedGeneratedAt);
-        const all = sov.monthlyShareOfVoice(
+        const months = sov.monthlyShareOfVoice(
           filteredItems(feedItems.filter(sov.isPressItem)),
-          { completeFrom },
         );
-        const months = all.filter((m) => !m.partial);
 
-        // Months the archive cannot hold in full for MVP and UVM stay out of
-        // the charts and are listed, starred, in the table.
-        const noteEl = document.getElementById("sov-partial-note");
-        const partial = all.filter((m) => m.partial && m.total > 0);
-        noteEl.hidden = partial.length === 0;
-        if (partial.length > 0) {
-          noteEl.textContent =
-            `Months before ${monthLongLabel(completeFrom)} are not charted. ` +
-            `The archive keeps stories that do not name Blue Cross VT for ` +
-            `${sov.NON_BRAND_RETENTION_DAYS} days, so MVP Health Care and UVM ` +
-            `Health counts from earlier months are incomplete. ${partial.length} ` +
-            `such month${partial.length === 1 ? " is" : "s are"} listed in the ` +
-            `table and marked with an asterisk.`;
-        }
-
-        renderSovTable(all);
+        renderSovTable(months);
         const totals = sov.totalsOf(months);
         if (totals.total === 0) {
           const text = "No press mentions in this range for this outlet.";

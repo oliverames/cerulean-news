@@ -309,6 +309,11 @@ export const TOPIC_TERMS = [
 export const CATEGORY_BRAND = "Blue Cross VT";
 export const CATEGORY_TOPIC = "VT Health Care";
 
+// Topic labels whose stories the archive keeps indefinitely, like brand
+// stories, because share of voice (site/share-of-voice.js) charts them from
+// 2026-01. Both must be labels in TOPIC_TERMS.
+export const INDEFINITE_RETENTION_LABELS = ["MVP Health Care", "UVM Health"];
+
 const TERM_LABEL_ALIASES = new Map([
   ["BCBS Vermont", "BCBSVT"],
   ["Blue Cross Vermont", "Blue Cross VT"],

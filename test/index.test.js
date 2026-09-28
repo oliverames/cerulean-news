@@ -218,7 +218,7 @@ test("default sources cover recurring clip-log outlets", () => {
         .join(" "),
     ).join(" "),
   ).replaceAll("+", " ");
-  assert.equal(DEFAULT_SOURCES.length, 148);
+  assert.equal(DEFAULT_SOURCES.length, 150);
 
   const expectedHosts = [
     "bcbs.com",
@@ -4941,6 +4941,8 @@ test("every curated source is either a registered Vermont outlet or an explicit 
     "Google News Vermont Health Search E",
     "Google News Vermont Health Search F",
     "Google News Vermont Health Search G",
+    "Google News MVP Health Care Search",
+    "Google News UVM Health Search",
     "Google News Kristina Source Search",
     "Google News Health Insurance Search",
     "Google News Health Trade Search",
