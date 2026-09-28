@@ -306,6 +306,11 @@ jobs:
           # which is worse than a failed run: nobody notices a green tick.
           fetch_live feed.json json
           fetch_live feed.rss rss
+          # Generated pages ride along; a missing one only warns, since the
+          # first deploy after a feature lands has no live copy yet.
+          fetch_live digest.json json || echo "::warning::No live digest.json to reuse"
+          curl -fsSL --compressed --retry 3 --max-time 60 "$LIVE_SITE_URL/digest.html" -o site/digest.html \
+            || echo "::warning::No live digest.html to reuse"
 
       # The site moved from GitHub Pages to Cloudflare Pages on 2026-09-03 so
       # the repo could go private (GitHub Free only serves Pages from a public

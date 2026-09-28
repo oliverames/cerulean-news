@@ -323,7 +323,10 @@ test("the standalone page wraps the email and round-trips its HTML", () => {
   assert.match(page, /<button type="button" id="copy-email">Copy email<\/button>/);
   assert.match(page, /<meta name="robots" content="noindex">/);
   assert.match(page, /Not affiliated\./);
-  assert.equal((page.match(/<script/g) || []).length, 1, "only the copy handler runs");
+  // The copy handler plus the shared password gate (early check and gate.js).
+  assert.equal((page.match(/<script/g) || []).length, 3, "copy handler and gate only");
+  assert.match(page, /<script src="gate\.js"><\/script>/);
+  assert.match(page, /<link rel="stylesheet" href="gate\.css">/);
   const srcdoc = /srcdoc="([^"]*)"/.exec(page)[1]
     .replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&quot;", '"').replaceAll("&#39;", "'").replaceAll("&apos;", "'").replaceAll("&amp;", "&");
   assert.equal(srcdoc, digest.html);

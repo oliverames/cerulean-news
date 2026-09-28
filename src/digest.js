@@ -432,8 +432,13 @@ export function buildDigestPage(digest, { generatedAt }) {
       .affiliation strong { color: var(--bar-1); }
       textarea { display: none; }
     </style>
+    <link rel="stylesheet" href="gate.css">
+    <script>
+      try { if (localStorage.getItem("blueNewsAuth") === "true") document.documentElement.classList.add("authenticated"); } catch (e) {}
+    </script>
   </head>
   <body>
+    <script src="gate.js"></script>
     <div class="page">
       <div class="topbar">
         <a href="./">Reader</a>
