@@ -1,5 +1,6 @@
 ## Open items
 
+- Decide on the VermontBiz relay proposal in `docs/2026-09-28-vermontbiz-relay-proposal.md`. The recommendation is to ask VermontBiz to allow the crawler or publish a deeper feed first, and to add the missed Snelling Center story by hand (since 2026-09-28)
 - Finish sentiment scoring. The v2 profile invalidated every cached Jev answer. After the re-check, 184 of 246 eligible brand stories still need fresh odds from the cap left after new articles. The score now shows whenever odds exist. The Gemini archive re-score still waits on its quota (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
 - Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Sample the 451 proposed additions and 234 removals from `artifacts/jev-evaluation/` into the Label Desk from a Mac session (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
