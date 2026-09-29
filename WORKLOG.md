@@ -1,7 +1,7 @@
 ## Open items
 
-- Finish sentiment scoring. 130 of 258 eligible brand stories carry a 0-100 score on 2026-09-29. The Gemini archive re-score still waits on its quota (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
-- Jev archive re-check backlog: 2,156 stories have no current Jev answer after the cache churn (fixed in #21). Applied decisions stay. Finishing takes about 2,150 calls, or scheduled runs drain it at 25 a run (since 2026-09-29; [#21](https://github.com/oliverames/cerulean-news/issues/21), closed)
+- Finish sentiment scoring. The Jev score backfill is done: 251 of 258 eligible brand stories carry a 0-100 score on 2026-09-29. The Gemini archive re-score still waits (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
+- Review the archive re-check's effect: Jev's applied decisions now differ from the original baseline on 717 inclusions and 81 sentiment labels (`jevBaseline` keeps each original). Label Desk agreement is 42 of 43. Sampling some of these in the Label Desk would show whether Jev or the baseline is closer to the team's judgment (since 2026-09-29; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Mail Worker follow-ups for Oliver: unlock the reader once and look at the Keep and Drop buttons and `/feedback-admin` by eye (both sit behind the site password gate, which the 2026-09-29 verification did not enter), then tell the team to sign in with their work address (`mail/README.md`, Team feedback, step 6). The first "Sentiment is wrong" button appears only from about the 82nd newest story down, because the 25 newest stories are not sentiment-eligible ([#17](https://github.com/oliverames/cerulean-news/issues/17))
 - Future: team sign-in hardening with Turnstile, passkeys, and a team admin page ([#18](https://github.com/oliverames/cerulean-news/issues/18)), and a team view to rescue excluded stories ([#20](https://github.com/oliverames/cerulean-news/issues/20)) (since 2026-09-29)
 - Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
@@ -17,6 +17,12 @@
 - The calendar and briefs recall gap is a product decision that needs Oliver's call before any matcher work (since 2026-08-27) (unverified)
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
+
+## 2026-09-29 - Archive re-check finished
+
+After the #21 fix, two approved batches (runs 36576527770 and 36576600883, 1,100 calls each, 2,192 successful) cleared the backlog. Pending fell from 2,156 to 1,088 to 31, and cache hits rose to 2,401, with only 6 and 7 reference-only misses. Sentiment scores now cover 251 of 258 eligible brand stories, up from 130. Applied decisions differ from the baseline on 717 inclusions and 81 sentiment labels. Label Desk agreement held at 42 of 43. Both runs fetched the team vote export (0 votes), which confirms the pipeline side of team feedback.
+
+---
 
 ## 2026-09-29 - #17 done: the mail Worker is live
 
