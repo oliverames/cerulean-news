@@ -2,7 +2,7 @@
 
 - Finish sentiment scoring. 130 of 258 eligible brand stories carry a 0-100 score on 2026-09-29. The Gemini archive re-score still waits on its quota (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
 - Jev archive re-check backlog: 2,156 stories have no current Jev answer after the cache churn (fixed in #21). Applied decisions stay. Finishing takes about 2,150 calls, or scheduled runs drain it at 25 a run (since 2026-09-29; [#21](https://github.com/oliverames/cerulean-news/issues/21), closed)
-- Deploy the mail Worker: Workers Paid, sending domain, secrets including `ADMIN_EMAILS` and `FEEDBACK_EXPORT_TOKEN`, API token scopes, then `deploy-mail.yml`. The D1 database is done. Needs Oliver or a local session with Claude in Chrome (since 2026-09-29; [#17](https://github.com/oliverames/cerulean-news/issues/17))
+- Mail Worker follow-ups for Oliver: unlock the reader once and look at the Keep and Drop buttons and `/feedback-admin` by eye (both sit behind the site password gate, which the 2026-09-29 verification did not enter), then tell the team to sign in with their work address (`mail/README.md`, Team feedback, step 6). The first "Sentiment is wrong" button appears only from about the 82nd newest story down, because the 25 newest stories are not sentiment-eligible ([#17](https://github.com/oliverames/cerulean-news/issues/17))
 - Future: team sign-in hardening with Turnstile, passkeys, and a team admin page ([#18](https://github.com/oliverames/cerulean-news/issues/18)), and a team view to rescue excluded stories ([#20](https://github.com/oliverames/cerulean-news/issues/20)) (since 2026-09-29)
 - Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Sample the 451 proposed additions and 234 removals from `artifacts/jev-evaluation/` into the Label Desk from a Mac session (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
@@ -17,6 +17,17 @@
 - The calendar and briefs recall gap is a product decision that needs Oliver's call before any matcher work (since 2026-08-27) (unverified)
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
+
+## 2026-09-29 - #17 done: the mail Worker is live
+
+- **Plan**: the Cloudflare account already had Workers Paid ($5/month plus usage), so nothing was bought. No DMARC, MX, or SPF record existed for `cerulean.news`, so onboarding Email Sending replaced nothing. The zone had only the two Pages CNAMEs and the Google verification TXT.
+- **Sending domain**: `cerulean.news` onboarded at the top level. Cloudflare added three MX, an SPF, and a DKIM record on `cf-bounce`, plus `_dmarc` set to `v=DMARC1; p=reject;`. Status shows Enabled and DNS Configured, and public DNS resolves all of them. "Drop suppressed recipients" is at its default.
+- **Secrets**: `MAIL_SIGNING_SECRET`, `ADMIN_EMAILS`, and `FEEDBACK_EXPORT_TOKEN` are in 1Password (vault Development, items named in the README) and on the Worker, piped with `op read --no-newline`. The export token is also the GitHub secret `FEEDBACK_EXPORT_TOKEN`. Use `--no-newline`, since plain `op read` appends a newline that would end up inside the secret.
+- **API token**: the token behind `CLOUDFLARE_API_TOKEN` is the user token "Cloudflare Pages Deploy - Ames Websites" (identified because the Publish workflow ran minutes earlier while the "Claude Cloud - cerulean-news" account token showed 20 hours idle). It was edited, not rolled, to add Workers Scripts, D1, and Email Sending Edit on the account and Workers Routes Edit on `cerulean.news` only. Its value is unchanged. Other sites that use this token now hold those extra scopes too.
+- **Deploy**: `deploy-mail.yml` run 36573151114 applied both D1 migrations and deployed in 31 seconds.
+- **Verified**: `/api/mail/feedback` answers 401 signed out and the export answers 200 with the token. The signup for all three lists sent a confirmation to the inbox and confirming worked. Admin sign-in worked and the session reported admin. A Keep vote went through the API, showed in the admin list, and was undone, leaving both lists empty. The signed-out reader footer reads "Team: Sign in".
+- **Not verified by eye**: the reader and `/feedback-admin` are behind the site password gate, which was not entered. Button labels and the footer were read from the page DOM, and votes were exercised through the same API the buttons call.
+- **Local state**: `wrangler login` (OAuth) was used for `secret put`, then `wrangler logout` ended it.
 
 ## 2026-09-29 - #21 fixed, #19 fixed, #17 partly done
 
