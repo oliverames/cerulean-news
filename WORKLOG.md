@@ -1,23 +1,44 @@
 ## Open items
 
-- Finish sentiment scoring. The v2 profile invalidated every cached Jev answer. After the re-check, 184 of 246 eligible brand stories still need fresh odds from the cap left after new articles. The score now shows whenever odds exist. The Gemini archive re-score still waits on its quota (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
+- Finish sentiment scoring. 130 of 258 eligible brand stories carry a 0-100 score on 2026-09-29. The Gemini archive re-score still waits on its quota (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
+- Jev cache answers go stale between ordinary runs, so the archive re-check stopped at 1,385 pending after about 4,500 calls. Diagnose the reference-example churn before spending more (since 2026-09-29; [#21](https://github.com/oliverames/cerulean-news/issues/21))
+- Deploy the mail Worker: Workers Paid, sending domain, D1, secrets including `ADMIN_EMAILS` and `FEEDBACK_EXPORT_TOKEN`, then `deploy-mail.yml`. Email signup and team feedback stay dormant until then (since 2026-09-29; [#17](https://github.com/oliverames/cerulean-news/issues/17))
+- Share of voice undercounts MVP Health Care and UVM Health: topic terms match feed text only, and months before July come only from Google News (since 2026-09-29; [#19](https://github.com/oliverames/cerulean-news/issues/19))
+- Future: team sign-in hardening with Turnstile, passkeys, and a team admin page ([#18](https://github.com/oliverames/cerulean-news/issues/18)), and a team view to rescue excluded stories ([#20](https://github.com/oliverames/cerulean-news/issues/20)) (since 2026-09-29)
 - Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Sample the 451 proposed additions and 234 removals from `artifacts/jev-evaluation/` into the Label Desk from a Mac session (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - After the clip-email seed is live: rewrite the broad-national code rule against the 967 national rows, measure Jev on held-out recent digests, then re-judge the archive with Jev at a raised cap (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
-- Decide on the missing-article fixes in `docs/2026-09-24-missing-articles.md` (topic terms, replacement Google News queries, new sources, two body-scan changes) (since 2026-09-24)
 - Decide on keyword-miss rescue; the 2026-09-24 analysis recommends against it (since 2026-09-21; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Watch the small September Actions storage charge (about $0.44 net), the kind of overage that can re-trip a zero spending limit (since 2026-09-18) (unverified)
 - Decide whether the six projects whose Mac builds were disabled get self-hosted runners on the MacBook Pro and home-server, or stay manual (since 2026-09-16) (unverified)
 - Establish why `xcode-27` appears as a `runs-on` label with no registered runner before that label is reused (since 2026-09-16)
 - `ames-plugins-local/marketplace-validation.yml` is still on `macos-latest`, which bills at 10x if it fires (since 2026-09-16)
-- Remaining discoverability work: client-rendered stories, a 1200x630 share image, and URL Inspection once Google crawls the new property (since 2026-09-24; [#13](https://github.com/oliverames/cerulean-news/issues/13))
-- Decide whether Jev should re-judge the pre-boundary archive (inclusion and sentiment) at a raised cap; it spends TypeSafe credits and changes historical decisions (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
+- URL Inspection in Search Console once Google crawls the property. Prerendered stories and the share image are live. Check whether the restored password gate, which hides the page with CSS, hurts indexing (since 2026-09-24; [#13](https://github.com/oliverames/cerulean-news/issues/13))
 - Prove the `data/coverage-context.json` VT Basic storyline in production with a re-score sweep that completes (`rescore_sentiment` with a small `summary_max_requests`) (since 2026-08-27) (unverified)
 - The calendar and briefs recall gap is a product decision that needs Oliver's call before any matcher work (since 2026-08-27) (unverified)
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
 
-## 2026-09-28 - Plan in progress: January history, report findings, and feedback buttons
+## 2026-09-29 - Features shipped, January history backfilled, archive re-check paused
+
+**Request**: Oliver asked for ten reader and pipeline features built by Sonnet sub-agents, the password gate back, email subscriptions through Cloudflare, a design that fits the original site, easy discovery, share-of-voice history from Jan. 1, AI findings in the monthly report, and team feedback buttons for bcbsvt.com addresses. Then a wrap-up with leftovers filed as issues.
+
+**Live on cerulean.news** (verified 2026-09-29):
+- Password gate on the reader and the new pages. Feeds, signup, and unsubscribe stay public.
+- Clip email draft, brand-mention alerts (webhooks plus `alerts.json`), storylines, regulatory calendar, monthly reports from January 2026 with AI "What stood out" findings, spokesperson quotes, date range, saved searches, CSV export, and the prerendered first page with a 1200 by 630 share image.
+- Share of voice on the trends page, charted from January 2026. MVP Health Care and UVM Health stories are now kept indefinitely. Six monthly backfill dispatches (Jan. through Jun.) all succeeded.
+- 150 sources. The Health Care Advocate feed now reads through a Google News site search, because vtlawhelp.org answers the runner with HTTP 403.
+- A single muted row of links under the reader and trends titles points to the new pages. New pages are light only and use the site palette.
+
+**Built, dormant until Oliver deploys the mail Worker** ([#17](https://github.com/oliverames/cerulean-news/issues/17)): email subscriptions (double opt-in, three lists) and team feedback. Any confirmed bcbsvt.com address can sign in by emailed link. Admins come from the `ADMIN_EMAILS` Worker secret. Votes apply on the next run.
+
+**Archive re-check**: About 4,500 Jev calls over four batches (598, 1,200, 1,499, and 1,199 successes), against roughly 2,900 approved at first. Oliver approved the last batch. Pending rose from 1,145 to 1,385 because cached answers go stale between runs, so it was stopped and filed ([#21](https://github.com/oliverames/cerulean-news/issues/21)). Label Desk agreement holds at 42 of 43.
+
+**Also**: `undici` updated to 7.30.0 for GHSA-3wwx-pv8p-q78v. Two feedback UI tests that failed in 5 of 12 full runs were fixed at the root (a race with off-thread hashing). The suite passes 599 of 599.
+
+---
+
+## 2026-09-28 - Plan (done 2026-09-29): January history, report findings, and feedback buttons
 
 **Decisions (Oliver, 2026-09-28)**:
 - Share of voice goes back to Jan. 1, 2026. Keep MVP Health Care and UVM Health stories indefinitely, like Blue Cross VT stories, and backfill them from Google News. Monthly reports also start in January, with Vermont totals marked incomplete where the archive no longer holds them.
@@ -31,7 +52,7 @@
 
 ---
 
-## 2026-09-28 - Plan in progress: ten reader and pipeline features, and the password gate
+## 2026-09-28 - Plan (done 2026-09-29): ten reader and pipeline features, and the password gate
 
 **Request**: Oliver asked for features 1-7 and 9-11 from the brainstorm, built by Sonnet sub-agents with this session orchestrating and reviewing, and for the password gate to come back. The ten features:
 1. Daily clip-email draft
@@ -58,7 +79,7 @@
 
 ---
 
-## 2026-09-28 - Plan in progress: archive re-check and missing-article fixes
+## 2026-09-28 - Plan (done 2026-09-29): archive re-check and missing-article fixes
 
 **Decisions (Oliver, 2026-09-28)**:
 - Leave "Sens. Sanders and Welch asked about AI development" out.
