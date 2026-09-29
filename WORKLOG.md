@@ -19,6 +19,17 @@
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
 
+## 2026-09-29 - Plan in progress: mail Worker setup, share-of-voice body matching, Jev cache churn
+
+**Request**: Oliver asked to do #17 (Cloudflare setup, using his Google Chrome for the account steps), #19 (share-of-voice undercount), and #21 (Jev cache churn) now.
+
+**Plan and resume point**:
+- #19 and #21 go to Sonnet agents in worktrees. This session reviews, merges, and pushes.
+- #17 runs from this session through Claude in Chrome. Stop and ask before any purchase or plan change, and before any secret value would appear on screen.
+- After #21 lands, run one small re-check (`jev_max_items` about 200) and confirm pending falls between runs before any further Jev spend.
+
+---
+
 ## 2026-09-29 - Features shipped, January history backfilled, archive re-check paused
 
 **Request**: Oliver asked for ten reader and pipeline features built by Sonnet sub-agents, the password gate back, email subscriptions through Cloudflare, a design that fits the original site, easy discovery, share-of-voice history from Jan. 1, AI findings in the monthly report, and team feedback buttons for bcbsvt.com addresses. Then a wrap-up with leftovers filed as issues.
