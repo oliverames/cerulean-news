@@ -1,5 +1,6 @@
 // Deterministic relevance rules and per-item source/access classification.
 import { cleanText } from "./utils.js";
+import { withoutBodyOnly } from "./body-labels.js";
 import {
   canonicalizeMatchedTerms,
   categorizeTerms,
@@ -529,7 +530,9 @@ export function applyDeterministicRelevance(item) {
     };
   }
 
-  const matchedTerms = canonicalizeMatchedTerms(item.matchedTerms || []);
+  // Body-only MVP and UVM labels are annotations, so they must not change
+  // this verdict (src/body-labels.js).
+  const matchedTerms = canonicalizeMatchedTerms(withoutBodyOnly(item));
   const category = item.category || categorizeTerms(matchedTerms);
   const observedEvidence = cleanText(
     [item.title, item.description, item.snippet, item.feedContent]

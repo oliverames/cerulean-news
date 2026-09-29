@@ -31,7 +31,7 @@ on:
         type: boolean
         default: false
       rebuild_brand_excerpts:
-        description: "Refetch brand articles whose excerpt never names Blue Cross VT, and rebuild those excerpts (one-time repair)"
+        description: "Refetch brand articles whose excerpt never names Blue Cross VT, rebuild those excerpts, and record MVP Health Care and UVM Health body mentions (one-time repair)"
         type: boolean
         default: false
       backfill_after:

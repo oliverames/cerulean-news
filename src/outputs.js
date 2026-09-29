@@ -29,6 +29,7 @@ import { groupRelatedStories } from "./story-groups.js";
 import { shouldScoreSentiment } from "./summaries.js";
 import { quotedSpokespeopleForItem, spokespersonTitles } from "./quotes.js";
 import { storylinesForItem } from "./storylines.js";
+import { bodyOnlyField } from "./body-labels.js";
 
 const SITE_URL = process.env.SITE_URL?.trim() || "";
 const FEED_URL = resolveFeedUrl();
@@ -474,6 +475,10 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
           includeRejected && item.bodyQuotedSpokespeople?.length
             ? item.bodyQuotedSpokespeople
             : undefined,
+        // MVP Health Care or UVM Health labels found only in the article body,
+        // already inside matchedTerms. Audit only, so the next run's archive
+        // can tell them from feed-text matches.
+        ...(includeRejected ? bodyOnlyField(item.bodyOnlyTerms) : {}),
         // Ongoing storylines from data/storylines.json this story belongs to;
         // the timelines page lists it under each. Omitted when there are none.
         storylines: storylineIds.length > 0 ? storylineIds : undefined,

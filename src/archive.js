@@ -26,6 +26,7 @@ import { parseFacebookRelativeDate } from "./parsers.js";
 import { itemCategory, itemOutletName } from "./relevance.js";
 import { isSocialSourceItem, socialSourcesEnabled } from "./sources.js";
 import { bodyQuoteField } from "./quotes.js";
+import { bodyOnlyField, mergeBodyOnly, withoutBodyOnly } from "./body-labels.js";
 
 const CRAWL_STATE_VERSION = 1;
 
@@ -116,6 +117,7 @@ function normalizeArticleCache(value) {
       comments: Array.isArray(entry.comments) ? entry.comments : [],
       matchSource: normalizeString(entry.matchSource),
       ...bodyQuoteField(entry.bodyQuotedSpokespeople),
+      ...bodyOnlyField(entry.bodyOnlyTerms),
       articleHeaders: normalizeHeaderState({ article: entry.articleHeaders })
         .article || {},
     };
@@ -231,6 +233,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
           articleError: item.articleError || "",
           matchSource: item.matchSource || "",
           ...bodyQuoteField(item.bodyQuotedSpokespeople),
+          ...bodyOnlyField(item.bodyOnlyTerms),
         });
         archivedItems.push({
           sourceName: item.sourceName,
@@ -260,6 +263,7 @@ export async function loadPreviousState(...jsonOutputPaths) {
           articleError: item.articleError || "",
           matchSource: item.matchSource || "",
           ...bodyQuoteField(item.bodyQuotedSpokespeople),
+          ...bodyOnlyField(item.bodyOnlyTerms),
         });
       }
       loadedPath = jsonOutputPath;
@@ -316,8 +320,9 @@ function isBrandCategoryItem(item) {
 // MVP Health Care and UVM Health stories are kept as long as brand stories so
 // share of voice can chart them back to January 2026. Every other rule in the
 // merge filter still applies to them.
+// A body-only mention does not extend retention (src/body-labels.js).
 function isLongRetentionItem(item) {
-  return canonicalizeMatchedTerms(item.matchedTerms || []).some((label) =>
+  return canonicalizeMatchedTerms(withoutBodyOnly(item)).some((label) =>
     INDEFINITE_RETENTION_LABELS.includes(label),
   );
 }
@@ -513,6 +518,10 @@ function mergeEquivalentStoryItems(
     merged.matchedTerms = matchedTerms;
     merged.category = itemCategory({ ...merged, matchedTerms });
   }
+  // Recomputed from both copies so a merge cannot leave a label marked
+  // body-only when the other copy names it in feed text, or the reverse.
+  delete merged.bodyOnlyTerms;
+  Object.assign(merged, bodyOnlyField(mergeBodyOnly(primary, fallback)));
   const primaryPubDate = parseDate(primary?.pubDate);
   const fallbackPubDate = parseDate(fallback?.pubDate);
   if (!primaryPubDate && fallbackPubDate) {
