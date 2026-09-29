@@ -47,8 +47,14 @@ allowed_sender_addresses = ["news@cerulean.news"]
 [observability]
 enabled = true
 
-# Secret (never in this file): MAIL_SIGNING_SECRET, set with
-#   npx wrangler@4 secret put MAIL_SIGNING_SECRET
+# Secrets (never in this file), set with `npx wrangler@4 secret put NAME`:
+#   MAIL_SIGNING_SECRET      signs every link and the team session cookie
+#   ADMIN_EMAILS             comma-separated admin addresses (team feedback)
+#   FEEDBACK_EXPORT_TOKEN    bearer token the pipeline sends to fetch votes
+# Team sign-in and feedback share the /api/mail/* route above: sign-in is
+# /api/mail/team/*, votes are /api/mail/feedback*.
 # Optional vars, all with defaults in worker.js settings(): MAX_SENDS_PER_RUN,
 # SEND_CONCURRENCY, SUBSCRIBE_LIMIT_PER_HOUR, MAX_CONFIRMATIONS_PER_DAY,
-# CONFIRM_TTL_HOURS, DIGEST_MAX_AGE_HOURS, ALERTS_MAX_AGE_HOURS.
+# CONFIRM_TTL_HOURS, DIGEST_MAX_AGE_HOURS, ALERTS_MAX_AGE_HOURS, SIGNIN_LINK_MINUTES,
+# SESSION_DAYS, MAX_SIGNINS_PER_DAY, VOTE_WRITES_PER_MINUTE, MAX_VOTES_PER_MEMBER,
+# EXPORT_LIMIT_PER_HOUR.

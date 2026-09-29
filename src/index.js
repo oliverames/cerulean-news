@@ -15,6 +15,7 @@ import {
 import { applyDeterministicRelevance } from "./relevance.js";
 import { applyJevRelevance } from "./jev-relevance.js";
 import { applyHumanRejections } from "./jev-alignment.js";
+import { applyTeamFeedback, fetchTeamFeedback } from "./feedback.js"; // feature: team-feedback
 import {
   dedupeResolvedItems,
   loadPreviousState,
@@ -141,6 +142,10 @@ export async function generateFeed({
   } = await measurePhase(crawlMetrics, "load", () =>
     loadPreviousState(auditJsonOutputPath, jsonOutputPath),
   );
+  // feature: team-feedback. Starts now so the request overlaps collection.
+  // It never rejects: with no config or on any failure it resolves empty.
+  const teamFeedbackPromise = fetchTeamFeedback();
+  // /feature: team-feedback
   const collected = await measurePhase(crawlMetrics, "collect", () =>
     collectFeedItems(sources, now, crawlState, crawlMetrics),
   );
@@ -236,7 +241,16 @@ export async function generateFeed({
   );
   // Human exclusions from editorial review decide their own articles, after
   // Gemini's verdict and before Jev, which then leaves them alone.
-  const reviewedItems = await applyHumanRejections(mergedItems, {
+  // feature: team-feedback. Team votes apply first, so an editorial rejection
+  // still outranks a team keep.
+  const teamFeedback = applyTeamFeedback(
+    mergedItems,
+    await teamFeedbackPromise,
+    crawlState.feedback,
+  );
+  crawlMetrics.feedback = teamFeedback.summary;
+  // /feature: team-feedback
+  const reviewedItems = await applyHumanRejections(teamFeedback.items, {
     alignment: jevOptions.alignment,
   });
   // Jev runs last so Gemini cannot overwrite a confident enforced evaluation.
@@ -244,6 +258,7 @@ export async function generateFeed({
   const matchedItems = await measurePhase(crawlMetrics, "jevRelevance", () =>
     applyJevRelevance(reviewedItems, {
       ...jevOptions,
+      feedbackExamples: teamFeedback.examples, // feature: team-feedback
       cache: crawlState.jevCache,
       metrics: (crawlMetrics.jev = {}),
     }),

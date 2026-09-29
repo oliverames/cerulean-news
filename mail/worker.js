@@ -8,6 +8,10 @@
 // Everything that decides something is an exported pure function or takes its
 // dependencies through `ctx` ({ env, cfg, db, email, fetch, now, log }), so the
 // tests can drive it with fakes. The default export is the thin Workers shell.
+// Team sign-in and feedback votes live in team.js, which imports the helpers
+// it shares from this file and is routed to from handleRequest below.
+
+import { handleTeamRequest, teamHousekeeping } from "./team.js";
 
 export const LISTS = Object.freeze({
   digest: {
@@ -39,8 +43,8 @@ function cronMinutes(cron) {
   return hour * 60 + minute;
 }
 
-const HOUR = 3600;
-const DAY = 86400;
+export const HOUR = 3600;
+export const DAY = 86400;
 
 export function settings(env = {}) {
   const num = (value, fallback) => {
@@ -72,6 +76,15 @@ export function settings(env = {}) {
       alerts: num(env.ALERTS_MAX_AGE_HOURS, 12),
     },
     fetchTimeoutMs: num(env.CONTENT_FETCH_TIMEOUT_MS, 15000),
+    // Team sign-in and feedback (team.js). A sign-in link is short lived and a
+    // session lasts two weeks. Sign-in reuses the subscribe limits per IP and
+    // per address, and adds a site-wide daily ceiling on sign-in emails.
+    signinLinkTtlSec: num(env.SIGNIN_LINK_MINUTES, 15) * 60,
+    sessionTtlSec: num(env.SESSION_DAYS, 14) * DAY,
+    signinsPerDay: num(env.MAX_SIGNINS_PER_DAY, 100),
+    voteWritesPerMinute: num(env.VOTE_WRITES_PER_MINUTE, 60),
+    maxVotesPerMember: num(env.MAX_VOTES_PER_MEMBER, 5000),
+    exportLimitPerHour: num(env.EXPORT_LIMIT_PER_HOUR, 60),
   };
 }
 
@@ -694,6 +707,7 @@ export async function housekeeping(ctx) {
     ctx.db.prepare("DELETE FROM sends WHERE created_at < ?").bind(nowSec - 400 * DAY),
     ctx.db.prepare("DELETE FROM jobs WHERE updated_at < ?").bind(nowSec - 400 * DAY),
   ]);
+  await teamHousekeeping(ctx);
 }
 
 export async function runScheduled(ctx, cron) {
@@ -752,14 +766,14 @@ export function renderPage({ title, heading, bodyHtml, cfg }) {
   );
 }
 
-const BASE_HEADERS = {
+export const BASE_HEADERS = {
   "cache-control": "no-store",
   "referrer-policy": "no-referrer",
   "x-content-type-options": "nosniff",
   "x-robots-tag": "noindex",
 };
 
-function htmlResponse(ctx, status, { title, heading, bodyHtml }, extraHeaders = {}) {
+export function htmlResponse(ctx, status, { title, heading, bodyHtml }, extraHeaders = {}) {
   return new Response(renderPage({ title, heading, bodyHtml, cfg: ctx.cfg }), {
     status,
     headers: {
@@ -772,21 +786,21 @@ function htmlResponse(ctx, status, { title, heading, bodyHtml }, extraHeaders = 
   });
 }
 
-function jsonResponse(status, body, extraHeaders = {}) {
+export function jsonResponse(status, body, extraHeaders = {}) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...BASE_HEADERS, "content-type": "application/json; charset=utf-8", ...extraHeaders },
   });
 }
 
-function wantsJson(request) {
+export function wantsJson(request) {
   const accept = request.headers.get("accept") || "";
   const type = request.headers.get("content-type") || "";
   return accept.includes("application/json") || type.includes("application/json");
 }
 
 // One place that answers in the form the caller asked for.
-function reply(ctx, request, status, { title, heading, message, extraHtml = "", json = {} }, extraHeaders = {}) {
+export function reply(ctx, request, status, { title, heading, message, extraHtml = "", json = {} }, extraHeaders = {}) {
   if (wantsJson(request)) {
     return jsonResponse(status, { ok: status < 400, message, ...json }, extraHeaders);
   }
@@ -801,7 +815,7 @@ function reply(ctx, request, status, { title, heading, message, extraHtml = "", 
 const MAX_BODY_CHARS = 8192;
 
 // Reads a JSON or form-encoded body into a plain object; null if unreadable.
-async function readBody(request) {
+export async function readBody(request) {
   const length = Number(request.headers.get("content-length") || 0);
   if (length > MAX_BODY_CHARS) {
     return null;
@@ -833,11 +847,11 @@ async function readBody(request) {
 
 // ---------------------------------------------------------------- endpoints
 
-function nowSecOf(ctx) {
+export function nowSecOf(ctx) {
   return Math.floor(ctx.now() / 1000);
 }
 
-function clientIp(request) {
+export function clientIp(request) {
   return request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown";
 }
 
@@ -1241,8 +1255,11 @@ export async function handleRequest(request, ctx) {
         return await allow(["GET", "HEAD", "POST"], () => handleUnsubscribe(request, ctx, url));
       case "/api/mail/preferences":
         return await allow(["GET", "HEAD", "POST"], () => handlePreferences(request, ctx, url));
-      default:
-        return jsonResponse(404, { ok: false, error: "not_found" });
+      default: {
+        // Team sign-in and feedback votes: /api/mail/team/* and /api/mail/feedback*.
+        const team = await handleTeamRequest(request, ctx, url, path);
+        return team || jsonResponse(404, { ok: false, error: "not_found" });
+      }
     }
   } catch (error) {
     ctx.log("error", "request failed", { path, error: String(error?.stack ?? error) });
@@ -1272,13 +1289,19 @@ export function makeContext(env, overrides = {}) {
     fetch: (...args) => globalThis.fetch(...args),
     now: () => Date.now(),
     log: defaultLog,
+    // Set by the Workers shell so work that must not delay a response (the
+    // sign-in email) runs after it. Without it the work is awaited.
+    defer: null,
     ...overrides,
   };
 }
 
 export default {
-  async fetch(request, env) {
-    return handleRequest(request, makeContext(env));
+  async fetch(request, env, executionContext) {
+    return handleRequest(
+      request,
+      makeContext(env, { defer: (promise) => executionContext?.waitUntil?.(promise) }),
+    );
   },
 
   async scheduled(controller, env) {
