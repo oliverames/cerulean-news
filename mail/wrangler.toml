@@ -29,13 +29,11 @@ MAIL_FROM_NAME = "Cerulean News"
 [triggers]
 crons = ["*/30 * * * *", "5 11 * * *", "5 13 1 * *"]
 
-# TODO(Oliver): replace database_id with the id printed by
-#   npx wrangler@4 d1 create cerulean-news-mail
-# The deploy workflow refuses to run while the placeholder is still here.
+# Created 2026-09-29 in ENAM. deploy-mail.yml applies the migrations.
 [[d1_databases]]
 binding = "DB"
 database_name = "cerulean-news-mail"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "392bd322-70ff-49b6-8d02-9629d06eeddb"
 migrations_dir = "migrations"
 
 # The binding can send only from this address, so a bug or a leaked deploy

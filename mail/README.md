@@ -36,7 +36,7 @@ Email Sending is in public beta. It needs the Workers Paid plan and `cerulean.ne
 
 1. **Upgrade to Workers Paid.** Email Sending and the 250-cron-trigger limit both need it. Cloudflare dashboard, Workers & Pages, Plans.
 2. **Onboard `cerulean.news` in Email Service.** Dashboard, Compute, Email Service, Email Sending, Onboard Domain, pick `cerulean.news`. Cloudflare adds MX, SPF, DKIM, and DMARC records on the `cf-bounce` subdomain and `_dmarc.cerulean.news`. Check first that no other DMARC record exists at `_dmarc.cerulean.news`. Wait for the domain to show as verified, which is usually 5 to 15 minutes. Leave "Drop suppressed recipients" at its default (off) or turn it on, either works (see Suppressions below).
-3. **Create the D1 database and put its id in `wrangler.toml`.** Run `npx wrangler@4 d1 create cerulean-news-mail`, then replace `REPLACE_WITH_D1_DATABASE_ID` in `mail/wrangler.toml` with the printed id and commit. The deploy workflow refuses to run while the placeholder is there.
+3. **D1 database.** Done 2026-09-29: `cerulean-news-mail` (ENAM) exists and its id is in `mail/wrangler.toml`. Its tables are created by the deploy workflow's `d1 migrations apply` step, so do not create them by hand. (To recreate it elsewhere: `npx wrangler@4 d1 create cerulean-news-mail`, then put the printed id in `wrangler.toml`. The deploy workflow refuses to run while the placeholder `REPLACE_WITH_D1_DATABASE_ID` is there.)
 4. **Set the `MAIL_SIGNING_SECRET` secret.** 1Password is its canonical home. Generate it once, save it there, then load it into the Worker:
 
    ```bash

@@ -998,8 +998,7 @@ test("wrangler.toml matches the code: name, bindings, sender allowlist, route, a
   assert.match(toml, /^name = "cerulean-news-mail"$/m);
   assert.match(toml, /^main = "worker\.js"$/m);
   assert.match(toml, /\[\[d1_databases\]\]\s*\nbinding = "DB"/);
-  assert.match(toml, /database_id = "REPLACE_WITH_D1_DATABASE_ID"/, "the placeholder is still marked");
-  assert.match(toml, /TODO\(Oliver\)/);
+  assert.match(toml, /database_id = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"/, "a real D1 id, not the placeholder");
   assert.match(toml, /\[\[send_email\]\]\s*\nname = "EMAIL"\s*\nallowed_sender_addresses = \["news@cerulean\.news"\]/);
   assert.match(toml, /pattern = "cerulean\.news\/api\/mail\/\*", zone_name = "cerulean\.news"/);
   const crons = /crons = \[(.*)\]/.exec(toml)[1].match(/"([^"]+)"/g).map((cron) => cron.slice(1, -1));
