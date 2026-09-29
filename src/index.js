@@ -260,6 +260,8 @@ export async function generateFeed({
       ...jevOptions,
       feedbackExamples: teamFeedback.examples, // feature: team-feedback
       cache: crawlState.jevCache,
+      exampleState: crawlState.jevExamples,
+      storyKeys: crawlState.jevStories,
       metrics: (crawlMetrics.jev = {}),
     }),
   );
