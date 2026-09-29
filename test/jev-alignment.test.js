@@ -105,7 +105,11 @@ test("production profile sends private human guidance on future requests and ver
   assert.doesNotMatch(JSON.stringify(cache), /An award|support program|expected|reference_examples/);
   await applyJevRelevance([item], options);
   assert.equal(calls.length, 1);
+  // The cache keys on example ids and labels (#21), so reworded example text is
+  // still a hit and a changed label is a miss.
   await applyJevRelevance([item], { ...options, referenceExamples: referenceExamples.map(row => ({ ...row, context: "Updated human explanation" })) });
+  assert.equal(calls.length, 1);
+  await applyJevRelevance([item], { ...options, referenceExamples: referenceExamples.map(row => ({ ...row, sentiment: row.sentiment === "positive" ? "negative" : row.sentiment })) });
   assert.equal(calls.length, 2);
   assert.deepEqual(normalizeJevCache(cache), cache);
 });

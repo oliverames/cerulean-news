@@ -2,13 +2,15 @@
 // Keyword recall and deterministic editorial rules remain authoritative.
 // Shadow mode records evidence without changing reader output. Enforce applies
 // confident decisions; uncertainty or service failure keeps the current result.
-// Successful evaluations are cached by their exact bounded request and rubrics.
-import { createHash } from "node:crypto";
+// Successful evaluations are cached by the story's bounded request, the rubrics,
+// and the ids and labels of its reference examples (see jev-cache-keys.js).
 import { loadReferenceExamples } from "./jev-examples.js";
 import { mergeFeedbackExamples } from "./feedback.js"; // feature: team-feedback
 import { isObituaryItem } from "./filters.js";
 import { withoutBodyOnly } from "./body-labels.js";
 import { addEditorialAlignment, alignedInclusionAnswer, loadAlignmentProfile } from "./jev-alignment.js";
+import { classifyMiss, jevCacheKey, jevStoryKey, legacyJevCacheKey, referenceLibraryHashes, referenceSignature, shortKey } from "./jev-cache-keys.js";
+import { freezeReferenceText } from "./jev-freeze.js";
 import { applyDeterministicRelevance, itemCategory, itemOutletName, itemSourceType } from "./relevance.js";
 import { INCLUSION_PRIORITIES, INCLUSION_RULES, matchStorylines, SENTIMENT_RULES, SENTIMENT_VALUES, shouldScoreSentiment, TRACKER_EXAMPLES } from "./summaries.js";
 import { execFile } from "node:child_process";
@@ -166,7 +168,7 @@ function articleExcerpt(item) {
   return cleanText(source).slice(0, MAX_EXCERPT_CHARS);
 }
 
-export function buildJevRequest(item, rubric, { sentimentRubric, alignment, referenceExamples } = {}) {
+export function buildJevRequest(item, rubric, { sentimentRubric, alignment, referenceExamples, trace } = {}) {
   validateRelevanceRubric(rubric);
   const questions = { ...rubric.questions };
   if (sentimentRubric && shouldScoreSentiment({ ...item, relevant: undefined })) {
@@ -197,7 +199,7 @@ export function buildJevRequest(item, rubric, { sentimentRubric, alignment, refe
     model: rubric.model,
     questions,
   };
-  return alignment ? addEditorialAlignment(request, item, { ...alignment, examples: referenceExamples || [] }) : request;
+  return alignment ? addEditorialAlignment(request, item, { ...alignment, examples: referenceExamples || [], trace }) : request;
 }
 
 function noulValue(answer) {
@@ -496,6 +498,8 @@ export function normalizeJevCache(value) {
         typeof entry.model !== "string" || typeof entry.rubricVersion !== "string" ||
         (entry.sentiment != null && (!SENTIMENT_VALUES.includes(entry.sentiment) || !isProbability(entry.sentimentConfidence)))) continue;
     cache[key] = {
+      // The short story part of the key, which classifies a later miss.
+      ...(typeof entry.storyKey === "string" && /^[a-f0-9]{12}$/.test(entry.storyKey) ? { storyKey: entry.storyKey } : {}),
       ...(typeof entry.alignmentVersion === "string" ? { alignmentVersion: entry.alignmentVersion.slice(0, 80) } : {}),
       model: entry.model.slice(0, 80),
       rubricVersion: entry.rubricVersion.slice(0, 80),
@@ -555,7 +559,8 @@ export async function applyJevRelevance(items, options = {}) {
   const metrics = options.metrics || {};
   Object.assign(metrics, { mode, status: mode === JEV_MODE_OFF ? "off" : "pending", eligible: 0,
     requested: 0, succeeded: 0, failed: 0, cached: 0, pending: 0,
-    inclusionDisagreements: 0, sentimentDisagreements: 0 });
+    inclusionDisagreements: 0, sentimentDisagreements: 0,
+    keyMigrated: 0, missReferenceChanged: 0, missStoryChanged: 0, missUnanswered: 0, missUnclassified: 0 });
   if (mode === JEV_MODE_OFF || !Array.isArray(items) || items.length === 0) return items;
 
   let rubric, sentimentRubric;
@@ -569,7 +574,7 @@ export async function applyJevRelevance(items, options = {}) {
     return items;
   }
 
-  let alignment, referenceExamples = [];
+  let alignment, referenceExamples = [], liveReferenceExamples = [];
   if (options.alignment || env.JEV_ALIGNMENT_PROFILE) {
     try {
       alignment = options.alignment || await loadAlignmentProfile(env.JEV_ALIGNMENT_PROFILE);
@@ -594,6 +599,18 @@ export async function applyJevRelevance(items, options = {}) {
     referenceExamples = mergeFeedbackExamples(reference.examples, options.feedbackExamples);
     metrics.feedbackReferences = referenceExamples.length - reference.examples.length;
     // /feature: team-feedback
+    // Frozen reference text (#21, jev-freeze.js). The excerpt and outlet each
+    // example carries come from the archive copy of its URL, which changes
+    // between runs. The first non-empty text seen is kept and reused, so the
+    // same example sends the same words. Retrieval below ranks by word overlap
+    // with that text, so it now ranks by the frozen words: identical on the
+    // first run, and stable afterwards. The unfrozen library is kept only to
+    // recompute legacy cache keys once.
+    liveReferenceExamples = referenceExamples;
+    const frozen = freezeReferenceText(referenceExamples, options.exampleState || {});
+    referenceExamples = frozen.examples;
+    Object.assign(metrics, referenceLibraryHashes(liveReferenceExamples, referenceExamples),
+      { referenceTextFrozen: frozen.added, referenceTextChanged: frozen.changed, referenceTextLost: frozen.lost });
   }
 
   const enforceAfter = options.enforceAfter ?? env.JEV_ENFORCE_AFTER;
@@ -624,11 +641,36 @@ export async function applyJevRelevance(items, options = {}) {
   metrics.enforcementEligible = candidates.filter(mayEnforce).length;
   const cache = options.cache || {};
   const normalized = normalizeJevCache(cache);
+  const versions = { alignmentVersion: alignment?.version, version: rubric.version, sentimentVersion: sentimentRubric.version };
+  // The key (#21, jev-cache-keys.js) is the story part plus the ids and labels
+  // of the reference examples the request carries. Reference text is not in
+  // it, so a changed excerpt or outlet cannot invalidate an answer.
   const entries = candidates.map((item) => {
-    const request = buildJevRequest(item, rubric, { sentimentRubric, alignment, referenceExamples });
-    const key = createHash("sha256").update(JSON.stringify({ alignmentVersion: alignment?.version, version: rubric.version, sentimentVersion: sentimentRubric.version, request })).digest("hex");
-    return { item, request, key };
+    const trace = {};
+    const request = buildJevRequest(item, rubric, { sentimentRubric, alignment, referenceExamples, trace });
+    const storyKey = jevStoryKey({ ...versions, request });
+    const key = jevCacheKey(storyKey, referenceSignature(alignment ? trace : null));
+    return { item, request, key, storyKey: shortKey(storyKey) };
   });
+  // Migration from the old whole-request key. An entry with no story key was
+  // written by the old code. Where the old key computed from this run's
+  // unfrozen request still matches, no reference text has changed under that
+  // answer since it was written, so it moves to the new key and keeps working.
+  // The rest were already stale and would have missed under the old key too.
+  const legacyEntries = Object.values(normalized).filter((entry) => !entry.storyKey).length;
+  if (legacyEntries) for (const entry of entries) {
+    if (normalized[entry.key]) continue;
+    const legacyRequest = alignment ? buildJevRequest(entry.item, rubric, { sentimentRubric, alignment, referenceExamples: liveReferenceExamples }) : entry.request;
+    const old = normalized[legacyJevCacheKey({ ...versions, request: legacyRequest })];
+    if (old && !old.storyKey) {
+      normalized[entry.key] = { ...old, storyKey: entry.storyKey };
+      cache[entry.key] = normalized[entry.key];
+      metrics.keyMigrated += 1;
+    }
+  }
+  // What the run started with, for classifying misses below.
+  const answeredStories = new Set(Object.values(normalized).map((entry) => entry.storyKey).filter(Boolean));
+  const seenStories = new Set(options.storyKeys || []);
   const activeKeys = new Set(entries.map(({ key }) => key));
   for (const key of Object.keys(cache)) {
     if (!activeKeys.has(key) || !normalized[key]) delete cache[key];
@@ -642,6 +684,13 @@ export async function applyJevRelevance(items, options = {}) {
       metrics.cached += 1;
     } else pending.push(entry);
   }
+  // Why each miss missed. referenceChanged is the churn: the same story part
+  // was answered before, under references that have since changed.
+  const missBuckets = { referenceChanged: "missReferenceChanged", unanswered: "missUnanswered", storyChanged: "missStoryChanged", unclassified: "missUnclassified" };
+  for (const entry of pending) {
+    metrics[missBuckets[classifyMiss(entry.storyKey, { answered: answeredStories, seen: seenStories, unclassified: legacyEntries > 0 })]] += 1;
+  }
+  if (options.storyKeys) options.storyKeys.splice(0, options.storyKeys.length, ...new Set(entries.map(({ storyKey }) => storyKey)));
   const configured = options.callJev || env.TYPESAFE_API_KEY?.trim() || options.cliPath || env.JEV_CLI_PATH?.trim();
   const eligiblePending = mode === JEV_MODE_ENFORCE ? pending.filter(entry => mayEnforce(entry.item)) : pending;
   const runEntries = configured ? eligiblePending.slice(0, maxItems) : [];
@@ -677,10 +726,11 @@ export async function applyJevRelevance(items, options = {}) {
     : [];
   const oddsBackfill = needsOdds.slice(0, Math.max(0, maxItems - runEntries.length - scopeBackfill.length));
   metrics.sentimentBackfilled = 0;
-  await mapWithConcurrency(oddsBackfill, concurrency, async ({ item, request, key }) => {
+  await mapWithConcurrency(oddsBackfill, concurrency, async ({ item, request, key, storyKey }) => {
     const refreshed = await classifyItemRelevance(item, { ...options, rubric, request });
     if (!refreshed.ok || !refreshed.sentiment) return;
     if (alignment) refreshed.alignmentVersion = alignment.version;
+    refreshed.storyKey = storyKey;
     const sentimentAnswer = { sentiment: refreshed.sentiment, sentimentConfidence: refreshed.sentimentConfidence,
       sentimentProbabilities: refreshed.sentimentProbabilities };
     // A cached entry keeps its inclusion answer; only the sentiment fields refresh.
@@ -694,9 +744,10 @@ export async function applyJevRelevance(items, options = {}) {
   metrics.requested = runEntries.length;
   metrics.status = configured ? "complete" : "credentials_missing";
   if (!configured) console.warn(`Jev evaluation (${mode}): TYPESAFE_API_KEY is not configured; no live evaluations can run.`);
-  await mapWithConcurrency(runEntries, concurrency, async ({ item, request, key }) => {
+  await mapWithConcurrency(runEntries, concurrency, async ({ item, request, key, storyKey }) => {
     const classification = await classifyItemRelevance(item, { ...options, rubric, request });
     if (alignment) classification.alignmentVersion = alignment.version;
+    classification.storyKey = storyKey;
     classifications.set(item, classification);
     if (classification.ok) {
       cache[key] = normalizeJevCache({ [key]: classification })[key];
@@ -718,6 +769,9 @@ export async function applyJevRelevance(items, options = {}) {
     if (classification.sentiment && priorSentiment && !item.feedbackSentiment && classification.sentiment !== priorSentiment) metrics.sentimentDisagreements += 1;
   }
   console.log(`Jev evaluation (${mode}): ${metrics.succeeded}/${metrics.requested} successful, ${metrics.cached} cached, ${metrics.pending} pending, ${metrics.scopeBackfilled} scope backfills (${metrics.scopeBackfillPending} left), ${metrics.sentimentBackfilled ?? 0} sentiment backfills (${metrics.sentimentBackfillPending ?? 0} left); ${metrics.inclusionDisagreements} inclusion and ${metrics.sentimentDisagreements} sentiment disagreements. Status: ${metrics.status}.`);
+  // One line to confirm the cause of cache churn from the runner's log (#21).
+  const misses = entries.length - metrics.cached;
+  console.log(`Jev cache: ${metrics.cached} hits, ${misses} misses (${metrics.missReferenceChanged} reference-only, ${metrics.missStoryChanged} story changed or new, ${metrics.missUnanswered} never answered${metrics.missUnclassified ? `, ${metrics.missUnclassified} unclassified` : ""}), ${metrics.keyMigrated} migrated from the old key. References: ${metrics.referenceCount ?? 0} (ids ${metrics.referenceIdHash ?? "n/a"}, text ${metrics.referenceLiveTextHash ?? "n/a"} live and ${metrics.referenceFrozenTextHash ?? "n/a"} frozen, ${metrics.referenceTextChanged ?? 0} changed and ${metrics.referenceTextLost ?? 0} lost since frozen).`);
   if (mode === JEV_MODE_SHADOW) return items;
 
   return items.map((item) => {

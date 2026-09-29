@@ -2,6 +2,8 @@
 // with archived ones, and dedupe resolved links and titles.
 import { readText } from "./fsx.js";
 import { normalizeJevCache, normalizeJevBaseline } from "./jev-relevance.js";
+import { normalizeJevExampleState } from "./jev-freeze.js";
+import { normalizeJevStoryKeys } from "./jev-cache-keys.js";
 import { normalizeBrandAlertState } from "./brand-alerts.js";
 import { normalizeMonthlyReportState } from "./monthly-report-state.js";
 import { normalizeFeedbackState } from "./feedback.js"; // feature: team-feedback
@@ -131,6 +133,9 @@ export function normalizeCrawlState(value = {}) {
     sourceState: normalizeSourceState(value.sourceState),
     articleCache: normalizeArticleCache(value.articleCache),
     jevCache: normalizeJevCache(value.jevCache),
+    // Reference text frozen on first sight, and the last run's story keys (#21).
+    jevExamples: normalizeJevExampleState(value.jevExamples),
+    jevStories: normalizeJevStoryKeys(value.jevStories),
     brandAlerts: normalizeBrandAlertState(value.brandAlerts),
     monthlyReports: normalizeMonthlyReportState(value.monthlyReports),
     feedback: normalizeFeedbackState(value.feedback), // feature: team-feedback

@@ -1,6 +1,6 @@
 // Supported request-level adaptation, not customer-specific model weights.
 import { readFile } from "node:fs/promises";
-import { exampleId, selectReferenceExamples } from "./jev-examples.js";
+import { chooseReferenceExamples, exampleId, referenceExampleView } from "./jev-examples.js";
 import { INCLUSION_PRIORITIES, INCLUSION_RULES } from "./summaries.js";
 
 export const ALIGNMENT_VERSION = "editorial-examples-v2";
@@ -23,12 +23,17 @@ const SCOPE_QUESTIONS = {
   },
 };
 
-export function addEditorialAlignment(request, item, { examples = [], strategy = "references", inclusionExamples = 8, sentimentExamples = 16, criteria = "current", references = {} } = {}) {
+export function addEditorialAlignment(request, item, { examples = [], strategy = "references", inclusionExamples = 8, sentimentExamples = 16, criteria = "current", references = {}, trace } = {}) {
   if (!["references", "atomic", "atomic-references"].includes(strategy)) throw new Error("Unknown alignment strategy");
   const result = structuredClone(request);
   const useReferences = strategy.includes("references");
-  const includeRefs = useReferences ? selectReferenceExamples(item, examples, { task: "inclusion", limit: inclusionExamples, storyGroupById: references.storyGroupById }) : [];
-  const sentimentRefs = useReferences ? selectReferenceExamples(item, examples, { task: "sentiment", limit: sentimentExamples, storyGroupById: references.storyGroupById }) : [];
+  const includeRows = useReferences ? chooseReferenceExamples(item, examples, { task: "inclusion", limit: inclusionExamples, storyGroupById: references.storyGroupById }) : [];
+  const sentimentRows = useReferences ? chooseReferenceExamples(item, examples, { task: "sentiment", limit: sentimentExamples, storyGroupById: references.storyGroupById }) : [];
+  const includeRefs = includeRows.map((row) => referenceExampleView(row, "inclusion"));
+  const sentimentRefs = sentimentRows.map((row) => referenceExampleView(row, "sentiment"));
+  // Optional out-parameter for the cache key: the rows behind each list that
+  // actually enters the request. It never becomes part of the request.
+  if (trace) Object.assign(trace, { inclusion: includeRows, sentiment: [] });
   const old = result.questions.include.instructions;
   result.questions.include.instructions = {
     ...(typeof old === "object" ? old : { question: old }),
@@ -60,6 +65,7 @@ export function addEditorialAlignment(request, item, { examples = [], strategy =
       reference_guidance: "Evaluate only article. Match the communications team's HUMAN judgment in the paired reference cases, including their editorial context. Scores concern BCBSVT specifically. Ordinary favorable presence without adverse framing is positive. Distinguish costs blamed on other organizations from criticism directed at BCBSVT. Similar wording does not imply the same tone or score.",
       ...(useReferences && sentimentRefs.length ? { examples: [], reference_examples: sentimentRefs } : {}),
     };
+    if (trace && useReferences && sentimentRefs.length) trace.sentiment = sentimentRows;
     if (criteria === "contrastive") result.questions.sentiment.criteria = {
       positive: "Ordinary favorable or unopposed BCBSVT presence: awards, sponsorship, participation, useful programs, routine payer mentions, or favorably representing members. Criticism of other organizations can coexist with positive tone toward BCBSVT. Use this even for a brief mention when no adverse BCBSVT context is present.",
       "neutral to positive": "Some favorable BCBSVT positioning or benefit, qualified by an adverse headline, mixed context, or limitations. Favorable direction remains clearer than neutral balance.",

@@ -102,7 +102,9 @@ export async function loadReferenceExamples(items, { env = process.env, config =
 
 const REJECTION_SLOTS = 2;
 
-export function selectReferenceExamples(item, examples, { task, limit = 16, storyGroupById = {} } = {}) {
+// The chosen example rows themselves, so callers can read their ids and labels.
+// selectReferenceExamples below is the request-shaped view of the same choice.
+export function chooseReferenceExamples(item, examples, { task, limit = 16, storyGroupById = {} } = {}) {
   if (!Number.isInteger(limit) || limit < 0 || limit > 200) throw new Error("Example limit must be 0–200");
   const query = terms([item.title, item.snippet, item.description].filter(Boolean).join(" "));
   const targetGroup = storyGroupById[exampleId(item.link || item.url)];
@@ -127,9 +129,17 @@ export function selectReferenceExamples(item, examples, { task, limit = 16, stor
     if (chosen.length >= limit) break;
     if (!chosen.includes(example) && !chosen.some((existing) => sameExampleStory(existing, example))) chosen.push(example);
   }
-  return chosen.map((example) => ({
+  return chosen;
+}
+
+export function referenceExampleView(example, task) {
+  return {
     article: { title: example.title, outlet: example.outlet, excerpt: example.excerpt, editorialContext: example.context },
     expected: task === "sentiment" ? { sentiment: example.sentiment } : { include: example.include },
     provenance: example.provenance,
-  }));
+  };
+}
+
+export function selectReferenceExamples(item, examples, options = {}) {
+  return chooseReferenceExamples(item, examples, options).map((example) => referenceExampleView(example, options.task));
 }
