@@ -172,7 +172,7 @@
 
   /* ---- Browser wiring ---- */
 
-  const state = { signedIn: false, admin: false, votes: new Map(), busy: new Set() };
+  const state = { signedIn: false, admin: false, live: false, votes: new Map(), busy: new Set() };
   const entries = [];
   // Story ids are SHA-256 hashes computed off the main thread. start() waits
   // for any still pending so the first render has every id.
@@ -442,15 +442,16 @@
   }
 
   // The footer line: who can sign in, and what a signed-in member can reach.
-  // It stays hidden for the public. A browser that has had a team session shows
-  // a sign-in link once the session ends.
+  // Once the Worker answers (a 401 means it is live but this browser is not
+  // signed in), everyone sees the sign-in link so staff can find it. Before
+  // the Worker is deployed the line stays hidden, since the link would 404.
   function renderNote() {
     if (!noteEl) {
       return;
     }
     const term = noteEl.previousElementSibling;
     noteEl.replaceChildren();
-    const show = state.signedIn || hint();
+    const show = state.signedIn || state.live || hint();
     noteEl.hidden = !show;
     if (term && term.tagName === "DT") {
       term.hidden = !show;
@@ -471,7 +472,8 @@
     } else {
       const link = document.createElement("a");
       link.href = `${API}/team/signin`;
-      link.textContent = "Team sign-in";
+      // Deliberately plain and unbranded: the site is independent.
+      link.textContent = "Sign in";
       noteEl.appendChild(link);
     }
   }
@@ -505,6 +507,7 @@
       hint(true);
     } else {
       state.signedIn = false;
+      state.live = result.status === 401;
     }
     renderAll();
   }

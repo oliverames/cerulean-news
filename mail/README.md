@@ -91,6 +91,7 @@ Renderers must not add their own unsubscribe link or disclaimer. The Worker appe
 ```
 
 - Written by `buildMonthlyReportPages` in `src/monthly-report.js`, beside the report pages, for the last complete Eastern month. `month` is `YYYY-MM` and must be the current or previous UTC month. On day 1 it is the month that just ended.
+- The body carries a short "What stood out" section after the summary when Gemini findings exist for the month. It is labeled AI-generated and is left out without a key or on any failure, so the contract is unchanged: `html` and `text` are the same fields either way. The Vermont figure reads "n/a" for a month whose total is not available.
 - Dedupe key: `month`. Publish it before 13:05 UTC on day 1. Ticks retry through day 3.
 
 Each body (`html` plus `text`) may be up to 2 MiB. Cloudflare's own message limit is 5 MiB.
@@ -131,7 +132,7 @@ No subscription is needed. The emailed link is the proof of control, and a row i
 
 ### Sign-in
 
-1. The person opens `https://cerulean.news/api/mail/team/signin` and enters their address. The page is small and matches the Worker's other pages. The reader's footer shows a "Team sign-in" link after a browser has been signed in once, so hand the URL to new team members.
+1. The person opens `https://cerulean.news/api/mail/team/signin` and enters their address. The page is small and matches the Worker's other pages. Once this Worker is deployed, the reader's footer shows a plain "Team: Sign in" line to every visitor, deliberately unbranded. Before deployment the line stays hidden, because the link would not resolve.
 2. The Worker answers the same way for every well-formed address, whether or not it can sign in. The lookup and the email run after the response, so the timing is alike too. Only a team-domain or admin address is mailed a link.
 3. The link is single use and expires in 15 minutes (`SIGNIN_LINK_MINUTES`). Opening it shows a page with a button, and only the button signs in. Mail scanners open links but never press buttons, so a scanner cannot use one up.
 4. The button sets the session cookie and lands on the reader. The cookie is `__Secure-cerulean_team`, `HttpOnly`, `Secure`, `SameSite=Lax`, scoped to `/api/mail`, and lasts 14 days (`SESSION_DAYS`).

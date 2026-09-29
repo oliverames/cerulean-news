@@ -237,10 +237,9 @@ test("only http and https links are ever linked", () => {
 
 // ------------------------------------------------------------ browser wiring
 
-test("a public visitor sees no change at all, whatever the Worker does", async () => {
+test("a public visitor sees no stories change, and no footer line until the Worker is live", async () => {
   const responses = {
     "Worker not deployed (404 page)": () => new Response("<html>Not found</html>", { status: 404, headers: { "content-type": "text/html" } }),
-    "no session (401)": () => json({ ok: false, error: "unauthorized" }, 401),
     "server error": () => new Response("oops", { status: 500 }),
     "network failure": () => { throw new TypeError("offline"); },
     "a 200 that is not the vote list": () => new Response("<html>SPA</html>", { status: 200, headers: { "content-type": "text/html" } }),
@@ -264,6 +263,27 @@ test("a public visitor sees no change at all, whatever the Worker does", async (
     } finally {
       t.restore();
     }
+  }
+});
+
+test("once the Worker answers, a visitor without a session sees only the footer sign-in line", async () => {
+  const t = harness(() => json({ ok: false, error: "unauthorized" }, 401));
+  try {
+    const stories = [t.story(brandItem), t.story(topicItem)];
+    const before = stories.map(({ li }) => li.textContent);
+    for (const { li, item } of stories) t.api.decorate(li, item);
+    await t.api.start();
+    await settle();
+    assert.deepEqual(stories.map(({ li }) => li.textContent), before, "stories unchanged");
+    assert.ok(stories.every(({ li }) => li.querySelectorAll("button").length === 0), "no vote buttons");
+    assert.equal(t.note.hidden, false);
+    assert.equal(t.dt.hidden, false);
+    assert.equal(t.note.textContent, "Sign in");
+    assert.doesNotMatch(t.note.textContent, /Blue Cross|BCBS/i);
+    assert.equal(t.note.querySelector("a").href, "/api/mail/team/signin");
+    assert.equal(t.store.size, 0, "nothing stored");
+  } finally {
+    t.restore();
   }
 });
 
