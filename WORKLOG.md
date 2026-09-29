@@ -1,9 +1,8 @@
 ## Open items
 
 - Finish sentiment scoring. 130 of 258 eligible brand stories carry a 0-100 score on 2026-09-29. The Gemini archive re-score still waits on its quota (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
-- Jev cache answers go stale between ordinary runs, so the archive re-check stopped at 1,385 pending after about 4,500 calls. Diagnose the reference-example churn before spending more (since 2026-09-29; [#21](https://github.com/oliverames/cerulean-news/issues/21))
-- Deploy the mail Worker: Workers Paid, sending domain, D1, secrets including `ADMIN_EMAILS` and `FEEDBACK_EXPORT_TOKEN`, then `deploy-mail.yml`. Email signup and team feedback stay dormant until then (since 2026-09-29; [#17](https://github.com/oliverames/cerulean-news/issues/17))
-- Share of voice undercounts MVP Health Care and UVM Health: topic terms match feed text only, and months before July come only from Google News (since 2026-09-29; [#19](https://github.com/oliverames/cerulean-news/issues/19))
+- Jev archive re-check backlog: 2,156 stories have no current Jev answer after the cache churn (fixed in #21). Applied decisions stay. Finishing takes about 2,150 calls, or scheduled runs drain it at 25 a run (since 2026-09-29; [#21](https://github.com/oliverames/cerulean-news/issues/21), closed)
+- Deploy the mail Worker: Workers Paid, sending domain, secrets including `ADMIN_EMAILS` and `FEEDBACK_EXPORT_TOKEN`, API token scopes, then `deploy-mail.yml`. The D1 database is done. Needs Oliver or a local session with Claude in Chrome (since 2026-09-29; [#17](https://github.com/oliverames/cerulean-news/issues/17))
 - Future: team sign-in hardening with Turnstile, passkeys, and a team admin page ([#18](https://github.com/oliverames/cerulean-news/issues/18)), and a team view to rescue excluded stories ([#20](https://github.com/oliverames/cerulean-news/issues/20)) (since 2026-09-29)
 - Compare the TypeSafe console against 305 logged Jev requests for 2026-09-21 to 09-24, and confirm balance, alerts, and recharge (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Sample the 451 proposed additions and 234 removals from `artifacts/jev-evaluation/` into the Label Desk from a Mac session (since 2026-09-24; [#8](https://github.com/oliverames/cerulean-news/issues/8))
@@ -19,7 +18,15 @@
 - Parked: Facebook embedded-post association (dormant while social sources are disabled) and compacting cache aliases, which needs a migration design that cannot discard the newer alias (since 2026-08-27) (unverified)
 - Whether Oliver should report bcbs.com's incomplete TLS chain to the association's web team (since 2026-08-25) (unverified)
 
-## 2026-09-29 - Plan in progress: mail Worker setup, share-of-voice body matching, Jev cache churn
+## 2026-09-29 - #21 fixed, #19 fixed, #17 partly done
+
+- **#21 (closed)**: Jev's cache key is now the story's request plus the ids and labels of its reference examples, and reference text is frozen per example id (37454cf). Verified on runs 36571439350 and 36574800720: 983 answers migrated, then 1,165 hits, and pending fell from 2,337 to 2,156. Only 2 misses were reference-only. The snapshots never showed which reference text had churned. The new `Jev cache:` log line will show it if it returns.
+- **#19 (closed)**: MVP Health Care and UVM Health mentions in article bodies now count for share of voice as annotations, and never for inclusion, retention, or the Jev and Gemini inputs (f3b0567). A `rebuild_brand_excerpts` dispatch re-read 24 of 86 candidates (62 failed, mostly publisher blocks) and added 2 body mentions.
+- **#17 (open)**: the D1 database `cerulean-news-mail` was created through the Cloudflare API, and its id is in `mail/wrangler.toml` (77ec711). The rest needs the Cloudflare dashboard. This cloud session had no Claude in Chrome connection, so Oliver has a prompt for a local session.
+
+---
+
+## 2026-09-29 - Plan (done): mail Worker setup, share-of-voice body matching, Jev cache churn
 
 **Request**: Oliver asked to do #17 (Cloudflare setup, using his Google Chrome for the account steps), #19 (share-of-voice undercount), and #21 (Jev cache churn) now.
 
