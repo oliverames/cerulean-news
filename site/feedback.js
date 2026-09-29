@@ -174,6 +174,9 @@
 
   const state = { signedIn: false, admin: false, votes: new Map(), busy: new Set() };
   const entries = [];
+  // Story ids are SHA-256 hashes computed off the main thread. start() waits
+  // for any still pending so the first render has every id.
+  const pendingIds = new Set();
   let statusEl = null;
   let statusTimer = null;
   let noteEl = null;
@@ -430,10 +433,12 @@
     }
     const entry = { li, item, meta, id: "", box: null, picker: null, pickerOpen: false };
     entries.push(entry);
-    idFor(item.link || item.url || "").then((id) => {
+    const pending = idFor(item.link || item.url || "").then((id) => {
       entry.id = id;
       render(entry);
     });
+    pendingIds.add(pending);
+    pending.finally(() => pendingIds.delete(pending));
   }
 
   // The footer line: who can sign in, and what a signed-in member can reach.
@@ -491,6 +496,7 @@
     statusEl = options.status || document.getElementById("feedback-status");
     noteEl = options.note || document.getElementById("team-note");
     const result = await request("/feedback");
+    await Promise.all([...pendingIds]);
     const parsed = result.ok ? parseVotesResponse(result.json) : null;
     if (parsed) {
       state.signedIn = true;
