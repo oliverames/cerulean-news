@@ -32,6 +32,12 @@ import { fetchText, throttleRequest } from "./fetching.js";
 import { decodeViaRelay, shouldProxy } from "./egress.js";
 import { isLikelyPaywalled, itemCategory } from "./relevance.js";
 import { bodyQuoteField, detectQuotedSpokespeople } from "./quotes.js";
+import {
+  bodyOnlyField,
+  findBodyLabels,
+  reconcileBodyOnly,
+  withoutBodyOnly,
+} from "./body-labels.js";
 
 const googleDecoder = new GoogleDecoder();
 
@@ -226,6 +232,7 @@ function writeArticleCache(articleCache, keys, item, resolvedLink, details, now)
     comments: Array.isArray(details.comments) ? details.comments : [],
     matchSource: details.matchSource || "",
     ...bodyQuoteField(details.bodyQuotedSpokespeople),
+    ...bodyOnlyField(details.bodyOnlyTerms),
     articleHeaders: {
       etag: details.articleHeaders?.etag || "",
       lastModified: details.articleHeaders?.lastModified || "",
@@ -303,6 +310,12 @@ function itemFromArticleCache(
     articleError: cached.articleError || "",
     matchSource,
     ...bodyQuoteField(cached.bodyQuotedSpokespeople),
+    ...bodyOnlyField(
+      reconcileBodyOnly(cached.bodyOnlyTerms, [
+        ...feedBrandMatches,
+        ...topicMatches,
+      ]),
+    ),
   };
 }
 
@@ -465,7 +478,8 @@ export function brandExcerptRebuildCandidates(items, limit = 150) {
 }
 
 // One-time repair, run from the workflow's manual dispatch. Refetches each
-// candidate through the same fetcher, throttle, and page-identity check as
+// candidate (which also backfills MVP Health Care and UVM Health body mentions
+// as annotations) through the same fetcher, throttle, and page-identity check as
 // enrichment, and replaces the snippet only when the rebuilt one names the
 // brand. Items are updated in place; matching article-cache entries get the
 // same snippet so a later run cannot restore the old one.
@@ -474,7 +488,13 @@ export async function rebuildBrandExcerpts(items, options = {}) {
   const throttleArticleRequest = options.throttleRequest || throttleRequest;
   const articleCache = options.articleCache || {};
   const candidates = brandExcerptRebuildCandidates(items, options.limit);
-  const result = { candidates: candidates.length, rebuilt: 0, unchanged: 0, failed: 0 };
+  const result = {
+    candidates: candidates.length,
+    rebuilt: 0,
+    unchanged: 0,
+    labelled: 0,
+    failed: 0,
+  };
 
   await mapWithConcurrency(candidates, CONCURRENCY, async (item) => {
     try {
@@ -489,8 +509,37 @@ export async function rebuildBrandExcerpts(items, options = {}) {
         result.unchanged += 1;
         return;
       }
+      const articleText = htmlToArticleText(html, articleUrl);
+      // The same page read also backfills MVP Health Care and UVM Health body
+      // mentions, which the earlier runs never looked for.
+      const bodyLabels = reconcileBodyOnly(
+        findBodyLabels(articleText),
+        withoutBodyOnly(item),
+      );
+      if (bodyLabels.some((label) => !(item.matchedTerms || []).includes(label))) {
+        item.matchedTerms = canonicalizeMatchedTerms([
+          ...(item.matchedTerms || []),
+          ...bodyLabels,
+        ]);
+        item.bodyOnlyTerms = [
+          ...new Set([...(item.bodyOnlyTerms || []), ...bodyLabels]),
+        ];
+        for (const key of new Set([item.link, item.url, articleUrl].filter(Boolean))) {
+          if (articleCache[key]) {
+            articleCache[key] = {
+              ...articleCache[key],
+              matchedTerms: canonicalizeMatchedTerms([
+                ...(articleCache[key].matchedTerms || []),
+                ...bodyLabels,
+              ]),
+              ...bodyOnlyField(item.bodyOnlyTerms),
+            };
+          }
+        }
+        result.labelled += 1;
+      }
       const snippet = cleanStorySnippet(
-        buildSnippet(htmlToArticleText(html, articleUrl), MENTION_TERMS),
+        buildSnippet(articleText, MENTION_TERMS),
         item.title,
       );
       if (findMentionTerms(snippet, MENTION_TERMS).length === 0) {
@@ -644,6 +693,9 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
         articleError: cached.articleError,
         matchSource,
         ...bodyQuoteField(cached.bodyQuotedSpokespeople),
+        ...bodyOnlyField(
+          reconcileBodyOnly(cached.bodyOnlyTerms, freshMatchedTerms),
+        ),
       };
       matchedCachedItem = cachedItem;
       if (!previewRequested || cachedItem.previewChecked === true) {
@@ -829,7 +881,9 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
     // Brand terms scan everything (feed text + full article body) so we
     // catch stories that never name the insurer in the headline. Topic
     // terms scan feed title/description only — article bodies mention
-    // "health care" too incidentally for body-matching to stay precise.
+    // "health care" too incidentally for body-matching to stay precise. The
+    // one exception is the MVP Health Care and UVM Health labels, matched in
+    // the body below as annotations only (src/body-labels.js).
     const articleBrandMatches = findMentionTerms(articleText, MENTION_TERMS);
     // The body is not kept, so quotes are read from it now and the names are
     // carried in the cache and the archive.
@@ -865,9 +919,11 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
       return null;
     }
 
+    // Inherited body-only labels are set aside here, so a body mention alone
+    // cannot count as a match on a later run.
     const matchedTerms = [
       ...new Set([
-        ...(inheritedCache?.matchedTerms || []),
+        ...(inheritedCache ? withoutBodyOnly(inheritedCache) : []),
         ...feedBrandMatches,
         ...articleBrandMatches,
         ...topicMatches,
@@ -916,6 +972,19 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
       matchSource = fallback.matchSource;
     }
 
+    // MVP Health Care and UVM Health named in the article body annotate an
+    // item that is already kept. This runs after every drop decision above, so
+    // a body-only mention cannot keep, categorize, or file a story, and the
+    // negative-cache writes above never record one.
+    const bodyOnlyTerms = reconcileBodyOnly(
+      [...(inheritedCache?.bodyOnlyTerms || []), ...findBodyLabels(articleText)],
+      finalMatchedTerms,
+    );
+    finalMatchedTerms = canonicalizeMatchedTerms([
+      ...finalMatchedTerms,
+      ...bodyOnlyTerms,
+    ]);
+
     // When the body names the brand, center on that passage. Otherwise an
     // earlier topic term in a multi-story brief pulls the window onto an
     // unrelated story and the Blue Cross VT sentence never reaches readers
@@ -950,6 +1019,7 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
           articleError,
           matchSource,
           bodyQuotedSpokespeople: bodyQuotes,
+          bodyOnlyTerms,
           articleHeaders: item.articleHeaders,
         },
         now,
@@ -998,6 +1068,7 @@ export async function enrichAndFilterItems(items, cache = new Map(), options = {
       articleError,
       matchSource,
       ...bodyQuoteField(bodyQuotes),
+      ...bodyOnlyField(bodyOnlyTerms),
     };
   });
 

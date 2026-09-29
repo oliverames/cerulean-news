@@ -705,11 +705,10 @@
               stories that carry those matched terms. A story that names two
               organizations counts for both, so a share is an organization&rsquo;s
               mentions divided by the combined mentions of the three, not by
-              stories. Brand terms are matched against the full article text,
-              but topic terms such as these two are matched against feed text
-              only, the headline and description, so a story that names MVP or
-              UVM only deep in its body is not counted. That understates both
-              against Blue Cross VT. Blue Cross VT&rsquo;s own site,
+              stories. A mention in the article body counts wherever the
+              collector read the body, which is not every story, and stories
+              added before that change are being backfilled, so MVP and UVM
+              may still be understated. Blue Cross VT&rsquo;s own site,
               association pages, and social items are left out. Sentiment is
               scored only for Blue Cross VT, so none is shown for the others.
             </p>

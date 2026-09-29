@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { cleanText, parsePositiveInteger, sleep } from "./utils.js";
 import { CATEGORY_BRAND, canonicalizeMatchedTerms, categorizeTerms } from "./matching.js";
+import { withoutBodyOnly } from "./body-labels.js";
 import {
   applyDeterministicRelevance,
   isAssociationItem,
@@ -282,7 +283,7 @@ export function buildSummaryPrompt(batch) {
         `ARTICLE ${index + 1}`,
         `TITLE: ${item.title}`,
         `OUTLET: ${itemOutletName(item)}`,
-        `MATCHED KEYWORDS: ${(item.matchedTerms || []).join(", ")}`,
+        `MATCHED KEYWORDS: ${withoutBodyOnly(item).join(", ")}`,
         `MENTIONS BCBSVT: ${shouldScoreSentiment(item) ? "yes" : "no"}`,
         ...(matchStorylines(item).length > 0
           ? [`STORYLINE: ${matchStorylines(item).map((e) => e.name).join("; ")}`]

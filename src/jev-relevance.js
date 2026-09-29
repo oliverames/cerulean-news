@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 import { loadReferenceExamples } from "./jev-examples.js";
 import { mergeFeedbackExamples } from "./feedback.js"; // feature: team-feedback
 import { isObituaryItem } from "./filters.js";
+import { withoutBodyOnly } from "./body-labels.js";
 import { addEditorialAlignment, alignedInclusionAnswer, loadAlignmentProfile } from "./jev-alignment.js";
 import { applyDeterministicRelevance, itemCategory, itemOutletName, itemSourceType } from "./relevance.js";
 import { INCLUSION_PRIORITIES, INCLUSION_RULES, matchStorylines, SENTIMENT_RULES, SENTIMENT_VALUES, shouldScoreSentiment, TRACKER_EXAMPLES } from "./summaries.js";
@@ -186,7 +187,7 @@ export function buildJevRequest(item, rubric, { sentimentRubric, alignment, refe
         excerpt: articleExcerpt(item),
         excerptSource: item?.snippet ? "source snippet" : item?.description ? "source description" : item?.summary ? "generated summary" : "none",
         outlet: cleanText(itemOutletName(item)).slice(0, 200),
-        matchedKeywords: (Array.isArray(item?.matchedTerms) ? item.matchedTerms : []).slice(0, 30).map((term) => cleanText(String(term)).slice(0, 100)),
+        matchedKeywords: withoutBodyOnly(item).slice(0, 30).map((term) => cleanText(String(term)).slice(0, 100)),
         category: itemCategory(item),
         sourceType: itemSourceType(item),
         eligibleBcbsVtSentiment: shouldScoreSentiment({ ...item, relevant: undefined }),

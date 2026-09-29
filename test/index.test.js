@@ -3678,7 +3678,7 @@ test("rebuildBrandExcerpts replaces a brand-less snippet and the cached copy", a
     throttleRequest: async () => {},
   });
 
-  assert.deepEqual(result, { candidates: 1, rebuilt: 1, unchanged: 0, failed: 0 });
+  assert.deepEqual(result, { candidates: 1, rebuilt: 1, unchanged: 0, labelled: 0, failed: 0 });
   assert.match(item.snippet, /Blue Cross VT said the approved increase/);
   assert.equal(articleCache[link].snippet, item.snippet);
 });

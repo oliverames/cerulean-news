@@ -233,7 +233,7 @@ export async function generateFeed({
       limit: parsePositiveInteger(process.env.REBUILD_BRAND_EXCERPTS_MAX, 150),
     });
     console.log(
-      `Brand excerpt rebuild: ${crawlMetrics.excerptRebuild.rebuilt} rebuilt, ${crawlMetrics.excerptRebuild.unchanged} unchanged, ${crawlMetrics.excerptRebuild.failed} failed of ${crawlMetrics.excerptRebuild.candidates} candidates.`,
+      `Brand excerpt rebuild: ${crawlMetrics.excerptRebuild.rebuilt} rebuilt, ${crawlMetrics.excerptRebuild.unchanged} unchanged, ${crawlMetrics.excerptRebuild.labelled} with body mentions added, ${crawlMetrics.excerptRebuild.failed} failed of ${crawlMetrics.excerptRebuild.candidates} candidates.`,
     );
   }
   await measurePhase(crawlMetrics, "summarize", () =>
