@@ -2,13 +2,13 @@
 // A PRESENTATION gate only, not security: the feeds stay public, and anyone
 // can bypass a check that runs in the browser. It keeps the pages from
 // greeting a casual visitor. The password itself is not in this file, only
-// its SHA-256 hash; it is the same one the gate used before 2026-09-03.
+// its SHA-256 hash. Oliver changed the password on 2026-10-06.
 // Every gated page loads gate.css in <head>, runs the one-line early check
 // that sets html.authenticated for a returning visitor, and loads this file
 // at the start of <body>. Pages that must stay open (subscribe, unsubscribe)
 // simply do not include it.
 (function () {
-  const PASSWORD_SHA256 = "57dd2025a15a7372c22a2e69ddedcd5e1c919a781578f72dfd38e1c47daee44c";
+  const PASSWORD_SHA256 = "7d8ab1a9d93287a2cb62a4e8a78c71e147727b5dba00fbb324387b658fbc8666";
   const STORAGE_KEY = "blueNewsAuth";
   const waiting = [];
   let unlocked = false;
