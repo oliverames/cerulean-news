@@ -11,17 +11,14 @@
 <p align="center">
   <code>150 default sources</code> &bull;
   <code>RSS + JSON Feed</code> &bull;
-  <code>Cloudflare Pages refresh several times a day</code>
+  <code>Cloudflare Pages publishing</code>
 </p>
 
 <p align="center">
-  <a href="https://github.com/oliverames/cerulean-news/actions/workflows/publish-feed.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/oliverames/cerulean-news/publish-feed.yml?branch=main&style=flat-square&label=publish&color=f5a542" alt="Publish workflow">
-  </a>
-  <img src="https://img.shields.io/badge/license-MIT-f5a542?style=flat-square" alt="MIT license">
-  <a href="https://cerulean.news/">
-    <img src="https://img.shields.io/badge/live-reader-f5a542?style=flat-square" alt="Live reader">
-  </a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-f5a542?style=flat-square" alt="MIT license"></a>
+  <a href="https://www.buymeacoffee.com/oliverames"><img src="https://img.shields.io/badge/Buy_Me_a_Coffee-support-f5a542?style=flat-square&logo=buy-me-a-coffee&logoColor=white" alt="Buy Me a Coffee"></a>
+  <a href="https://github.com/oliverames/cerulean-news/actions/workflows/publish-feed.yml"><img src="https://img.shields.io/github/actions/workflow/status/oliverames/cerulean-news/publish-feed.yml?branch=main&style=flat-square&label=publish&color=f5a542" alt="Publish workflow"></a>
+  <a href="https://cerulean.news/"><img src="https://img.shields.io/badge/reader-cerulean.news-f5a542?style=flat-square" alt="Cerulean News reader"></a>
 </p>
 
 ---
@@ -40,10 +37,14 @@ It also keeps an audit trail. Rejected items, source failures, matched terms, su
 
 ## Quick Start
 
-```bash
-npm install
-npm run generate
+Requires Node.js 20.11 or later. Install dependencies and run the offline tests first:
+
+```sh
+npm ci
+npm test
 ```
+
+To collect sources and write feeds, run `npm run generate`. Generation makes network requests and updates files under `site/`. Optional model and notification integrations run when configured. Use the alternate output paths in [Development](#development) when you need to preserve committed output files.
 
 The generator writes:
 
@@ -68,13 +69,13 @@ The default source list combines Vermont outlets, official Blue Cross and health
 | Hospitals and health organizations | Northwestern Medical Center, NVRH, Copley, Gifford, Springfield, Grace Cottage, Brattleboro Memorial, Brattleboro Retreat, Rutland Regional, SVMC, North Country Hospital, White River Junction VA, Dartmouth Health, UVM News, Vermont Medical Society, Vermont Care Partners | WordPress feeds where they work; site-scoped Google News where a site refuses direct fetches or has no feed. Rarely updated sites use a 90-day window |
 | Other Vermont and neighboring outlets | Compass Vermont, Vermont Political Observer, Public Assets Institute, Daybreak, WVMT, WDEV, ORCA Media, Vermont Chamber of Commerce; New Hampshire Public Radio, WMUR, NEWS10 ABC, The Keene Sentinel, Press-Republican, WAMC, and The Berkshire Eagle | Neighboring outlets are searched with Vermont in the query |
 | Official pages | UVM Health Newsroom, BCBSA Association News | Public listing pages are parsed because normal RSS feeds are not available. The site does not request anything from bluecrossvt.org (policy in `src/politeness.js`) |
-| Curated backfill | A hand-kept clip log, read from `data/media-tracker-seed.json` | 186 clips. The file is not committed: the workflow materializes it from the `MEDIA_TRACKER_SEED_B64` secret (gzip + base64), and a local run needs a copy on disk. Re-emitted every run so the archive self-heals. Most of the list predates this crawler or sits behind outlets that block us, so no crawl can recover it |
+| Curated backfill | A hand-kept clip log, read from `data/media-tracker-seed.json` | The file is not committed: the workflow materializes it from the `MEDIA_TRACKER_SEED_B64` secret (gzip + base64), and a local run needs a copy on disk. Re-emitted every run so the archive self-heals. Most of the list predates this crawler or sits behind outlets that block us, so no crawl can recover it |
 | Search feeds | Blue Cross VT brand searches (site-, phrase-, Boolean-, and full-name-scoped), Vermont health searches, MVP Health Care and UVM Health searches, health insurance search, single-site health searches for NYT, the Washington Post, WSJ, AP, Axios, NBC News, and Becker's Payer Issues, outlet fallbacks | Google News degrades long OR queries, so each brand search is split into small homogeneous chunks, and the national searches are one site each (the long OR versions returned mostly off-topic results on 2026-09-24); search feeds are capped and bounded to avoid turning the reader into generic health news |
 | National health feeds | ABC Health, CBS Health, CNN Health, STAT, Fierce Healthcare, Healthcare Dive, KFF Health News, The Hill, NPR Health | Broad national items are filtered unless they have a payer, policy, coverage, or regional angle |
-| Payer trade press | Becker's Payer Issues, Becker's Hospital Review, Becker's ASC Review, Modern Healthcare, Health Payer Specialist | All three block direct crawling (403, or a redirect to a login), so each is a Google News search naming Blue Cross VT explicitly. Scoping to "Vermont" alone was measurably too loose. Health Payer Specialist is barely indexed and normally returns nothing |
+| Payer trade press | Becker's Payer Issues, Becker's Hospital Review, Becker's ASC Review, Modern Healthcare, Health Payer Specialist | These entries use Google News searches naming Blue Cross VT explicitly rather than direct publisher feeds. Scoping to "Vermont" alone was measurably too loose. Health Payer Specialist is barely indexed and normally returns nothing |
 | Social surfaces | Public Facebook pages for selected Vermont outlets | Parked by default; set `ENABLE_SOCIAL_SOURCES=true` for a deliberate one-off Facebook collection run |
 
-Direct Blue Cross VT mentions are kept indefinitely, and so are stories that match the MVP Health Care or UVM Health terms (`INDEFINITE_RETENTION_LABELS` in `src/matching.js`), because share of voice charts all three from January 2026. Every other story is kept for three months. The other archive rules still apply to the two labeled sets. (The 2026 backfill search that covered Jan. 1 through June 13, 2026 has been retired; its items remain in the archive.)
+Direct Blue Cross VT mentions are kept indefinitely, and so are stories that match the MVP Health Care or UVM Health terms (`INDEFINITE_RETENTION_LABELS` in `src/matching.js`), because share of voice charts all three from January 2026. Other stories use the default 92-day archive window. The other archive rules still apply to the two labeled sets. (The 2026 backfill search that covered Jan. 1 through June 13, 2026 has been retired; its items remain in the archive.)
 
 #### One-off MVP and UVM Health backfill
 
@@ -125,7 +126,7 @@ body.
 | Vermont Legislature scheduled meetings (JSON) | Health, human services, insurance, and fiscal committees |
 | State agency meeting calendar (ICS) | Blueprint, payment reform, and drug utilization meetings |
 
-Events are `{ date, time?, title, body, source, url, kind }`. A source that fails or no longer looks like itself is recorded in `calendar.json`, and its events from the previous run stay until they fall out of the window. The state calendar's own Board entries are ignored because they disagree with the Board's page. The calendar runs only from `npm run generate`, not from the parked Worker. To keep the last-known fallback across scheduled runs, the workflow needs to seed `site/calendar.json` from the live site the way it seeds the audit file.
+Events are `{ date, time?, title, body, source, url, kind }`. A source that fails or no longer looks like itself is recorded in `calendar.json`, and its events from the previous run stay until they fall out of the window. The state calendar's own Board entries are ignored because they disagree with the Board's page. The calendar runs from `npm run generate`. Its fallback depends on retaining the previous `calendar.json` between runs, so preserve that file alongside the audit archive.
 
 ## How Matching Works
 
@@ -337,7 +338,7 @@ The [storylines page](https://cerulean.news/storylines) follows ongoing subjects
 | `RSS_SOURCE_CONCURRENCY` | No | `4` | Number of sources to fetch at once |
 | `RSS_DOMAIN_DELAY_MS` | No | `1000` | Politeness delay between requests to the same domain (`0` disables it for local runs) |
 | `RSS_TOWNNEWS_DELAY_MS` | No | `8000` | Shared delay between TownNews search-feed requests across outlet domains (`0` disables it) |
-| `RSS_BLUECROSSVT_DELAY_MS` | No | `5000` | Delay between requests to `bluecrossvt.org`, applied across its listing pages and any article page reached through a search result |
+| `RSS_BLUECROSSVT_DELAY_MS` | No | `5000` | Retained host-policy pacing value. The current `noCrawl` policy prevents requests to `bluecrossvt.org` before this delay can apply. |
 | `RSS_CACHE_FRESHNESS_CAP_MS` | No | `86400000` | Ceiling on how long a politeness-policy host's own `Cache-Control: max-age` may defer the next fetch. A backstop against an origin advertising an absurd `max-age`, not a policy dial; lower it only if a source needs to be picked up sooner than it says |
 | `RSS_GLOBAL_CACHE_FRESHNESS_CAP_MS` | No | `3600000` | Ceiling on Cache-Control freshness for origins without a politeness policy. About half of the watched origins send `max-age`; their declared freshness is honored up to this cap, and `0` disables the deferral entirely |
 | `RSS_TIMEOUT_MS` | No | `12000` | Request timeout in milliseconds |
@@ -365,7 +366,7 @@ The [storylines page](https://cerulean.news/storylines) follows ongoing subjects
 | `FACEBOOK_POST_URLS` | No | empty | Optional comma- or newline-separated `Name\|URL` public Facebook posts, used only when social sources are enabled |
 | `FACEBOOK_PAGE_URLS` | No | empty | Optional comma- or newline-separated `Name\|URL` public Facebook pages, used only when social sources are enabled |
 | `FACEBOOK_PAGE_MAX_POSTS` | No | `10` | Maximum post links to read from each configured Facebook page when social sources are enabled |
-| `JEV_RELEVANCE` | No | `off` locally, `enforce` in Actions | Jev evaluation: `off`, `shadow` (compare inclusion and sentiment), or `enforce` (apply confident verdicts) |
+| `JEV_RELEVANCE` | No | `off` locally, repository variable or `shadow` in Actions | Jev evaluation: `off`, `shadow` (compare inclusion and sentiment), or `enforce` (apply confident verdicts) |
 | `JEV_ENFORCE_AFTER` | For aligned enforcement | repository activation timestamp | Only articles first discovered on or after this boundary can receive live Jev decisions |
 | `JEV_REJUDGE_ARCHIVE` | No | empty | Set to `true` for one run (the workflow's `jev_rejudge_archive` dispatch input) to let Jev apply confident inclusion decisions to articles first seen before `JEV_ENFORCE_AFTER`. Later runs keep those decisions, and `jevBaseline` keeps the originals |
 | `JEV_ALIGNMENT_PROFILE` | No | `src/rubrics/editorial-alignment-v2.json` in Actions | Human example guidance and independent editorial scope questions for incoming articles |
@@ -373,7 +374,7 @@ The [storylines page](https://cerulean.news/storylines) follows ongoing subjects
 | `JEV_RELEVANCE_RUBRIC_PATH` | No | `src/rubrics/relevance-v2.json` | Alternate rubric file, for trying a wording change without editing the versioned one |
 | `TYPESAFE_API_KEY` | For live Jev calls | empty | TypeSafe credential, supplied from the Actions secret of the same name |
 | `JEV_CLI_PATH` | No | empty | Explicit authenticated CLI fallback when no TypeSafe API key is supplied |
-| `JEV_RELEVANCE_MAX_ITEMS` | No | `25` | Maximum new article evaluations per run; cached evaluations do not consume this cap. At about five scheduled runs a day, the default allows roughly 125 evaluations a day. The publish workflow's `jev_max_items` dispatch input raises it for one manual run |
+| `JEV_RELEVANCE_MAX_ITEMS` | No | `25` | Maximum new article evaluations per run; cached evaluations do not consume this cap. The publish workflow's `jev_max_items` dispatch input raises it for one manual run |
 | `JEV_RELEVANCE_CONCURRENCY` | No | `2` | Jev requests in flight at once. Each request takes about 25 seconds, so a raised cap needs more in flight to fit the 30-minute job; the `jev_concurrency` dispatch input sets it for one run |
 | `JEV_RELEVANCE_TIMEOUT_MS` | No | `30000` | Timeout for a single Jev request |
 | `FEEDBACK_EXPORT_URL` | No | empty | The mail Worker's vote export, `https://cerulean.news/api/mail/feedback/export`. The publish workflow sets it. See Team feedback below |
@@ -437,15 +438,13 @@ Source cooldowns are automatic when a primary feed has a fallback. HTTP 403 prim
 
 ## Crawl Politeness
 
-`bluecrossvt.org` is the subject of this feed rather than an incidental source, and the scheduled workflow polls two of its listing pages. `src/politeness.js` holds a per-host policy that keeps that load minimal:
+The current policy in `src/politeness.js` sets `noCrawl: true` for `bluecrossvt.org` and its subdomains. The fetcher refuses these URLs before opening a connection, including article links reached through search results. Historical archive entries can remain visible without refreshing their source pages.
 
-- **Their cache window, not ours.** Both listing pages send `Cache-Control: max-age=86400`, and that is honored in full: the generator stores the remaining lifetime (`max-age` minus `Age`) and skips the fetch entirely while it lasts, so each page is fetched once a day rather than 24 times. `RSS_CACHE_FRESHNESS_CAP_MS` is only a backstop against an origin advertising an absurd `max-age`. The tradeoff is deliberate: a new Blue Cross post can take up to a day to reach the reader.
-- **Revalidation that works.** These pages advertise a weak `ETag` the origin never validates against, and RFC 9110 makes `If-None-Match` suppress `If-Modified-Since` whenever both are sent, so the pair returned a full 119 KB body every hour. After one such response the generator records `preferLastModified` for that URL and sends `If-Modified-Since` alone, which returns `304` with an empty body.
-- **One queue per host.** The listing pages and any article page reached through a Google News result share a single request queue with a five-second gap (`RSS_BLUECROSSVT_DELAY_MS`), so source concurrency cannot stack requests on them.
+The file retains the earlier host pacing and cache configuration, but those settings don't override `noCrawl`. Treat changes to crawling policy, request identity, and access handling as explicit operational decisions.
 
-Both the freshness deadline and the revalidation verdict persist in `feed-audit.json`, so they carry across runs. Together they take a typical run from two full-body fetches to zero, and a day from roughly 48 requests and 5.7 MB to two conditional requests that usually return `304` with an empty body.
+For permitted hosts, the collector spaces requests, honors cache freshness within configured caps, and retains response validators in the audit state. The global freshness cap defaults to one hour. Source cooldowns and bounded retries avoid repeatedly requesting a failing endpoint.
 
-Every other origin gets the same treatment in a bounded form: a measured sample of production sources showed about half sending useful `max-age` values (mostly 5-15 minutes) and one advertising 31 days. Their declared freshness is honored up to `RSS_GLOBAL_CACHE_FRESHNESS_CAP_MS` (one hour by default), which trims redundant re-fetches when runs land close together without letting an absurd `max-age` park a source for more than one cycle.
+Paywall previews use ordinary unauthenticated publisher responses. The collector doesn't use authenticated sessions, alternate user agents, or archive copies to bypass access controls.
 
 ## Architecture
 
@@ -496,32 +495,11 @@ The workflow is deliberately simple:
 7. Write RSS, JSON Feed, and audit JSON.
 8. Publish `site/` to Cloudflare Pages (direct upload with wrangler).
 
-## The parked Cloudflare Worker
+## Alternate Worker Runtime
 
-`worker/` and `proxy/` are a complete second way to run this, kept deployable
-but not in use. They exist because GitHub Actions was cut off account-wide on
-2026-09-05 when private-repo minutes ran out, and the site sat frozen for
-eleven days before anyone noticed: a billing block fails as a red tick, not as
-an outage.
+`worker/` and `proxy/` retain an alternate Cloudflare execution path. The committed publish workflow uses the Node generator and Cloudflare Pages. The alternate Worker uses KV-backed article caching and can route selected fetches through the configured relay.
 
-The site went back to Actions once the macOS builds that had actually drained
-the allowance were moved off it. The Worker stays for the next time billing
-bites.
-
-Two things are worth knowing before reaching for it:
-
-- **Cloudflare cannot reach Google News.** It answers a Worker with HTTP 503
-  and its "Sorry..." page while returning 200 from a residential connection,
-  whatever headers you send. That is 39 of 97 sources and 39 Vermont outlets
-  with no other route in, so the Worker build relays those fetches, and the
-  Google News link decode, through `proxy/` on another host.
-- **The article cache cannot live in the audit JSON there.** Loading it whole
-  costs about 80 MB of a 128 MB isolate, so the Worker keeps it in KV and loads
-  only the working set.
-
-Both are inert here: `src/egress.js` does nothing unless `FETCH_PROXY_URL` is
-set, and the article cache stays in the audit JSON unless a store is injected.
-The Node CLI and the test suite behave exactly as they always did.
+`src/egress.js` leaves requests unchanged unless `FETCH_PROXY_URL` is set. See [proxy/README.md](proxy/README.md) and the [migration plan](CLOUDFLARE_MIGRATION_PLAN.md) before operating that path. Configuration in the repository doesn't establish a running Worker or relay.
 
 ## Email subscriptions
 
@@ -547,8 +525,23 @@ RSS_ARTICLE_SCAN=false \
 npm run generate
 ```
 
-The publish workflow runs on pushes to `main`, manual dispatches, and a schedule. The cron asks for every 30 minutes (at :17 and :47), but GitHub [delays scheduled runs under load and may drop them](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows). From 2026-09-26 to 09-28, runs started about five times a day, 2.5 to 8.3 hours apart. Nothing in the cron can change that, so plan capacity on about five runs a day and use a manual dispatch for an immediate refresh. Every run installs dependencies and runs the test suite. Scheduled and manual runs then generate the feed. Pushes that only change static reader or documentation files reuse the live feed seeded into `site/` and deploy the static artifact without crawling every source again.
+The publish workflow runs on pushes to `main`, manual dispatches, and a schedule at minutes 17 and 47 of every hour. This is the requested schedule, not a guarantee of observed refresh frequency. Runs are serialized, and each installs dependencies and runs the tests.
+
+Scheduled and manual runs generate feeds. Static-reader or documentation-only pushes reuse the published feed and deploy the static artifact. The separate mail workflow is dispatch-only. Check Actions and the resulting site's timestamps when verifying a deployment.
 
 ## License
 
-No license file is currently included in this repository.
+[MIT](LICENSE).
+
+---
+
+<p align="center">
+  <a href="https://www.buymeacoffee.com/oliverames"><img src="https://img.shields.io/badge/Buy_Me_a_Coffee-support-f5a542?style=for-the-badge&logo=buy-me-a-coffee&logoColor=white" alt="Buy Me a Coffee"></a>
+</p>
+
+<p align="center">
+  <sub>Built by <a href="https://ames.consulting">Oliver Ames</a> in Vermont
+  &bull; <a href="https://github.com/oliverames">GitHub</a>
+  &bull; <a href="https://linkedin.com/in/oliverames">LinkedIn</a>
+  &bull; <a href="https://bsky.app/profile/oliverames.bsky.social">Bluesky</a></sub>
+</p>
