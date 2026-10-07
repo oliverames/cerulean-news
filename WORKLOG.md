@@ -1,3 +1,15 @@
+## 2026-10-07 - GitHub Issue Review Closeout
+
+**What changed**: Reviewed all 5 open issues against source at `bca2a4368e88` and their complete issue history. Closed as completed: [#13](https://github.com/oliverames/cerulean-news/issues/13).
+
+**Decisions made**: Close completed implementations even when device acceptance remains, and close testing-only tasks under Oliver's explicit instruction. Keep unresolved defects, missing implementation, release work, and owner decisions open.
+
+**Left off at**: Resolved this session: issue assignment and state reconciliation. GitHub was independently re-read on October 7, 2026 at 10:20 AM EDT. All 16 repository issues include Oliver as an assignee, with 4 open. Source paths and cited lines were checked. No runtime tests, deployment, or application changes were performed. This is one part of the account-wide review.
+
+**Open questions**: Still open: [#8](https://github.com/oliverames/cerulean-news/issues/8), [#14](https://github.com/oliverames/cerulean-news/issues/14), [#18](https://github.com/oliverames/cerulean-news/issues/18), [#20](https://github.com/oliverames/cerulean-news/issues/20). Other previously recorded operational follow-ups retain their dated status. No new issue was needed for this review.
+
+---
+
 ## 2026-10-07 - README Refresh Closeout
 
 **What changed**: Corrects source coverage and the enforced no-crawl policy.
