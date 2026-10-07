@@ -529,6 +529,8 @@ The publish workflow runs on pushes to `main`, manual dispatches, and a schedule
 
 Scheduled and manual runs generate feeds. Static-reader or documentation-only pushes reuse the published feed and deploy the static artifact. The separate mail workflow is dispatch-only. Check Actions and the resulting site's timestamps when verifying a deployment.
 
+Linear records verified reader deliveries in this repository's Ames Consulting (AME) release pipeline. The separate mail Worker has its own delivery process. See [release reporting](.github/RELEASES.md) for issue references, credentials and reporting-only retries.
+
 ## License
 
 [MIT](LICENSE).
