@@ -1,3 +1,15 @@
+## 2026-10-07 - README Refresh Closeout
+
+**What changed**: Corrects source coverage and the enforced no-crawl policy.
+
+**Decisions made**: Keep setup and status claims tied to current source or explicitly dated evidence. This entry records the multi-repository README maintenance session.
+
+**Left off at**: Resolved this session: README review and publication at `bca2a43`. Relative links, examples and applicable counts were checked. Verification covered documentation. No fresh runtime acceptance is claimed.
+
+**Open questions**: No new question from the README refresh. Prior ingestion and editorial follow-ups retain their recorded evidence. No crawl, model batch or production data update ran.
+
+---
+
 ## Open items
 
 - Finish sentiment scoring. The Jev score backfill is done: 251 of 258 eligible brand stories carry a 0-100 score on 2026-09-29. The Gemini archive re-score still waits (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
