@@ -362,3 +362,11 @@ jobs:
             --branch main \
             --commit-hash "${{ github.sha }}" \
             --commit-dirty=true
+
+  linear-release:
+    needs: [build]
+    uses: ./.github/workflows/linear-release.yml
+    with:
+      source_sha: ${{ github.sha }}
+      dry_run: false
+    secrets: inherit

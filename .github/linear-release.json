@@ -1,0 +1,14 @@
+{
+  "repository": "oliverames/cerulean-news",
+  "scheduled": false,
+  "name": "Cerulean News reader",
+  "mode": "pages",
+  "project": "bluenews",
+  "checks": [
+    {
+      "url": "https://cerulean.news/",
+      "status": 200
+    }
+  ],
+  "include_paths": "src/**,site/**,data/**,scripts/**,package.json,package-lock.json,.github/workflows/publish-feed.yml"
+}
