@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { validateRepairLineage } from "../scripts/sentiment-lineage.js";
+import { validateRepairLineage, compatibleSourceTrees, isVerifiedRecovery } from "../scripts/sentiment-lineage.js";
 
 const base = { path: ".github/workflows/sentiment-repair.yml", event: "workflow_dispatch", head_branch: "main", head_sha: "a".repeat(40), run_attempt: 1 };
 const freeze = { ...base, id: 10, run_number: 1, status: "completed", conclusion: "success", display_title: "Sentiment manifest freeze=new checkpoint=none" };
@@ -27,3 +27,33 @@ test("other freezes and future queued runs do not affect the current lineage", (
 test("invented checkpoint fails first drain", () => assert.throws(() => validate({ checkpointId: "99" }), /unexpected_checkpoint/));
 test("a new freeze cannot hide unresolved inference in another freeze", () => assert.throws(() => validate({ unresolvedRuns: [{ ...prior, display_title: "Sentiment drain freeze=9 checkpoint=none", conclusion: "cancelled" }] }), /unresolved_inference_across_freezes_no_replay/));
 test("a failed pre-inference check does not create an unresolved inference", () => assert.deepEqual(validate({ unresolvedRuns: [] }), { priorDrain: null }));
+
+test("recovery accepts only the latest completed failed attempt, without waiving other unresolved runs", () => {
+  const failed = { ...prior, conclusion: "failure" };
+  assert.deepEqual(validate({ mode: "recover", runs: [failed], checkpointId: "20", unresolvedRuns: [failed] }), { priorDrain: 20 });
+  assert.throws(() => validate({ mode: "recover", runs: [prior], checkpointId: "20" }), /recovery_requires_failed_drain/);
+  assert.throws(() => validate({ mode: "recover" }), /recovery_requires_prior_attempt/);
+  assert.throws(() => validate({ mode: "recover", runs: [failed], checkpointId: "20", unresolvedRuns: [failed, { ...failed, id: 19 }] }), /unresolved_inference_across_freezes/);
+});
+test("source migration requires unchanged complete request-critical trees", () => {
+  const tree = { truncated: false, tree: [{ type: "blob", path: "src/rubrics/sentiment-v2.json", sha: "one" }, { type: "blob", path: ".github/workflows/sentiment-repair.yml", sha: "old" }] };
+  assert.ok(compatibleSourceTrees(tree, { ...tree, tree: [tree.tree[0], { ...tree.tree[1], sha: "new" }] }));
+  assert.equal(compatibleSourceTrees(tree, { ...tree, truncated: true }), false);
+  assert.equal(compatibleSourceTrees(tree, { ...tree, tree: [{ ...tree.tree[0], sha: "changed" }] }), false);
+  const migrated = { ...current, head_sha: "b".repeat(40) };
+  assert.deepEqual(validate({ current: migrated, sourceCompatible: true }), { priorDrain: null });
+  assert.throws(() => validate({ current: migrated }), /invalid_freeze_run/);
+});
+test("successful recovery evidence requires skipped inference and completed verification/checkpoint at current source", () => {
+  const recovery = { ...prior, display_title: "Sentiment recover freeze=10 checkpoint=19" };
+  const jobs = { total_count: 1, jobs: [{ steps: [
+    { name: "Execute at most 25 frozen sentiment requests", conclusion: "skipped" },
+    { name: "Verify recovered publication without inference", conclusion: "success" },
+    { name: "Save recovered checkpoint", conclusion: "success" },
+  ] }] };
+  assert.ok(isVerifiedRecovery(recovery, jobs, current));
+  assert.equal(isVerifiedRecovery(recovery, { ...jobs, jobs: [{ steps: jobs.jobs[0].steps.slice(1) }] }, current), false);
+  assert.equal(isVerifiedRecovery({ ...recovery, run_attempt: 2 }, jobs, current), false);
+  assert.equal(isVerifiedRecovery({ ...recovery, head_sha: "b".repeat(40) }, jobs, current), false);
+  assert.equal(isVerifiedRecovery(recovery, { ...jobs, jobs: [{ steps: jobs.jobs[0].steps.map(step => ({ ...step, conclusion: "success" })) }] }, current), false);
+});
