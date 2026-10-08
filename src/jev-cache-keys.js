@@ -34,6 +34,12 @@ export function jevCacheKey(storyKey, signature) {
   return sha({ story: storyKey, references: signature });
 }
 
+// Independent sentiment evidence must match every word actually sent, including
+// selected reference text. Inclusion-only retrieval changes cannot invalidate it.
+export const sentimentRequestHash = request => sha(JSON.stringify({
+  state: request.state, model: request.model, questions: { sentiment: request.questions.sentiment },
+}));
+
 // The key before #21, for migration only: the whole request hashed with the
 // example text in it. An old entry whose legacy key still matches is one no
 // reference text has changed under since it was written.

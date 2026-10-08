@@ -17,7 +17,7 @@ import { shouldScoreSentiment } from "../src/summaries.js";
 export const LIVE_ARTIFACTS = ["feed-audit.json", "feed.json", "feed.rss", "digest.json", "digest.html", "storylines.json", "calendar.json", "calendar.ics", "alerts.json"];
 export const PRESERVED_ARTIFACTS = ["calendar.json", "calendar.ics", "alerts.json"];
 const ITEM_FIELDS = ["sentiment", "sentimentReason", "sentimentScore"];
-const CACHE_FIELDS = ["sentiment", "sentimentConfidence", "sentimentProbabilities"];
+const CACHE_FIELDS = ["sentiment", "sentimentConfidence", "sentimentProbabilities", "sentimentRequestHash"];
 const LABELS = ["positive", "neutral to positive", "neutral", "neutral to negative", "negative"];
 const sha = value => createHash("sha256").update(typeof value === "string" || Buffer.isBuffer(value) ? value : JSON.stringify(value)).digest("hex");
 const jsonValue = value => JSON.parse(JSON.stringify(value));
@@ -75,7 +75,8 @@ export function validatePublicationAudit(original, updated, manifest) {
     assert.match(target.storyKey || "", /^[a-f0-9]{12}$/, "invalid target story key");
     assert.ok(!keys.has(target.key), "duplicate target cache key");
     keys.add(target.key);
-    assert.ok(Array.isArray(target.aliases) && target.aliases.length, "target aliases are required");
+    assert.ok(!target.historicalOnly || manifest.purpose === "saved-context-reconciliation", "historical evidence requires reconciliation purpose");
+    assert.ok(Array.isArray(target.aliases) && (target.aliases.length || target.historicalOnly === true), "target aliases are required");
     for (const alias of target.aliases) {
       assert.match(alias.articleId || "", /^[a-f0-9]{64}$/, "invalid target article identity");
       assert.ok(!targetIds.has(alias.articleId), "duplicate target article identity");
@@ -99,6 +100,7 @@ export function validatePublicationAudit(original, updated, manifest) {
       assert.ok(normalized?.sentimentProbabilities, "target cache requires validated sentiment odds");
       assert.equal(Object.keys(after.sentimentProbabilities).length, LABELS.length, "target cache odds must contain exactly the five sentiment labels");
       assert.ok(LABELS.every(label => after.sentimentProbabilities[label] <= after.sentimentProbabilities[after.sentiment]), "target cache label must have maximum probability");
+      if (after.sentimentRequestHash != null) assert.equal(after.sentimentRequestHash, target.requestHash, "sentiment evidence must match its exact saved request");
       if (before) {
         same(without(before, CACHE_FIELDS), without(after, CACHE_FIELDS), "target cache inclusion or metadata changed");
       } else if (target.cacheBaseline) {
@@ -117,7 +119,10 @@ export function validatePublicationAudit(original, updated, manifest) {
       for (const alias of target.aliases) {
         const oldItem = originals.get(alias.articleId);
         const newItem = updates.get(alias.articleId);
-        if (alias.feedbackSentiment || !shouldScoreSentiment(oldItem)) {
+        if (target.historicalOnly) {
+          assert.equal(manifest.purpose, "saved-context-reconciliation", "historical preservation requires explicit reconciliation");
+          same(oldItem, newItem, "historical-only evidence must not change an article");
+        } else if (alias.feedbackSentiment || !shouldScoreSentiment(oldItem)) {
           same(oldItem, newItem, "an ineligible or human-scored target must remain unchanged");
         } else {
           if (after.sentimentConfidence >= SENTIMENT_CONFIDENCE_THRESHOLD) {

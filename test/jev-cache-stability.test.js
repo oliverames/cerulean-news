@@ -170,7 +170,7 @@ test("the library hashes cover the count, and a new example changes them", async
   assert.notEqual(second.metrics.referenceIdHash, first.metrics.referenceIdHash);
 });
 
-test("migration: an entry whose old key still matches moves to the new key, and stale ones are not kept", async () => {
+test("migration reuses matching legacy evidence while retaining inactive historical keys", async () => {
   const { run, alignment, state } = await harness();
   const rubric = await loadRelevanceRubric(), sentimentRubric = await loadSentimentRubric();
   const versions = { alignmentVersion: alignment.version, version: rubric.version, sentimentVersion: sentimentRubric.version };
@@ -192,10 +192,10 @@ test("migration: an entry whose old key still matches moves to the new key, and 
   assert.equal(result.metrics.cached, 1);
   assert.equal(result.calls, 1, "only the story whose old key no longer matched is asked again");
   assert.equal(result.metrics.missUnclassified, 1);
-  assert.equal(state.cache[matchingKey], undefined);
-  assert.equal(state.cache[staleKey], undefined);
-  assert.equal(Object.keys(state.cache).length, 2);
-  assert.ok(Object.values(state.cache).every((entry) => /^[a-f0-9]{12}$/.test(entry.storyKey)));
+  assert.deepEqual(state.cache[matchingKey], legacyEntry);
+  assert.deepEqual(state.cache[staleKey], legacyEntry);
+  assert.equal(Object.keys(state.cache).length, 4);
+  assert.ok(Object.entries(state.cache).filter(([key]) => ![matchingKey, staleKey].includes(key)).every(([, entry]) => /^[a-f0-9]{12}$/.test(entry.storyKey)));
   // The next run is all hits, with nothing left to migrate.
   const again = await run([current, stale]);
   assert.equal(again.calls, 0);

@@ -117,6 +117,8 @@ test("post-boundary odds-only cache survives reload and remains pending until a 
   assert.equal(waiting.metrics.pending, 1);
   assert.equal(waiting.metrics.sentimentBackfillRequested, 0);
   assert.equal(waiting.metrics.missReferenceChanged, 0);
+  const departedKey = Object.keys(reloaded).find(savedKey => savedKey !== key);
+  const departedEvidence = structuredClone(reloaded[departedKey]);
 
   const upgraded = options({ cache: reloaded, maxItems: 1, callJev: async () => answer(0.01) });
   const [excluded] = await applyJevRelevance([item], upgraded);
@@ -125,7 +127,8 @@ test("post-boundary odds-only cache survives reload and remains pending until a 
   assert.equal(excluded.relevant, false, "the later primary request may decide post-boundary inclusion");
   assert.equal(reloaded[key].include, 0.01);
   assert.equal(reloaded[key].sentimentOnly, undefined);
-  assert.equal(Object.keys(reloaded).length, 1, "departed keys are pruned normally");
+  assert.equal(Object.keys(reloaded).length, 2, "the other article's valid evidence survives its departure from this batch");
+  assert.deepEqual(reloaded[departedKey], departedEvidence);
 });
 
 test("failed primary retries retain a partial cache and its usable sentiment", async () => {

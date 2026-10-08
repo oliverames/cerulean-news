@@ -6642,8 +6642,12 @@ test("publish workflow preserves durable state and classifies runtime inputs", a
   assert.match(workflow, /PUBLISH_BEFORE_SHA: \$\{\{ github\.event\.before \}\}/);
   assert.match(workflow, /PUBLISH_SHA: \$\{\{ github\.sha \}\}/);
   assert.ok(workflow.includes('bash scripts/publish-mode.sh "$PUBLISH_EVENT_NAME" "$PUBLISH_BEFORE_SHA" "$PUBLISH_SHA" >> "$GITHUB_OUTPUT"'));
-  assert.match(workflow, /\.audit == true/);
-  assert.match(workflow, /\.crawlState \| type == "object"/);
+  assert.match(workflow, /node scripts\/publication-guard\.js seed/);
+  assert.match(workflow, /node scripts\/publication-guard\.js source/);
+  assert.match(workflow, /node scripts\/publication-guard\.js unchanged/);
+  const seedPosition = workflow.indexOf("node scripts/publication-guard.js seed");
+  assert.ok(seedPosition < workflow.indexOf("name: Generate feed"), "validated state is seeded before generation");
+  assert.ok(workflow.indexOf("node scripts/publication-guard.js unchanged") < workflow.indexOf("name: Deploy to Cloudflare Pages"), "live seed changes block deployment");
   assert.doesNotMatch(workflow, /seed "\$SITE_URL\/feed\.json"/);
   assert.match(
     workflow,
@@ -6660,8 +6664,8 @@ test("publish workflow preserves durable state and classifies runtime inputs", a
     /name: (?:Set up Node|Install dependencies|Run tests)\n\s+if:/,
   );
   assert.ok(
-    (workflow.match(/curl [^\n]*--compressed/g) || []).length >= 2,
-    "state seed and reuse requests must accept compressed JSON",
+    (workflow.match(/curl [^\n]*--compressed/g) || []).length >= 1,
+    "static artifact reuse requests must accept compressed JSON",
   );
 });
 
