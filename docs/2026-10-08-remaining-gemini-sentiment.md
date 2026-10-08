@@ -2,15 +2,15 @@
 
 Tracked in [GitHub #14](https://github.com/oliverames/cerulean-news/issues/14) and [Linear AME-39](https://linear.app/ames-consulting/issue/AME-39).
 
-The current archive has 264 eligible brand press identities; 196 lack the current Gemini sentiment rubric stamp, `2026-09-24`. This is separate from the frozen Jev repair. A missing rubric stamp does not mean a story has no numeric score. Gemini was not run during the preservation repair.
+The current archive has 264 eligible brand press articles; 196 lack the current Gemini sentiment rubric stamp, `2026-09-24`. This is separate from the frozen Jev repair. A missing rubric stamp does not mean a story has no numeric score. Gemini was not run during the preservation repair.
 
-This inventory was refreshed against the 6,061-item archive generated October 8 at 19:30:20 UTC, verified after static release [37838748837](https://github.com/oliverames/cerulean-news/actions/runs/37838748837). Of the original 196 identities, one Google News identity now carries the stamp, 185 remain currently eligible and unstamped, and 10 historical aliases are not currently eligible. The current queue also contains 11 different eligible identities, including resolved canonical copies. Identify aliases before inference rather than treating every changed ID as a new story. The table below covers all 196 current eligible identities; the historical aliases follow separately.
+This inventory was refreshed against the 6,061-item archive generated October 8 at 19:30:20 UTC, verified after static release [37838748837](https://github.com/oliverames/cerulean-news/actions/runs/37838748837). The current queue below lists 196 canonical article URLs. Eleven original Google feed IDs refer to entries already represented by canonical URLs in that queue; those alias IDs are listed separately for continuity. They remain eligible aliases, not extra unprocessed stories. Deduplicate by canonical URL and verify actual feed IDs before inference.
 
 Before resuming Gemini, define and approve a sentiment-only output contract, preserve inclusion and summaries, determine available quota, deduplicate aliases, and use bounded checkpointed batches. Accept completion only after every intended eligible story has the approved rubric stamp and live readback confirms preserved fields and membership. Do not follow the old full-generation dispatch instructions without reviewing their side effects.
 
 ## Current eligible identities without the rubric stamp
 
-| Article ID | Public article URL |
+| Canonical URL identity | Public article URL |
 | --- | --- |
 | `https://vermontbiz.com/news/2026/september/23/employees-take-action-food-insecurity-blue-cross-vt-day-service` | <https://vermontbiz.com/news/2026/september/23/employees-take-action-food-insecurity-blue-cross-vt-day-service> |
 | `https://www.reformer.com/community-news/new-documentary-film-every-day-big-and-small-play-brattleboro/article_ad1e96c6-e5b0-4f18-b57f-c7a61fcb2773.html` | <https://www.reformer.com/community-news/new-documentary-film-every-day-big-and-small-play-brattleboro/article_ad1e96c6-e5b0-4f18-b57f-c7a61fcb2773.html> |
@@ -209,12 +209,13 @@ Before resuming Gemini, define and approve a sentiment-only output contract, pre
 | `https://www.wcax.com/2026/01/14/ad-campaign-blue-cross-asks-patients-shop-around/` | <https://www.wcax.com/2026/01/14/ad-campaign-blue-cross-asks-patients-shop-around/> |
 | `https://gnat-tv.org/pressrelease-blue-cross-and-blue-shield-of-vermont-enters-next-chapter-as-beth-roberts-assumes-role-of-president-and-ceo/` | <https://gnat-tv.org/pressrelease-blue-cross-and-blue-shield-of-vermont-enters-next-chapter-as-beth-roberts-assumes-role-of-president-and-ceo/> |
 
-## Historical aliases outside current eligibility
+## Original feed-ID aliases of current canonical entries
 
-These 10 identities remain in the archive without the stamp. They are retained for deduplication and future eligibility review, not queued for inference by this inventory.
+These eleven original Google feed IDs remain eligible and unstamped in the restored archive. Their canonical URLs already appear in the 196-entry queue above. They are aliases to deduplicate, not an additional backlog.
 
-| Article ID | Public article URL |
+| Original feed ID | Canonical article URL |
 | --- | --- |
+| `https://news.google.com/rss/articles/CBMihwFBVV95cUxNV19MTTNCVS1mcDV2MDQzMXMyTjN1TmFSV0VJclBLQmFZak0teGItVnhRSmRTVG54aXp5QTV6Z1BmT0JkMV9UbFpKeVk1aklnR3ctY1hlT3o0dXdwbDh3MmVFWkxFQUUxSFNqQWtkNy15TEphUzhFdl85NndYS0Z1T2R4VzdERDA?oc=5` | <https://www.yahoo.com/news/us/articles/blue-cross-vt-helps-combat-171218695.html> |
 | `https://news.google.com/rss/articles/CBMitgFBVV95cUxOdlRQbFJRYVQ4QjJvVnNOSGo0ZTdhT3RNWV8zQl9TeXpwV2ZTUC15UVQ0RWNZS2tNa0VodENKOTVfcjVpc3BYd0xwR3ladTlXTkVGLXRkQmZucjlVNlZCT0RJMlN4Q2dMWlIxQjNpdEplNVpDM3cxLWlTVWR5NFYydWhkTlduOFVhbG4xUkh6ekNDUmliQVFkTlBpWGpMZ015Vnhyb0pPUHVTLS14QThwTzhZMGwydw?oc=5` | <https://www.timesargus.com/theworld/sports-outdoors---aug-27-2026/article_6d914917-d8c2-5922-bc4b-7731992d6dd6.html> |
 | `https://news.google.com/rss/articles/CBMid0FVX3lxTE5yMi14SGNqYmhtRi1kV3VXWFhYVm9EZ0JrWUZkRFNOREpFRW9obVcyZnZSN1A4NmlGWWs2emxWSGJ1SjhzRjRqOHJ3NGZUS0JEWkx3dzh2SFluMFlGbC1GYk9MYXBRck9henhjX1g4aVh5RnBLR0NV?oc=5` | <https://vnews.com/2026/08/20/vermont-health-insurance-premiums-rise/> |
 | `https://news.google.com/rss/articles/CBMiowJBVV95cUxQYUlrQkl0UXhzYUhvdUMwOWFGOS1VWlEzT0ROSVFlTVJnM2h0NW94R1ctSmJDbmV0VVhwalI0ODNZZVg5Z1BGb2dBWGpHODVsSVMxLXFlZ1dwOVM4LV9qNGkwVjJFX3RfSVV5VmlpVkVTcEhpOUpmallPQU9mS0IyNVpGSWRiOUwwcTNaVDBqZkp5MkJ1UnlBcXJJMmRtWFJ1Tks5WWVuZmlYNTBYYndBbGR0aU5nWm5HenZwbGhqNmNmam1xNGZPV0l0ZmJpQ2ZRd2xZX1lpeGkyVnpTcEwxZTRjaEVXUnAyNzRadDFyRGZHdkZmTmlqdFlOWVY4MnYtTU9kZlRDZ0VLNU5hd2ZGVE4tWjY5Qmd5c0MybVp2bG5kWFE?oc=5` | <https://www.benningtonbanner.com/news/state/green-mountain-care-board-set-modest-rate-increases-for-2027-vermont-health-insurance-marketplace-plans/article_48e44f7a-2422-4a55-94c5-d0381facc21f.html> |
