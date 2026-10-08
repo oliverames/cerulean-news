@@ -447,8 +447,8 @@ test("the footer note shows sign out, and admins get the votes page", async () =
     await settle();
     assert.equal(t.note.hidden, false);
     assert.equal(t.dt.hidden, false);
-    assert.equal(t.note.textContent, "Signed in for team feedback. All votes · Sign out");
-    assert.equal(t.note.querySelector("a").href, "feedback-admin");
+    assert.equal(t.note.textContent, "Signed in for team feedback. Excluded stories · All votes · Sign out");
+    assert.deepEqual(t.note.querySelectorAll("a").map((link) => link.href), ["excluded", "feedback-admin"]);
     t.note.querySelector("button").click();
     await settle();
     assert.equal(t.requests.at(-1).url, "/api/mail/team/signout");
@@ -581,4 +581,262 @@ test("the admin page carries the gate, stays out of search and the sitemap, and 
   assert.ok(page.includes("<strong>Not affiliated.</strong>"));
   assert.ok(!/feedback-admin/.test(read("sitemap.xml")), "not in the sitemap");
   assert.ok(!/feedback-admin/.test(read("robots.txt")), "robots.txt does not advertise it");
+});
+
+// --------------------------------------------------------- excluded stories
+
+const REVIEW_NOW = Date.parse("2026-10-08T12:00:00Z");
+const excluded = (name, overrides = {}) => ({
+  title: name, link: `https://news.test/${name}`, outlet: "News desk",
+  relevant: false, reason: "Model exclusion", firstSeenAt: "2026-10-07T12:00:00Z", ...overrides,
+});
+
+function excludedHarness(respond) {
+  const t = harness(respond);
+  const list = new Node_("ul");
+  const summary = new Node_("p");
+  const message = new Node_("p");
+  const pager = new Node_("nav");
+  t.body.append(list, summary, message, pager);
+  return { ...t, list, summary, message, pager, mount: () => t.api.mountExcluded({
+    list, summary, message, pager, status: t.status, note: t.note, now: REVIEW_NOW,
+  }) };
+}
+
+test("excluded selection uses the exact discovery window, labels publication fallback, and omits undated or unsafe rows", () => {
+  const items = [
+    excluded("old-publication", { pubDate: "1999-01-01T00:00:00Z" }),
+    excluded("boundary", { firstSeenAt: "2026-09-24T12:00:00Z" }),
+    excluded("too-old", { firstSeenAt: "2026-09-24T11:59:59Z", pubDate: "2026-10-08T00:00:00Z" }),
+    excluded("future", { firstSeenAt: "2026-10-08T12:00:01Z", pubDate: "2026-10-07T00:00:00Z" }),
+    excluded("fallback", { firstSeenAt: "invalid", pubDate: "2026-10-08T00:00:00Z" }),
+    excluded("undated", { firstSeenAt: null, pubDate: null }),
+    excluded("zero", { firstSeenAt: "1970-01-01T00:00:00Z" }),
+    excluded("future-published", { firstSeenAt: null, pubDate: "2026-10-09T00:00:00Z" }),
+    excluded("unsafe", { link: "javascript:alert(1)" }),
+    excluded("missing", { link: "" }),
+    excluded("included", { relevant: true }),
+    excluded("unknown", { relevant: undefined }),
+  ];
+  const selected = pure.selectExcludedRows(items, REVIEW_NOW);
+  assert.deepEqual(selected.rows.map((row) => row.title), ["fallback", "old-publication", "boundary"]);
+  assert.equal(selected.rows[0].dateKind, "Published (discovery date unavailable)");
+  assert.equal(selected.rows[1].dateKind, "Discovered", "undated/old publications remain reviewable when newly discovered");
+  assert.equal(selected.undated, 1);
+  assert.equal(selected.invalidLinks, 2);
+  assert.deepEqual(pure.selectExcludedRows(null, REVIEW_NOW).rows, []);
+  assert.equal(pure.selectExcludedRows([excluded("epoch", { firstSeenAt: "1970-01-01T00:00:00Z" })], 0).rows.length, 1, "epoch is a real date, not an absent one");
+});
+
+test("excluded rows deduplicate pipeline IDs and have stable tie ordering and bounded pages", () => {
+  const items = Array.from({ length: 53 }, (_, n) => excluded(`story-${String(n).padStart(2, "0")}`));
+  items.push(excluded("Duplicate", { link: "https://www.news.test/story-00/?utm_source=test" }));
+  const selected = pure.selectExcludedRows(items, REVIEW_NOW);
+  assert.equal(selected.rows.length, 53);
+  assert.deepEqual(selected, pure.selectExcludedRows([...items].reverse(), REVIEW_NOW));
+  assert.equal(new Set(selected.rows.map((row) => exampleId(row.link))).size, 53);
+  assert.equal(pure.excludedPage(selected.rows, -1).rows.length, 25);
+  assert.equal(pure.excludedPage(selected.rows, 1).rows.length, 25);
+  const last = pure.excludedPage(selected.rows, 999);
+  assert.equal(last.page, 2);
+  assert.equal(last.rows.length, 3);
+  assert.equal(pure.excludedPage(selected.rows, NaN).page, 0);
+  assert.equal(pure.excludedPage([], 1).page, 0);
+});
+
+test("the excluded page never fetches the audit without a verified session", async () => {
+  for (const response of [
+    () => json({ ok: false }, 401),
+    () => json({ ok: false }, 403),
+    () => new Response("missing", { status: 404 }),
+    () => json({ ok: true }),
+    () => { throw new TypeError("offline"); },
+  ]) {
+    const t = excludedHarness(response);
+    try {
+      await t.mount();
+      assert.deepEqual(t.requests.map((r) => r.url), ["/api/mail/feedback"]);
+      assert.equal(t.list.children.length, 0);
+      assert.equal(t.pager.children.length, 0);
+      assert.match(t.message.textContent, /Sign in with a team|not available/);
+    } finally { t.restore(); }
+  }
+});
+
+test("session verification completes before loading the audit, and only recent safe content is rendered", async () => {
+  let allowSession;
+  const items = [excluded('<img src=x onerror="oops()">', { link: "https://news.test/safe", reason: "<script>bad()</script>", firstSeenAt: null, pubDate: "2026-10-07T12:00:00Z" }), excluded("undated", { firstSeenAt: null })];
+  const t = excludedHarness((url) => url === "/api/mail/feedback"
+    ? new Promise((resolve) => { allowSession = resolve; }) : json({ items }));
+  try {
+    const mounted = t.mount();
+    await settle();
+    assert.equal(t.requests.length, 1);
+    allowSession(json({ ok: true, admin: false, votes: [] }));
+    await mounted;
+    assert.deepEqual(t.requests.map((r) => r.url), ["/api/mail/feedback", "feed-audit.json"]);
+    assert.equal(t.requests[0].init.credentials, "same-origin");
+    assert.equal(t.requests[1].init.cache, "no-cache");
+    assert.equal(t.list.children.length, 1);
+    assert.match(t.list.textContent, /<img src=x onerror="oops\(\)">/);
+    assert.match(t.list.textContent, /Exclusion reason: <script>bad\(\)<\/script>/);
+    assert.equal(t.list.querySelectorAll("img").length + t.list.querySelectorAll("script").length, 0);
+    assert.match(t.list.textContent, /Published \(discovery date unavailable\): Oct 7, 2026 UTC/);
+    assert.deepEqual(t.list.querySelectorAll("button").map((b) => b.textContent), ["Keep"]);
+    assert.match(t.summary.textContent, /1 undated excluded story is not shown/);
+    assert.equal(t.note.querySelector("a").href, "excluded");
+  } finally { t.restore(); }
+});
+
+test("excluded Keep and Undo reuse the member routes and announce pending publication without a guarantee", async () => {
+  const story = excluded("Rescue this story");
+  const t = excludedHarness((url, init) => {
+    if (init.method === "PUT") return json({ ok: true, vote: { item: exampleId(story.link), vote: "keep", label: null } });
+    if (init.method === "DELETE") return json({ ok: true });
+    return url === "feed-audit.json" ? json({ items: [story] }) : json({ ok: true, votes: [] });
+  });
+  try {
+    await t.mount();
+    t.list.querySelector("button").click();
+    await settle();
+    assert.equal(t.requests.at(-1).url, `/api/mail/feedback/${exampleId(story.link)}`);
+    assert.deepEqual(t.requests.at(-1).body, { vote: "keep" });
+    assert.match(t.list.textContent, /Your vote: Keep requested · Undo$/);
+    assert.match(t.status.textContent, /next publishing run, subject to editorial and exclusion rules/);
+    assert.equal(Node_.active, t.list.querySelector("button"));
+    t.list.querySelector("button").click();
+    await settle();
+    assert.equal(t.requests.at(-1).method, "DELETE");
+    assert.equal(t.list.querySelector("button").textContent, "Keep");
+    assert.match(t.status.textContent, /Vote removed:.*next publishing run/);
+  } finally { t.restore(); }
+});
+
+test("excluded vote failures keep the previous state, reject wrong IDs, and clear the view on session expiry", async () => {
+  let mode = "wrong-id";
+  const t = excludedHarness((url, init) => {
+    if (init.method === "PUT") {
+      if (mode === "wrong-id") return json({ ok: true, vote: { item: "a".repeat(64), vote: "keep" } });
+      if (mode === "failure") return json({ ok: false }, 500);
+      return json({ ok: false }, 401);
+    }
+    return url === "feed-audit.json" ? json({ items: [excluded("one")] }) : json({ ok: true, votes: [] });
+  });
+  try {
+    await t.mount();
+    for (mode of ["wrong-id", "failure"]) {
+      t.list.querySelector("button").click();
+      await settle();
+      assert.match(t.status.textContent, /Could not save your vote/);
+      assert.equal(t.list.querySelector("button").textContent, "Keep");
+    }
+    mode = "expired";
+    t.list.querySelector("button").click();
+    await settle();
+    assert.equal(t.list.children.length, 0);
+    assert.equal(t.pager.children.length, 0);
+    assert.equal(t.summary.textContent, "");
+    assert.match(t.message.textContent, /Sign in with a team/);
+    assert.match(t.status.textContent, /sign-in has ended/);
+  } finally { t.restore(); }
+});
+
+test("repeated excluded Keep clicks make one request, and sign-out prevents a late save from restoring controls", async () => {
+  let finishSave;
+  const story = excluded("one");
+  const t = excludedHarness((url, init) => {
+    if (init.method === "PUT") return new Promise((resolve) => { finishSave = resolve; });
+    if (init.method === "POST") return json({ ok: true });
+    return url === "feed-audit.json" ? json({ items: [story] }) : json({ ok: true, votes: [] });
+  });
+  try {
+    await t.mount();
+    const keep = t.list.querySelector("button");
+    keep.click();
+    keep.click();
+    assert.equal(t.list.querySelector("button").disabled, true);
+    assert.equal(t.requests.filter((r) => r.method === "PUT").length, 1);
+    t.note.querySelector("button").click();
+    await settle();
+    finishSave(json({ ok: true, vote: { item: exampleId(story.link), vote: "keep", label: null } }));
+    await settle();
+    assert.equal(t.list.children.length, 0);
+    assert.match(t.status.textContent, /Signed out/);
+    assert.match(t.message.textContent, /Sign in with a team/);
+  } finally { t.restore(); }
+});
+
+test("excluded pagination stays bounded, moves keyboard focus to results, and signs out cleanly", async () => {
+  const items = Array.from({ length: 26 }, (_, n) => excluded(`story-${String(n).padStart(2, "0")}`));
+  const t = excludedHarness((url, init) => init.method === "POST" ? json({ ok: true })
+    : url === "feed-audit.json" ? json({ items }) : json({ ok: true, votes: [] }));
+  try {
+    await t.mount();
+    assert.equal(t.list.children.length, 25);
+    assert.equal(t.pager.querySelectorAll("button")[0].disabled, true);
+    t.pager.querySelectorAll("button")[1].click();
+    await settle();
+    assert.equal(t.list.children.length, 1);
+    assert.match(t.list.textContent, /^story-25/);
+    assert.equal(t.pager.querySelectorAll("button")[1].disabled, true);
+    assert.equal(Node_.active, t.list);
+    t.pager.querySelectorAll("button")[0].click();
+    await settle();
+    assert.equal(t.list.children.length, 25);
+    assert.match(t.summary.textContent, /Showing 1–25 of 26/);
+    t.note.querySelector("button").click();
+    await settle();
+    assert.equal(t.list.children.length, 0);
+    assert.equal(t.pager.children.length, 0);
+    assert.match(t.message.textContent, /Sign in with a team/);
+  } finally { t.restore(); }
+});
+
+test("an in-flight audit cannot repopulate the excluded page after sign-out", async () => {
+  let finishAudit;
+  const t = excludedHarness((url, init) => init.method === "POST" ? json({ ok: true })
+    : url === "feed-audit.json" ? new Promise((resolve) => { finishAudit = resolve; }) : json({ ok: true, votes: [] }));
+  try {
+    const mounting = t.mount();
+    await settle();
+    t.note.querySelector("button").click();
+    await settle();
+    finishAudit(json({ items: [excluded("must not render")] }));
+    await mounting;
+    assert.equal(t.list.children.length, 0);
+    assert.match(t.message.textContent, /Sign in with a team/);
+  } finally { t.restore(); }
+});
+
+test("empty or unavailable audits leave a useful message and no vote controls", async () => {
+  for (const [audit, expected] of [
+    [() => json({ items: [] }), /No excluded stories/],
+    [() => json({ wrong: [] }), /Could not load excluded stories/],
+    [() => json({}, 500), /Could not load excluded stories/],
+    [() => { throw new TypeError("offline"); }, /Could not load excluded stories/],
+  ]) {
+    const t = excludedHarness((url) => url === "feed-audit.json" ? audit() : json({ ok: true, votes: [] }));
+    try {
+      await t.mount();
+      assert.equal(t.list.children.length, 0);
+      assert.equal(t.pager.children.length, 0);
+      assert.match(t.message.textContent, expected);
+    } finally { t.restore(); }
+  }
+});
+
+test("the excluded page uses the existing gate and session bootstrap and stays out of search", () => {
+  const page = read("excluded.html");
+  assert.ok(page.includes('<link rel="stylesheet" href="gate.css">'));
+  assert.ok(page.includes('localStorage.getItem("blueNewsAuth")'));
+  assert.ok(page.indexOf('<script src="gate.js"></script>') > page.indexOf("<body>"));
+  assert.ok(page.includes("CeruleanGate.whenUnlocked(loadExcluded)"));
+  assert.ok(page.includes("CeruleanFeedback.mountExcluded"));
+  assert.match(page, /<meta name="robots" content="noindex, nofollow">/);
+  assert.ok(!/rel="canonical"/.test(page));
+  assert.ok(!/excluded/.test(read("sitemap.xml")));
+  assert.match(read("_headers"), /\/excluded\n  X-Robots-Tag: noindex/);
+  assert.match(page, /underlying audit file is already public/);
+  assert.match(page, /does not guarantee publication/);
+  assert.match(page, /aged out or was never admitted/);
 });

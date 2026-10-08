@@ -494,7 +494,10 @@ export function normalizeJevCache(value) {
   const cache = {};
   if (!value || typeof value !== "object" || Array.isArray(value)) return cache;
   for (const [key, entry] of Object.entries(value)) {
-    if (!/^[a-f0-9]{64}$/.test(key) || !entry || !isProbability(entry.include) ||
+    const sentimentOnly = entry?.sentimentOnly === true && entry.include === null &&
+      SENTIMENT_VALUES.includes(entry.sentiment) && normalizeSentimentProbabilities(entry.sentimentProbabilities);
+    if (!/^[a-f0-9]{64}$/.test(key) || !entry || (!isProbability(entry.include) && !sentimentOnly) ||
+        (entry.sentimentOnly === true && !sentimentOnly) ||
         typeof entry.model !== "string" || typeof entry.rubricVersion !== "string" ||
         (entry.sentiment != null && (!SENTIMENT_VALUES.includes(entry.sentiment) || !isProbability(entry.sentimentConfidence)))) continue;
     cache[key] = {
@@ -504,6 +507,8 @@ export function normalizeJevCache(value) {
       model: entry.model.slice(0, 80),
       rubricVersion: entry.rubricVersion.slice(0, 80),
       include: entry.include,
+      // An odds-only request does not answer the pending inclusion question.
+      ...(sentimentOnly ? { sentimentOnly: true } : {}),
       localAngle: isProbability(entry.localAngle) ? entry.localAngle : null,
       relevanceScore: Number.isFinite(entry.relevanceScore) && entry.relevanceScore >= 0 && entry.relevanceScore <= 9 ? entry.relevanceScore : null,
       sentiment: entry.sentiment || null,
@@ -551,6 +556,17 @@ function decisionFromCache(entry, item, options) {
     }),
     ok: true,
   };
+}
+
+// Distinct archived URLs can carry identical bounded requests. Spend one
+// slot per request key; the cached result is reapplied to every matching item.
+function uniqueRequestEntries(entries) {
+  const seen = new Set();
+  return entries.filter(({ key }) => {
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export async function applyJevRelevance(items, options = {}) {
@@ -635,6 +651,11 @@ export async function applyJevRelevance(items, options = {}) {
   Object.assign(metrics, { inclusionApplied: 0, sentimentApplied: 0 });
 
   const maxItems = parsePositiveInteger(options.maxItems ?? env.JEV_RELEVANCE_MAX_ITEMS, DEFAULT_MAX_ITEMS);
+  const reservedValue = options.sentimentReservedItems ?? env.JEV_SENTIMENT_RESERVED_ITEMS;
+  const reservedNumber = typeof reservedValue === "string" || typeof reservedValue === "number"
+    ? Number(reservedValue) : 0;
+  const sentimentReservedItems = Number.isSafeInteger(reservedNumber) && reservedNumber >= 0
+    ? Math.min(reservedNumber, maxItems) : 0;
   const concurrency = parsePositiveInteger(options.concurrency ?? env.JEV_RELEVANCE_CONCURRENCY, DEFAULT_CONCURRENCY);
   const candidates = selectJevCandidates(items, Infinity);
   metrics.eligible = candidates.length;
@@ -669,7 +690,7 @@ export async function applyJevRelevance(items, options = {}) {
     }
   }
   // What the run started with, for classifying misses below.
-  const answeredStories = new Set(Object.values(normalized).map((entry) => entry.storyKey).filter(Boolean));
+  const answeredStories = new Set(Object.values(normalized).filter((entry) => !entry.sentimentOnly).map((entry) => entry.storyKey).filter(Boolean));
   const seenStories = new Set(options.storyKeys || []);
   const activeKeys = new Set(entries.map(({ key }) => key));
   for (const key of Object.keys(cache)) {
@@ -681,8 +702,12 @@ export async function applyJevRelevance(items, options = {}) {
   for (const entry of entries) {
     if (cache[entry.key]) {
       classifications.set(entry.item, decisionFromCache(cache[entry.key], entry.item, options));
-      metrics.cached += 1;
-    } else pending.push(entry);
+      if (!cache[entry.key].sentimentOnly) {
+        metrics.cached += 1;
+        continue;
+      }
+    }
+    pending.push(entry);
   }
   // Why each miss missed. referenceChanged is the churn: the same story part
   // was answered before, under references that have since changed.
@@ -692,17 +717,27 @@ export async function applyJevRelevance(items, options = {}) {
   }
   if (options.storyKeys) options.storyKeys.splice(0, options.storyKeys.length, ...new Set(entries.map(({ storyKey }) => storyKey)));
   const configured = options.callJev || env.TYPESAFE_API_KEY?.trim() || options.cliPath || env.JEV_CLI_PATH?.trim();
-  const eligiblePending = mode === JEV_MODE_ENFORCE ? pending.filter(entry => mayEnforce(entry.item)) : pending;
-  const runEntries = configured ? eligiblePending.slice(0, maxItems) : [];
+  const eligiblePending = uniqueRequestEntries(mode === JEV_MODE_ENFORCE ? pending.filter(entry => mayEnforce(entry.item)) : pending);
+  // Reserve only real odds work. Zero (the default), shadow mode, or an empty
+  // odds queue leaves the entire allowance available to primary evaluations.
+  const oddsCandidates = configured && mode === JEV_MODE_ENFORCE
+    ? uniqueRequestEntries(entries.filter(({ item, key }) => shouldScoreSentiment(item) && !cache[key]?.sentimentProbabilities))
+    : [];
+  const reservedOdds = oddsCandidates.slice(0, sentimentReservedItems);
+  const reservedKeys = new Set(reservedOdds.map(({ key }) => key));
+  const runEntries = configured
+    ? eligiblePending.filter(({ key }) => !reservedKeys.has(key)).slice(0, maxItems - reservedOdds.length)
+    : [];
   // Additions cached before scope scores were stored have notes that cannot
   // name a scope. Re-ask for those scores within the same per-run cap. Only
   // the scope scores are kept, so published decisions cannot change.
   const needsScope = configured && alignment && mode === JEV_MODE_ENFORCE
-    ? entries.filter(({ item, key }) => cache[key] && !cache[key].scopeSignals && mayEnforce(item) &&
+    ? uniqueRequestEntries(entries.filter(({ item, key }) => cache[key] && !cache[key].sentimentOnly && !cache[key].scopeSignals && mayEnforce(item) &&
         !item.fromMediaTracker && classifications.get(item)?.decision === DECISION_INCLUDE &&
-        (item.relevant === false || normalizeJevBaseline(item.jevBaseline)?.relevant === false))
+        (item.relevant === false || normalizeJevBaseline(item.jevBaseline)?.relevant === false)))
     : [];
-  const scopeBackfill = needsScope.slice(0, Math.max(0, maxItems - runEntries.length));
+  const scopeBackfill = needsScope.filter(({ key }) => !reservedKeys.has(key))
+    .slice(0, Math.max(0, maxItems - runEntries.length - reservedOdds.length));
   metrics.scopeBackfillPending = needsScope.length;
   metrics.scopeBackfilled = 0;
   await mapWithConcurrency(scopeBackfill, concurrency, async ({ item, request, key }) => {
@@ -718,24 +753,36 @@ export async function applyJevRelevance(items, options = {}) {
   // before the enforcement boundary, which Jev never scored, and entries cached
   // before the odds were stored. Only the sentiment answer is kept, and only
   // sentiment is ever applied to pre-boundary articles, so inclusion decisions
-  // cannot change. Uses what the per-run cap leaves after new articles.
+  // cannot change. Uses reserved slots plus what remains after primary/scope
+  // work; no story is requested twice in the same run.
   const liveKeys = new Set(runEntries.map(({ key }) => key));
-  const needsOdds = configured && mode === JEV_MODE_ENFORCE
-    ? entries.filter(({ item, key }) => !liveKeys.has(key) && shouldScoreSentiment(item) &&
-        !cache[key]?.sentimentProbabilities)
-    : [];
-  const oddsBackfill = needsOdds.slice(0, Math.max(0, maxItems - runEntries.length - scopeBackfill.length));
+  const scopeKeys = new Set(scopeBackfill.map(({ key }) => key));
+  const needsOdds = oddsCandidates.filter(({ key }) => !liveKeys.has(key));
+  const spareOdds = needsOdds.filter(({ key }) => !reservedKeys.has(key) && !scopeKeys.has(key))
+    .slice(0, Math.max(0, maxItems - runEntries.length - scopeBackfill.length - reservedOdds.length));
+  const oddsBackfill = [...reservedOdds, ...spareOdds];
   metrics.sentimentBackfilled = 0;
+  metrics.sentimentBackfillRequested = oddsBackfill.length;
+  metrics.sentimentBackfillFailed = 0;
   await mapWithConcurrency(oddsBackfill, concurrency, async ({ item, request, key, storyKey }) => {
     const refreshed = await classifyItemRelevance(item, { ...options, rubric, request });
-    if (!refreshed.ok || !refreshed.sentiment) return;
+    if (!refreshed.ok || !refreshed.sentiment || !normalizeSentimentProbabilities(refreshed.sentimentProbabilities)) {
+      metrics.sentimentBackfillFailed += 1;
+      return;
+    }
     if (alignment) refreshed.alignmentVersion = alignment.version;
     refreshed.storyKey = storyKey;
     const sentimentAnswer = { sentiment: refreshed.sentiment, sentimentConfidence: refreshed.sentimentConfidence,
       sentimentProbabilities: refreshed.sentimentProbabilities };
-    // A cached entry keeps its inclusion answer; only the sentiment fields refresh.
-    const stored = normalizeJevCache({ [key]: cache[key] ? { ...cache[key], ...sentimentAnswer } : refreshed })[key];
-    if (!stored) return;
+    // Keep an existing inclusion answer. Without one, persist only sentiment
+    // and leave this story queued for a later primary evaluation. Otherwise a
+    // reserved post-boundary request could silently enforce its inclusion too.
+    const stored = normalizeJevCache({ [key]: cache[key] ? { ...cache[key], ...sentimentAnswer }
+      : { ...refreshed, include: null, localAngle: null, relevanceScore: null, scopeSignals: undefined, sentimentOnly: true } })[key];
+    if (!stored) {
+      metrics.sentimentBackfillFailed += 1;
+      return;
+    }
     cache[key] = stored;
     classifications.set(item, decisionFromCache(stored, item, options));
     metrics.sentimentBackfilled += 1;
@@ -748,7 +795,8 @@ export async function applyJevRelevance(items, options = {}) {
     const classification = await classifyItemRelevance(item, { ...options, rubric, request });
     if (alignment) classification.alignmentVersion = alignment.version;
     classification.storyKey = storyKey;
-    classifications.set(item, classification);
+    // A failed primary request must not discard an already cached sentiment.
+    if (classification.ok || !classifications.has(item)) classifications.set(item, classification);
     if (classification.ok) {
       cache[key] = normalizeJevCache({ [key]: classification })[key];
       metrics.succeeded += 1;
@@ -756,7 +804,16 @@ export async function applyJevRelevance(items, options = {}) {
     console.log(`  jev ${mode} -> ${describeDecision(item, classification)} sentiment=${classification.sentiment || "n/a"} confidence=${classification.sentimentConfidence ?? "n/a"}`);
   });
   metrics.pending = eligiblePending.length - metrics.succeeded;
-  if (metrics.failed) metrics.status = "partial_failure";
+  if (metrics.failed || metrics.sentimentBackfillFailed) metrics.status = "partial_failure";
+  // Share one successful request across aliases without sharing an item's
+  // inclusion fallback: decisionFromCache evaluates that against each item.
+  // A newly answered primary request does not pull protected historical
+  // aliases into this run; previously cached answers retain their behavior.
+  for (const { item, key } of entries) {
+    if (cache[key] && (!liveKeys.has(key) || mayEnforce(item) || classifications.has(item))) {
+      classifications.set(item, decisionFromCache(cache[key], item, options));
+    }
+  }
   // Compared with the decision before Jev first touched the article. The
   // item's current fields already hold Jev's earlier applied answers, so a
   // comparison against them would count Jev agreeing with itself.
@@ -767,6 +824,9 @@ export async function applyJevRelevance(items, options = {}) {
     // Team votes decide their own articles, so they are not model disagreements.
     if (!item.fromMediaTracker && !item.humanRejected && !item.feedbackKept && classification.decision !== DECISION_KEYWORD && classification.relevant !== priorRelevant) metrics.inclusionDisagreements += 1;
     if (classification.sentiment && priorSentiment && !item.feedbackSentiment && classification.sentiment !== priorSentiment) metrics.sentimentDisagreements += 1;
+  }
+  if (metrics.sentimentBackfillRequested) {
+    console.log(`Jev sentiment backfill: ${metrics.sentimentBackfillRequested} requested, ${metrics.sentimentBackfilled} successful, ${metrics.sentimentBackfillFailed} failed, ${metrics.sentimentBackfillPending} pending.`);
   }
   console.log(`Jev evaluation (${mode}): ${metrics.succeeded}/${metrics.requested} successful, ${metrics.cached} cached, ${metrics.pending} pending, ${metrics.scopeBackfilled} scope backfills (${metrics.scopeBackfillPending} left), ${metrics.sentimentBackfilled ?? 0} sentiment backfills (${metrics.sentimentBackfillPending ?? 0} left); ${metrics.inclusionDisagreements} inclusion and ${metrics.sentimentDisagreements} sentiment disagreements. Status: ${metrics.status}.`);
   // One line to confirm the cause of cache churn from the runner's log (#21).
