@@ -1,3 +1,13 @@
+## 2026-10-08 - Publish the reviewed change without model execution
+
+**What changed**: Added the explicit `Publish-Mode: static` commit trailer to the existing publishing workflow. A valid push with that trailer reuses the live archive and generated artifacts even when runtime source changed, while retaining all tests. Scheduled and manual generation keep their existing behavior. Corrected the static digest validator to require `sections`, and made every established generated artifact mandatory; failed or malformed downloads stop publication instead of deploying stale files.
+
+**Decisions made**: Oliver authorized making PR #24 live while prohibiting new model runs. The reader's established production target is Cloudflare Pages project `bluenews`; the mail Worker and parked alternate runtime are separate. This release uses the static path. The sentiment reservation remains zero, total evaluation cap 25, concurrency two; the repository has no overrides for those three settings. Nonzero reservations and Gemini archive rescoring remain held.
+
+**Verification**: Real temporary Git fixtures exercise push classification and the explicit trailer, including scheduled/manual defaults and malformed inputs. Static-reuse tests execute the workflow's Bash step with mocked downloads. Final local and GitHub results and the production receipt are recorded with PR #24.
+
+---
+
 ## 2026-10-08 - Bounded sentiment allocation and excluded-story review
 
 **What changed**: Added an opt-in sentiment-odds reservation inside the existing Jev evaluation cap ([#14](https://github.com/oliverames/cerulean-news/issues/14), AME-39). The default is zero. Shared request keys are scheduled once; sentiment-only cache entries preserve inclusion and remain pending for primary evaluation. Odds requests and failures now have separate metrics. Added `/excluded` for signed-in team members ([#20](https://github.com/oliverames/cerulean-news/issues/20), AME-40), with a 14-day discovery window, labeled publication fallback, 25-row pages, and the existing Keep/Undo routes. Saved requests are explicitly pending until publishing and remain subject to editorial and deterministic rules.

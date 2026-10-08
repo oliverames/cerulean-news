@@ -6638,11 +6638,10 @@ test("publish workflow preserves durable state and classifies runtime inputs", a
 
   assert.match(workflow, /fetch-depth: 0/);
   assert.doesNotMatch(workflow, /git diff --name-only HEAD\^ HEAD/);
-  assert.match(
-    workflow,
-    /Could not compare the complete push range; using a full generation[\s\S]*echo "full=true"/,
-  );
-  assert.match(workflow, /\^\(src\/\|test\/\|data\/\|certs\//);
+  assert.match(workflow, /PUBLISH_EVENT_NAME: \$\{\{ github\.event_name \}\}/);
+  assert.match(workflow, /PUBLISH_BEFORE_SHA: \$\{\{ github\.event\.before \}\}/);
+  assert.match(workflow, /PUBLISH_SHA: \$\{\{ github\.sha \}\}/);
+  assert.ok(workflow.includes('bash scripts/publish-mode.sh "$PUBLISH_EVENT_NAME" "$PUBLISH_BEFORE_SHA" "$PUBLISH_SHA" >> "$GITHUB_OUTPUT"'));
   assert.match(workflow, /\.audit == true/);
   assert.match(workflow, /\.crawlState \| type == "object"/);
   assert.doesNotMatch(workflow, /seed "\$SITE_URL\/feed\.json"/);

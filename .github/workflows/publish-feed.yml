@@ -92,30 +92,12 @@ jobs:
       - name: Decide generation mode
         id: mode
         shell: bash
+        env:
+          PUBLISH_EVENT_NAME: ${{ github.event_name }}
+          PUBLISH_BEFORE_SHA: ${{ github.event.before }}
+          PUBLISH_SHA: ${{ github.sha }}
         run: |
-          if [ "${{ github.event_name }}" != "push" ]; then
-            echo "full=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          before="${{ github.event.before }}"
-          sha="${{ github.sha }}"
-          if ! changed="$(git diff --name-only "$before" "$sha" 2>/dev/null)"; then
-            echo "::warning::Could not compare the complete push range; using a full generation."
-            echo "full=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "Changed files:"
-          printf '%s\n' "$changed"
-
-          if [ -z "$changed" ]; then
-            echo "full=true" >> "$GITHUB_OUTPUT"
-          elif printf '%s\n' "$changed" | grep -Eq '^(src/|test/|data/|certs/|package(-lock)?\.json$|\.github/workflows/publish-feed\.yml$)'; then
-            echo "full=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "full=false" >> "$GITHUB_OUTPUT"
-          fi
+          bash scripts/publish-mode.sh "$PUBLISH_EVENT_NAME" "$PUBLISH_BEFORE_SHA" "$PUBLISH_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
@@ -308,17 +290,20 @@ jobs:
           LIVE_SITE_URL: https://bluenews-7g0.pages.dev
         run: |
           set -euo pipefail
+          staging="$(mktemp -d)"
+          trap 'rm -rf "$staging"' EXIT
 
           fetch_live() {
             local name="$1" check="$2"
             if curl -fsSL --compressed --retry 3 --retry-delay 5 --max-time 60 \
-                 "$LIVE_SITE_URL/$name" -o "/tmp/$name"; then
-              if [ "$check" = "json" ]; then
-                jq -e '.items | type == "array"' "/tmp/$name" > /dev/null
-              else
-                grep -q "</rss>" "/tmp/$name"
-              fi
-              mv "/tmp/$name" "site/$name"
+                 "$LIVE_SITE_URL/$name" -o "$staging/$name"; then
+              case "$check" in
+                rss) grep -q '</rss>' "$staging/$name" || return 1 ;;
+                html) grep -qi '</html>' "$staging/$name" || return 1 ;;
+                ics) grep -q 'END:VCALENDAR' "$staging/$name" || return 1 ;;
+                *) jq -e "$check" "$staging/$name" > /dev/null || return 1 ;;
+              esac
+              mv "$staging/$name" "site/$name"
               echo "Reused live $name"
               return 0
             fi
@@ -327,18 +312,17 @@ jobs:
 
           # Without this the deploy silently republishes a stale artefact,
           # which is worse than a failed run: nobody notices a green tick.
-          fetch_live feed.json json
+          fetch_live feed.json '.items | type == "array"'
           fetch_live feed.rss rss
-          # Generated pages ride along; a missing one only warns, since the
-          # first deploy after a feature lands has no live copy yet.
-          fetch_live digest.json json || echo "::warning::No live digest.json to reuse"
-          curl -fsSL --compressed --retry 3 --max-time 60 "$LIVE_SITE_URL/digest.html" -o site/digest.html \
-            || echo "::warning::No live digest.html to reuse"
-          for name in storylines.json calendar.json calendar.ics alerts.json; do
-            curl -fsSL --compressed --retry 3 --max-time 60 "$LIVE_SITE_URL/$name" -o "/tmp/$name" \
-              && mv "/tmp/$name" "site/$name" \
-              || echo "::warning::No live $name to reuse; deploying the committed copy"
-          done
+          # Every established generated artifact must survive a static release.
+          # A missing or malformed response stops deployment instead of falling
+          # back to a stale committed copy. Digests have sections, not items.
+          fetch_live digest.json '(.sections | type == "array") and (.html | type == "string") and (.text | type == "string")'
+          fetch_live digest.html html
+          fetch_live storylines.json '.storylines | type == "array"'
+          fetch_live calendar.json '.events | type == "array"'
+          fetch_live calendar.ics ics
+          fetch_live alerts.json '(.count | type == "number") and (.html | type == "string") and (.text | type == "string")'
 
       # Full runs prerender the reader's first page during generation. A
       # static-only deploy skips generation, so fill the committed page's
