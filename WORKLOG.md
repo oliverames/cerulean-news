@@ -1,3 +1,17 @@
+## 2026-10-08 - Preserve saved sentiment across publications
+
+**What changed**: Resolved the publication regression in [PR #30](https://github.com/oliverames/cerulean-news/pull/30): retain tracker outlet provenance and valid historical cache entries, bind sentiment reuse to exact request hashes, preserve existing scores on inclusion-only hits, and protect historical aliases from fresh primary answers. Added source/live publication guards and provider-free reconciliation and actual-generator verification. Corrected a flaky mail test whose fixed signature suffix could equal the original or change only ignored base64 bits; production mail code is unchanged.
+
+**Decisions made**: Preserve newer legitimate archive content and all 115 saved responses; apply only matching current contexts. No new provider requests. Original 42 frozen targets, one unused retry and Gemini work stay paused. Inventory every unresolved article in the owning [#14 / AME-39](https://github.com/oliverames/cerulean-news/issues/14), including 44 changed-context saved answers and current/historical Gemini aliases.
+
+**Verification**: All 834 tests passed before merge. [Static release 37838748837](https://github.com/oliverames/cerulean-news/actions/runs/37838748837) succeeded. [Reconciliation 37840146480](https://github.com/oliverames/cerulean-news/actions/runs/37840146480) preserved 6,061 audit entries, 3,133 public stories, generation time and protected fields; 71 contexts match, 44 are historical only, and 26 article fields were repaired. Nine generated artifacts match on native/custom/immutable deployment. [Post-live verification 37841313655](https://github.com/oliverames/cerulean-news/actions/runs/37841313655) exercises the actual scheduled generator on temporary copies and proves all 115 saved responses and 71 exact sentiment contexts persist, with zero source/provider requests or blocked fetches. The next ordinary scheduled run remains independent.
+
+**Left off at**: Resolved this session: preservation and surgical saved-result reconciliation. Still open: original 42 frozen targets, changed-context follow-up, canceled-run lineage before inference, and separate Gemini contract/quota/alias reconciliation. See [exact inventories](docs/2026-10-08-sentiment-preservation.md) and refreshed [Gemini inventory](docs/2026-10-08-remaining-gemini-sentiment.md). Prior #8, #18 and #20 remain open in their existing scopes. Private checkpoint/evidence remains outside Git with recoverable handoff.
+
+**Open questions**: Any future inference requires current exact-payload validation and the approved bounded contract; do not treat historical answers as current results or add overlapping inventory counts. No account, quota, payment or persistent request settings changed.
+
+---
+
 ## 2026-10-08 - Checkpointed sentiment repair and closeout
 
 **What changed**: Merged PRs [#25](https://github.com/oliverames/cerulean-news/pull/25), [#26](https://github.com/oliverames/cerulean-news/pull/26), [#27](https://github.com/oliverames/cerulean-news/pull/27), and [#28](https://github.com/oliverames/cerulean-news/pull/28): a frozen sentiment-only workflow, bounded preparation, propagation-aware publication reconciliation, and explicitly authorized salvage/continuation/one-retry modes. Added [operations guidance](docs/sentiment-repair-operations.md) and exact inventories for the [42 remaining frozen targets](docs/2026-10-08-frozen-sentiment-closeout.md) and [196 separate Gemini rubric targets](docs/2026-10-08-remaining-gemini-sentiment.md).
