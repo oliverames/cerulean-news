@@ -1,0 +1,243 @@
+name: Repair frozen sentiment backlog
+run-name: Sentiment ${{ inputs.mode }} freeze=${{ inputs.freeze_run_id || 'new' }} checkpoint=${{ inputs.checkpoint_run_id || 'none' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Freeze without inference, or execute one approved frozen batch"
+        type: choice
+        options: [manifest, drain]
+        default: manifest
+        required: true
+      freeze_run_id:
+        description: "Successful manifest run ID (required for drain)"
+        type: string
+        default: ""
+      checkpoint_run_id:
+        description: "Previous drain run ID; empty only for the first batch"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: cloudflare-pages
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Validate manual inputs
+        env:
+          REPAIR_MODE: ${{ inputs.mode }}
+          FREEZE_RUN_ID: ${{ inputs.freeze_run_id }}
+          CHECKPOINT_RUN_ID: ${{ inputs.checkpoint_run_id }}
+        run: |
+          set -euo pipefail
+          [ "$GITHUB_REF" = refs/heads/main ]
+          case "$REPAIR_MODE" in
+            manifest) [ -z "$FREEZE_RUN_ID" ] && [ -z "$CHECKPOINT_RUN_ID" ] ;;
+            drain)
+              [[ "$FREEZE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+              [[ -z "$CHECKPOINT_RUN_ID" || "$CHECKPOINT_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+              ;;
+            *) exit 1 ;;
+          esac
+
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Verify freeze and checkpoint lineage before inference
+        if: inputs.mode == 'drain'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FREEZE_RUN_ID: ${{ inputs.freeze_run_id }}
+          CHECKPOINT_RUN_ID: ${{ inputs.checkpoint_run_id }}
+        run: node scripts/sentiment-lineage.js
+
+      # These files are already public. All nine are required and recorded so
+      # a batch cannot overwrite a concurrent generated-data publication.
+      - name: Seed complete live publication
+        run: |
+          set -euo pipefail
+          mkdir -p repair/base site
+          for name in feed-audit.json feed.json feed.rss digest.json digest.html storylines.json calendar.json calendar.ics alerts.json; do
+            curl -fsSL --compressed --retry 2 --max-time 60 "https://bluenews-7g0.pages.dev/$name" -o "repair/base/$name"
+            cp "repair/base/$name" "site/$name"
+          done
+          jq -e '.audit == true and (.items | type == "array") and (.sources | type == "array") and (.crawlState | type == "object")' site/feed-audit.json > /dev/null
+          jq -e '.items | type == "array"' site/feed.json > /dev/null
+          jq -e '(.sections | type == "array") and (.html | type == "string") and (.text | type == "string")' site/digest.json > /dev/null
+          jq -e '.storylines | type == "array"' site/storylines.json > /dev/null
+          jq -e '.events | type == "array"' site/calendar.json > /dev/null
+          jq -e '(.count | type == "number") and (.html | type == "string") and (.text | type == "string")' site/alerts.json > /dev/null
+          grep -q '</rss>' site/feed.rss
+          grep -qi '</html>' site/digest.html
+          grep -q 'END:VCALENDAR' site/calendar.ics
+
+      # The existing authorized reference library remains runner-local. No
+      # seed, request body, reference excerpt, response body or key is logged
+      # or uploaded. Manifest mode has no TypeSafe credential at all.
+      - name: Materialize existing editorial reference library
+        env:
+          MEDIA_TRACKER_SEED_B64: ${{ secrets.MEDIA_TRACKER_SEED_B64 }}
+          CLIP_EMAILS_PASSPHRASE: ${{ secrets.CLIP_EMAILS_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          [ -n "$MEDIA_TRACKER_SEED_B64" ]
+          mkdir -p data
+          printf '%s' "$MEDIA_TRACKER_SEED_B64" | base64 -d | gunzip > data/media-tracker-seed.json
+          jq -e '.articles | length > 100' data/media-tracker-seed.json > /dev/null
+          if [ -f data/clip-emails.json.gpg ]; then
+            [ -n "$CLIP_EMAILS_PASSPHRASE" ]
+            printf '%s' "$CLIP_EMAILS_PASSPHRASE" | gpg --quiet --batch --yes --pinentry-mode loopback --passphrase-fd 0 --output data/clip-emails.json --decrypt data/clip-emails.json.gpg
+            jq -e '.articles | length > 100' data/clip-emails.json > /dev/null
+            jq -s '
+              def key: (.url // "") | ascii_downcase | sub("/+$"; "");
+              (.[0].articles | map(key)) as $seen
+              | .[0] + {articles: (.[0].articles + [.[1].articles[] | select(key as $k | $seen | index([$k]) | not)])}
+            ' data/media-tracker-seed.json data/clip-emails.json > repair/merged-seed.json
+            mv repair/merged-seed.json data/media-tracker-seed.json
+            rm -f data/clip-emails.json
+          fi
+
+      - name: Freeze exact existing repair queue without inference
+        if: inputs.mode == 'manifest'
+        env:
+          JEV_ALIGNMENT_PROFILE: src/rubrics/editorial-alignment-v2.json
+          JEV_ENFORCE_AFTER: ${{ vars.JEV_ENFORCE_AFTER }}
+        run: |
+          set -euo pipefail
+          cp site/feed-audit.json repair/frozen-feed-audit.json
+          node scripts/sentiment-repair.js manifest --audit repair/frozen-feed-audit.json --manifest repair/manifest.json
+
+      - name: Save frozen hashes and public archive
+        if: inputs.mode == 'manifest'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sentiment-freeze
+          path: |
+            repair/manifest.json
+            repair/frozen-feed-audit.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Retrieve verified freeze
+        if: inputs.mode == 'drain'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: sentiment-freeze
+          path: repair/freeze
+          run-id: ${{ inputs.freeze_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Retrieve previous durable checkpoint
+        if: inputs.mode == 'drain' && inputs.checkpoint_run_id != ''
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: sentiment-checkpoint
+          path: repair/previous
+          run-id: ${{ inputs.checkpoint_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Prepare checkpoint continuation
+        if: inputs.mode == 'drain'
+        run: |
+          set -euo pipefail
+          cp repair/freeze/manifest.json repair/manifest.json
+          if [ -f repair/previous/checkpoint.json ]; then
+            cp repair/previous/checkpoint.json repair/checkpoint.json
+          fi
+
+      - name: Execute at most 25 frozen sentiment requests
+        if: inputs.mode == 'drain'
+        id: batch
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          JEV_ALIGNMENT_PROFILE: src/rubrics/editorial-alignment-v2.json
+          JEV_ENFORCE_AFTER: ${{ vars.JEV_ENFORCE_AFTER }}
+        run: |
+          node scripts/sentiment-repair.js execute --audit repair/freeze/frozen-feed-audit.json --current-audit site/feed-audit.json --manifest repair/freeze/manifest.json --checkpoint repair/checkpoint.json --batch-size 25
+
+      # A normal failure still saves sent-attempt dispositions and completed
+      # typed results. A cancelled run without a receipt must not be replayed.
+      - name: Save inference checkpoint before publication
+        if: always() && inputs.mode == 'drain' && steps.batch.outcome != 'skipped'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sentiment-checkpoint
+          path: repair/checkpoint.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Apply only validated sentiment responses
+        if: success() && inputs.mode == 'drain'
+        env:
+          JEV_ALIGNMENT_PROFILE: src/rubrics/editorial-alignment-v2.json
+          JEV_ENFORCE_AFTER: ${{ vars.JEV_ENFORCE_AFTER }}
+        run: |
+          node scripts/sentiment-repair.js apply --audit repair/freeze/frozen-feed-audit.json --current-audit site/feed-audit.json --manifest repair/freeze/manifest.json --checkpoint repair/checkpoint.json --output-audit repair/feed-audit.json
+          node scripts/publish-sentiment-repair.js --site site --updated-audit repair/feed-audit.json --receipt repair/publication.json
+
+      - name: Verify live publication has not changed
+        if: success() && inputs.mode == 'drain'
+        run: |
+          set -euo pipefail
+          mkdir -p repair/current
+          for name in feed-audit.json feed.json feed.rss digest.json digest.html storylines.json calendar.json calendar.ics alerts.json; do
+            curl -fsSL --compressed --retry 2 --max-time 60 "https://bluenews-7g0.pages.dev/$name" -o "repair/current/$name"
+            cmp "repair/base/$name" "repair/current/$name"
+          done
+
+      - name: Publish verified sentiment repairs to existing Pages project
+        if: success() && inputs.mode == 'drain'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes wrangler@4 pages deploy ./site --project-name bluenews --branch main --commit-hash "$GITHUB_SHA" --commit-dirty=true
+
+      - name: Read back exact published generated files
+        if: success() && inputs.mode == 'drain'
+        run: |
+          set -euo pipefail
+          mkdir -p repair/readback
+          for name in feed-audit.json feed.json feed.rss digest.json digest.html storylines.json calendar.json calendar.ics alerts.json; do
+            curl -fsSL --compressed --retry 2 --max-time 60 "https://bluenews-7g0.pages.dev/$name" -o "repair/readback/$name"
+            cmp "site/$name" "repair/readback/$name"
+          done
+
+      - name: Save publication verification
+        if: success() && inputs.mode == 'drain'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sentiment-publication
+          path: repair/publication.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Remove private runner material
+        if: always()
+        run: rm -f data/media-tracker-seed.json data/clip-emails.json repair/merged-seed.json
