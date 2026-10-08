@@ -837,6 +837,9 @@ export async function applyJevRelevance(items, options = {}) {
   // aliases into this run; previously cached answers retain their behavior.
   for (const entry of entries) {
     const { item, key } = entry;
+    // Preserve a protected alias's pre-run classification, including exact
+    // historical sentiment. A fresh primary answer belongs to live aliases.
+    if (liveKeys.has(key) && !mayEnforce(item)) continue;
     if (cache[key] && (!liveKeys.has(key) || mayEnforce(item) || classifications.has(item))) {
       classifications.set(item, compatibleClassification(entry));
     } else if (!liveKeys.has(key) && sentimentEvidence(entry)) {

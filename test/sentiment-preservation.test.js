@@ -137,3 +137,31 @@ test("conflicting historical answers for one sentiment body do not choose an arb
   assert.equal(result.sentimentScore, undefined);
   assert.equal(Object.keys(cache).length, 2);
 });
+
+test("a fresh primary alias cannot replace a protected historical alias's saved sentiment", async (t) => {
+  const fresh = article({ fromMediaTracker: false, trackerOutlet: undefined });
+  const historical = { ...fresh, link: "https://example.com/historical-alias", firstSeenAt: "2026-06-01T00:00:00Z",
+    sentiment: "positive", sentimentReason: "", sentimentScore: sentimentScoreFromProbabilities(odds),
+    jevBaseline: { capturedAt: "2026-10-01T00:00:00.000Z", relevant: true, reason: "", sentiment: "neutral", sentimentReason: "Earlier assessment" } };
+  const body = request(fresh);
+  assert.equal(sentimentRequestHash(request(historical)), sentimentRequestHash(body));
+  const cache = { ["a".repeat(64)]: evidence(body) };
+  let calls = 0;
+  const network = t.mock.method(globalThis, "fetch", () => { throw new Error("unexpected network in historical alias fixture"); });
+  try {
+    const result = await applyJevRelevance([fresh, historical], { env: {}, mode: "enforce", rubric, sentimentRubric, cache, now,
+      enforceAfter: "2026-09-21T00:00:00Z", maxItems: 1, concurrency: 1,
+      callJev: async () => {
+        calls++;
+        return { model: rubric.model, answers: {
+          include: { type: "noul", noul: 0.01 }, local_angle: { type: "noul", noul: 0.9 }, relevance: { type: "score", score: 4 },
+          sentiment: { type: "choice", choice: "negative", confidence: 0.95,
+            probabilities: { positive: 0, "neutral to positive": 0, neutral: 0, "neutral to negative": 0, negative: 1 } },
+        } };
+      } });
+    assert.equal(calls, 1);
+    assert.equal(network.mock.callCount(), 0);
+    assert.equal(result[0].relevant, false, "the live primary response still applies to the eligible alias");
+    assert.deepEqual(result[1], historical, "fresh primary sentiment must not replace protected historical evidence");
+  } finally { network.mock.restore(); }
+});

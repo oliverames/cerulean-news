@@ -52,11 +52,17 @@ export async function verifyPublisherPreservation({ siteDir = "site", savedManif
     for (const [key, row] of Object.entries(normalizedBefore)) if (!isDeepStrictEqual(row, normalizedAfter[key])) throw new Error("publisher_dropped_saved_evidence");
     const beforeItems = new Map(before.items.map(item => [repairArticleId(item), item]));
     const afterItems = new Map(after.items.map(item => [repairArticleId(item), item]));
+    const beforePublic = JSON.parse(await readFile(path.join(siteDir, "feed.json")));
+    const afterPublic = JSON.parse(await readFile(path.join(tmp, "feed.json")));
+    const beforePublicItems = new Map(beforePublic.items.map(item => [repairArticleId(item), item]));
+    const afterPublicItems = new Map(afterPublic.items.map(item => [repairArticleId(item), item]));
     for (const target of exact) for (const alias of target.aliases) {
       const old = beforeItems.get(alias.articleId), next = afterItems.get(alias.articleId);
       if (!next || hash([old.sentiment, old.sentimentReason, old.sentimentScore]) !== hash([next.sentiment, next.sentimentReason, next.sentimentScore])) throw new Error("publisher_changed_exact_saved_sentiment");
+      const publicOld = beforePublicItems.get(alias.articleId), publicNext = afterPublicItems.get(alias.articleId);
+      if (publicOld && (!publicNext || hash([publicOld.sentiment, publicOld.sentimentReason, publicOld.sentimentScore]) !== hash([publicNext.sentiment, publicNext.sentimentReason, publicNext.sentimentScore]))) throw new Error("publisher_changed_exact_public_sentiment");
     }
-    if (result.crawlMetrics.jev.requested !== 0 || result.crawlMetrics.jev.sentimentBackfillRequested !== 0) throw new Error("provider_attempt_in_preservation_verification");
+    if (blockedFetches !== 0 || result.crawlMetrics.jev.requested !== 0 || result.crawlMetrics.jev.sentimentBackfillRequested !== 0) throw new Error("provider_attempt_in_preservation_verification");
     if (blockedFetches !== 0) throw new Error("outbound_attempt_in_preservation_verification");
     const receipt = { providerRequests: 0, sourceRequests: 0, blockedFetches, savedValidResults: successful.length,
       preservedCacheEntries: present.length, exactSentimentContextsPreserved: exact.length, generatorExecuted: true };
@@ -67,7 +73,8 @@ export async function verifyPublisherPreservation({ siteDir = "site", savedManif
 async function main() {
   const [rawManifest, rawCheckpoint] = await Promise.all([readFile("repair/freeze/manifest.json", "utf8"), readFile("repair/checkpoint.json", "utf8")]);
   const savedManifest = JSON.parse(rawManifest), checkpoint = JSON.parse(rawCheckpoint);
-  if (savedManifest.manifestHash !== APPROVED_FREEZE_HASH || hash(rawCheckpoint) !== APPROVED_CHECKPOINT_HASH) throw new Error("unapproved_saved_evidence");
+  const { manifestHash, ...contents } = savedManifest;
+  if (manifestHash !== APPROVED_FREEZE_HASH || hash(contents) !== manifestHash || hash(rawCheckpoint) !== APPROVED_CHECKPOINT_HASH) throw new Error("unapproved_saved_evidence");
   console.log(JSON.stringify(await verifyPublisherPreservation({ savedManifest, checkpoint, receiptPath: "repair/publisher-proof.json" })));
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main().catch(error => { console.error(error.message); process.exitCode = 1; });
