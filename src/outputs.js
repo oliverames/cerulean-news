@@ -461,6 +461,9 @@ export function buildJsonSummary(items, sourceResults, now = new Date(), options
         // Marks an entry seeded from the team's media tracker rather than
         // found by the crawler, so the two can be told apart in the archive.
         fromMediaTracker: item.fromMediaTracker || undefined,
+        // The human outlet is a request input; losing it changes the next
+        // restored request even when the article itself has not changed.
+        trackerOutlet: includeRejected && item.fromMediaTracker ? item.trackerOutlet || undefined : undefined,
         // Kept in the audit so a run without the private seed still files a
         // Vermont clip under Vermont rather than Blue Cross coverage.
         trackerSection: includeRejected ? item.trackerSection || undefined : undefined,

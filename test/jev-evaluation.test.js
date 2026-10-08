@@ -138,11 +138,12 @@ test("cached uncertainty follows the current fallback and malformed results retr
   }
 });
 
-test("cache invalidates on input, rubric, model, and storyline changes and prunes expired items", async () => {
+test("cache invalidates active context on input, rubric, model, and storyline changes while retaining history", async () => {
   const cache = {}, rubric = await loadRelevanceRubric();
   let calls = 0;
   const options = { mode: "shadow", cache, rubric, callJev: async () => { calls++; return answer(); } };
   await applyJevRelevance([brand()], options);
+  const originalCache = structuredClone(cache);
   await applyJevRelevance([brand({ snippet: "BCBSVT won a new award." })], options);
   await applyJevRelevance([brand()], { ...options, rubric: { ...rubric, model: "jev-test" } });
   const changed = structuredClone(rubric);
@@ -152,7 +153,10 @@ test("cache invalidates on input, rubric, model, and storyline changes and prune
   try { await applyJevRelevance([brand()], options); }
   finally { setCoverageContext({ storylines: [] }); }
   assert.equal(calls, 5);
-  assert.equal(Object.keys(cache).length, 1);
+  assert.equal(Object.keys(cache).length, 5);
+  for (const [key, row] of Object.entries(originalCache)) assert.deepEqual(cache[key], row);
+  await applyJevRelevance([brand()], options);
+  assert.equal(calls, 5, "returning to the original exact context reuses its retained evidence");
 });
 
 test("missing credentials are explicit in audit metrics, without blocking publishing", async () => {

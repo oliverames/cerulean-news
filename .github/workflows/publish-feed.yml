@@ -63,10 +63,9 @@ env:
 permissions:
   contents: read
 
-# Serialize runs instead of cancelling: a cancelled run wastes its Gemini
-# summary calls (they're only persisted on deploy), and two overlapping
-# runs could each seed from the same stale live feed and drop the other's
-# items. Queued runs are fine at this cadence.
+# One running and one pending publication share this group. GitHub may replace
+# a pending run; cancel-in-progress:false protects only the running one. Source
+# and live-bundle guards also prevent stale queued code or data from deploying.
 concurrency:
   group: cloudflare-pages
   cancel-in-progress: false
@@ -88,6 +87,11 @@ jobs:
           # workflow token in .git/config for later steps to read.
           persist-credentials: false
           fetch-depth: 0
+
+      - name: Reject stale queued source before publishing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publication-guard.js source
 
       - name: Decide generation mode
         id: mode
@@ -119,44 +123,7 @@ jobs:
       # used for feed self-links) is deliberately not used here: a DNS change
       # on the custom domain must not stop the archive from seeding.
       - name: Seed archive from live feed
-        env:
-          LIVE_SITE_URL: https://bluenews-7g0.pages.dev
-        run: |
-          set -euo pipefail
-          mkdir -p site
-
-          # Download to a temp file and require it to parse as JSON before
-          # replacing the checked-out archive: a truncated or garbled
-          # download must not become the seed (loadPreviousState would treat
-          # it as "no archive" and the deploy would shrink the live history).
-          seed() {
-            local url="$1" label="$2"
-            if curl -fsSL --compressed --retry 3 --retry-delay 5 --max-time 60 "$url" -o /tmp/seed.json \
-              && jq -e '
-                .audit == true and
-                (.items | type == "array") and
-                (.sources | type == "array") and
-                (.crawlState | type == "object")
-              ' /tmp/seed.json > /dev/null 2>&1; then
-              mv /tmp/seed.json site/feed-audit.json
-              echo "Seeded archive from $label"
-              return 0
-            fi
-            return 1
-          }
-
-          seed "$LIVE_SITE_URL/feed-audit.json" "live audit feed" \
-            || { echo "::error::Durable live audit unavailable; refusing to replace it with a public or stale seed"; exit 1; }
-
-          # The calendar keeps a failed source's last known events from the
-          # previous run's calendar.json, so start from the live copy.
-          if curl -fsSL --compressed --retry 3 --max-time 60 "$LIVE_SITE_URL/calendar.json" -o /tmp/calendar.json \
-            && jq -e '.events | type == "array"' /tmp/calendar.json > /dev/null 2>&1; then
-            mv /tmp/calendar.json site/calendar.json
-            echo "Seeded calendar from live site"
-          else
-            echo "::warning::No live calendar.json to seed; using the committed copy"
-          fi
+        run: node scripts/publication-guard.js seed
 
       # The media tracker seed is the communications team's hand-kept clip
       # log and is not committed (it was scrubbed from history 2026-09-03).
@@ -342,6 +309,13 @@ jobs:
       # the repo could go private (GitHub Free only serves Pages from a public
       # repo). Direct upload from the runner; the custom domain cerulean.news
       # is attached to the "bluenews" project in the Cloudflare dashboard.
+      - name: Verify current source and unchanged live seed before deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/publication-guard.js source
+          node scripts/publication-guard.js unchanged
+
       - name: Deploy to Cloudflare Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -352,6 +326,9 @@ jobs:
             --branch main \
             --commit-hash "${{ github.sha }}" \
             --commit-dirty=true
+
+      - name: Read back all published generated files
+        run: node scripts/verify-sentiment-readback.js
 
   linear-release:
     needs: [build]

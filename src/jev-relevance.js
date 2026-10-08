@@ -9,7 +9,7 @@ import { mergeFeedbackExamples } from "./feedback.js"; // feature: team-feedback
 import { isObituaryItem } from "./filters.js";
 import { withoutBodyOnly } from "./body-labels.js";
 import { addEditorialAlignment, alignedInclusionAnswer, loadAlignmentProfile } from "./jev-alignment.js";
-import { classifyMiss, jevCacheKey, jevStoryKey, legacyJevCacheKey, referenceLibraryHashes, referenceSignature, shortKey } from "./jev-cache-keys.js";
+import { classifyMiss, jevCacheKey, jevStoryKey, legacyJevCacheKey, referenceLibraryHashes, referenceSignature, sentimentRequestHash, shortKey } from "./jev-cache-keys.js";
 import { freezeReferenceText } from "./jev-freeze.js";
 import { applyDeterministicRelevance, itemCategory, itemOutletName, itemSourceType } from "./relevance.js";
 import { INCLUSION_PRIORITIES, INCLUSION_RULES, matchStorylines, SENTIMENT_RULES, SENTIMENT_VALUES, shouldScoreSentiment, TRACKER_EXAMPLES } from "./summaries.js";
@@ -504,6 +504,7 @@ export function normalizeJevCache(value) {
       // The short story part of the key, which classifies a later miss.
       ...(typeof entry.storyKey === "string" && /^[a-f0-9]{12}$/.test(entry.storyKey) ? { storyKey: entry.storyKey } : {}),
       ...(typeof entry.alignmentVersion === "string" ? { alignmentVersion: entry.alignmentVersion.slice(0, 80) } : {}),
+      ...(typeof entry.sentimentRequestHash === "string" && /^[a-f0-9]{64}$/.test(entry.sentimentRequestHash) ? { sentimentRequestHash: entry.sentimentRequestHash } : {}),
       model: entry.model.slice(0, 80),
       rubricVersion: entry.rubricVersion.slice(0, 80),
       include: entry.include,
@@ -671,7 +672,7 @@ export async function applyJevRelevance(items, options = {}) {
     const request = buildJevRequest(item, rubric, { sentimentRubric, alignment, referenceExamples, trace });
     const storyKey = jevStoryKey({ ...versions, request });
     const key = jevCacheKey(storyKey, referenceSignature(alignment ? trace : null));
-    return { item, request, key, storyKey: shortKey(storyKey) };
+    return { item, request, key, storyKey: shortKey(storyKey), sentimentHash: sentimentRequestHash(request) };
   });
   // Migration from the old whole-request key. An entry with no story key was
   // written by the old code. Where the old key computed from this run's
@@ -692,21 +693,44 @@ export async function applyJevRelevance(items, options = {}) {
   // What the run started with, for classifying misses below.
   const answeredStories = new Set(Object.values(normalized).filter((entry) => !entry.sentimentOnly).map((entry) => entry.storyKey).filter(Boolean));
   const seenStories = new Set(options.storyKeys || []);
-  const activeKeys = new Set(entries.map(({ key }) => key));
+  // Typed historical answers are durable evidence, even when article/reference
+  // changes make them inactive. Invalid entries alone are discarded.
   for (const key of Object.keys(cache)) {
-    if (!activeKeys.has(key) || !normalized[key]) delete cache[key];
+    if (!normalized[key]) delete cache[key];
     else cache[key] = normalized[key];
   }
+  const historyBySentimentHash = new Map();
+  for (const row of Object.values(cache)) if (row.sentimentRequestHash && row.sentimentProbabilities) {
+    const rows = historyBySentimentHash.get(row.sentimentRequestHash) || [];
+    rows.push(row); historyBySentimentHash.set(row.sentimentRequestHash, rows);
+  }
+  const sentimentEvidence = entry => {
+    const direct = cache[entry.key];
+    if (direct?.sentimentProbabilities && (!direct.sentimentRequestHash || direct.sentimentRequestHash === entry.sentimentHash)) return direct;
+    const matches = historyBySentimentHash.get(entry.sentimentHash) || [];
+    if (!matches.length) return null;
+    const answer = row => JSON.stringify([row.sentiment, row.sentimentConfidence, row.sentimentProbabilities]);
+    return matches.every(row => answer(row) === answer(matches[0])) ? matches[0] : null;
+  };
+  const compatibleClassification = entry => {
+    const stored = cache[entry.key];
+    const evidence = sentimentEvidence(entry);
+    let classification = stored ? decisionFromCache(stored, entry.item, options) : evidence ? decisionFromCache({ ...evidence, include: null, sentimentOnly: true }, entry.item, options) : null;
+    if (!classification) return null;
+    if (stored?.sentimentRequestHash && stored.sentimentRequestHash !== entry.sentimentHash) classification = { ...classification, sentiment: null, sentimentConfidence: null, sentimentProbabilities: undefined };
+    return evidence ? { ...classification, sentiment: evidence.sentiment, sentimentConfidence: evidence.sentimentConfidence, sentimentProbabilities: evidence.sentimentProbabilities } : classification;
+  };
   const classifications = new Map();
   const pending = [];
   for (const entry of entries) {
     if (cache[entry.key]) {
-      classifications.set(entry.item, decisionFromCache(cache[entry.key], entry.item, options));
+      classifications.set(entry.item, compatibleClassification(entry));
       if (!cache[entry.key].sentimentOnly) {
         metrics.cached += 1;
         continue;
       }
     }
+    if (!classifications.has(entry.item) && sentimentEvidence(entry)) classifications.set(entry.item, compatibleClassification(entry));
     pending.push(entry);
   }
   // Why each miss missed. referenceChanged is the churn: the same story part
@@ -721,7 +745,7 @@ export async function applyJevRelevance(items, options = {}) {
   // Reserve only real odds work. Zero (the default), shadow mode, or an empty
   // odds queue leaves the entire allowance available to primary evaluations.
   const oddsCandidates = configured && mode === JEV_MODE_ENFORCE
-    ? uniqueRequestEntries(entries.filter(({ item, key }) => shouldScoreSentiment(item) && !cache[key]?.sentimentProbabilities))
+    ? uniqueRequestEntries(entries.filter(entry => shouldScoreSentiment(entry.item) && !sentimentEvidence(entry)))
     : [];
   const reservedOdds = oddsCandidates.slice(0, sentimentReservedItems);
   const reservedKeys = new Set(reservedOdds.map(({ key }) => key));
@@ -772,7 +796,8 @@ export async function applyJevRelevance(items, options = {}) {
     }
     if (alignment) refreshed.alignmentVersion = alignment.version;
     refreshed.storyKey = storyKey;
-    const sentimentAnswer = { sentiment: refreshed.sentiment, sentimentConfidence: refreshed.sentimentConfidence,
+    refreshed.sentimentRequestHash = sentimentRequestHash(request);
+    const sentimentAnswer = { sentimentRequestHash: sentimentRequestHash(request), sentiment: refreshed.sentiment, sentimentConfidence: refreshed.sentimentConfidence,
       sentimentProbabilities: refreshed.sentimentProbabilities };
     // Keep an existing inclusion answer. Without one, persist only sentiment
     // and leave this story queued for a later primary evaluation. Otherwise a
@@ -795,6 +820,7 @@ export async function applyJevRelevance(items, options = {}) {
     const classification = await classifyItemRelevance(item, { ...options, rubric, request });
     if (alignment) classification.alignmentVersion = alignment.version;
     classification.storyKey = storyKey;
+    classification.sentimentRequestHash = sentimentRequestHash(request);
     // A failed primary request must not discard an already cached sentiment.
     if (classification.ok || !classifications.has(item)) classifications.set(item, classification);
     if (classification.ok) {
@@ -809,9 +835,12 @@ export async function applyJevRelevance(items, options = {}) {
   // inclusion fallback: decisionFromCache evaluates that against each item.
   // A newly answered primary request does not pull protected historical
   // aliases into this run; previously cached answers retain their behavior.
-  for (const { item, key } of entries) {
+  for (const entry of entries) {
+    const { item, key } = entry;
     if (cache[key] && (!liveKeys.has(key) || mayEnforce(item) || classifications.has(item))) {
-      classifications.set(item, decisionFromCache(cache[key], item, options));
+      classifications.set(item, compatibleClassification(entry));
+    } else if (!liveKeys.has(key) && sentimentEvidence(entry)) {
+      classifications.set(item, compatibleClassification(entry));
     }
   }
   // Compared with the decision before Jev first touched the article. The
@@ -869,8 +898,9 @@ export async function applyJevRelevance(items, options = {}) {
     }
     if (sentimentScore !== null && result.sentiment) {
       if (result.sentimentScore !== sentimentScore) result = { ...result, sentimentScore };
-    } else if (result.sentimentScore !== undefined) {
-      // A score whose odds are gone must not linger.
+    } else if (result.sentimentScore !== undefined && (!shouldScoreSentiment(result) || teamLabel || result.sentiment !== item.sentiment)) {
+      // An inclusion-only legacy cache is not evidence against an existing
+      // score. Remove it only when eligibility or its label actually changes.
       result = { ...result };
       delete result.sentimentScore;
     }

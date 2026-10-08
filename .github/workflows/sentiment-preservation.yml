@@ -1,0 +1,172 @@
+name: Verify and preserve saved sentiment
+run-name: Preserve saved sentiment mode=${{ inputs.mode }} checkpoint=37831995856
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Preview saved-result reconciliation, publish it, or verify publisher persistence without providers"
+        type: choice
+        options: [preview, reconcile, verify]
+        default: preview
+        required: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: cloudflare-pages
+  cancel-in-progress: false
+
+jobs:
+  preservation:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Verify current main source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publication-guard.js source
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      # Fixed, successful runs supply immutable saved evidence. No mode can
+      # dispatch inference, continue the backlog, or change the saved queue.
+      - name: Verify saved evidence run metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for run in 37822663207 37831995856; do
+            if [ "$run" = 37822663207 ]; then source=2b85b0aa7a7a14d9b3d1054360b6d806b6129faf; else source=19ec754480e7155d9fc84917030074b8c143bbbc; fi
+            gh api "repos/oliverames/cerulean-news/actions/runs/$run" \
+              | jq -e --argjson run "$run" --arg source "$source" '
+                .id == $run and .event == "workflow_dispatch" and
+                .head_sha == $source and
+                .head_branch == "main" and .status == "completed" and
+                .conclusion == "success" and .run_attempt == 1 and
+                .path == ".github/workflows/sentiment-repair.yml" and
+                .repository.full_name == "oliverames/cerulean-news"
+              ' > /dev/null
+          done
+
+      - name: Retrieve original frozen evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: sentiment-freeze
+          path: repair/freeze
+          run-id: 37822663207
+          github-token: ${{ github.token }}
+
+      - name: Retrieve saved checkpoint
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: sentiment-checkpoint
+          path: repair/previous
+          run-id: 37831995856
+          github-token: ${{ github.token }}
+
+      - name: Prepare saved checkpoint
+        run: cp repair/previous/checkpoint.json repair/checkpoint.json
+
+      - name: Seed coherent current publication
+        run: node scripts/publication-guard.js seed
+
+      - name: Materialize existing editorial reference library
+        env:
+          MEDIA_TRACKER_SEED_B64: ${{ secrets.MEDIA_TRACKER_SEED_B64 }}
+          CLIP_EMAILS_PASSPHRASE: ${{ secrets.CLIP_EMAILS_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          [ -n "$MEDIA_TRACKER_SEED_B64" ]
+          mkdir -p data
+          printf '%s' "$MEDIA_TRACKER_SEED_B64" | base64 -d | gunzip > data/media-tracker-seed.json
+          jq -e '.articles | length > 100' data/media-tracker-seed.json > /dev/null
+          if [ -f data/clip-emails.json.gpg ]; then
+            [ -n "$CLIP_EMAILS_PASSPHRASE" ]
+            printf '%s' "$CLIP_EMAILS_PASSPHRASE" | gpg --quiet --batch --yes --pinentry-mode loopback --passphrase-fd 0 --output data/clip-emails.json --decrypt data/clip-emails.json.gpg
+            jq -e '.articles | length > 100' data/clip-emails.json > /dev/null
+            jq -s '
+              def key: (.url // "") | ascii_downcase | sub("/+$"; "");
+              (.[0].articles | map(key)) as $seen
+              | .[0] + {articles: (.[0].articles + [.[1].articles[] | select(key as $k | $seen | index([$k]) | not)])}
+            ' data/media-tracker-seed.json data/clip-emails.json > repair/merged-seed.json
+            mv repair/merged-seed.json data/media-tracker-seed.json
+            rm -f data/clip-emails.json
+          fi
+
+      - name: Reconcile saved exact-context sentiment without inference
+        if: inputs.mode == 'preview' || inputs.mode == 'reconcile'
+        env:
+          JEV_ALIGNMENT_PROFILE: src/rubrics/editorial-alignment-v2.json
+          JEV_ENFORCE_AFTER: ${{ vars.JEV_ENFORCE_AFTER }}
+        run: |
+          set -euo pipefail
+          node scripts/reconcile-saved-sentiment.js
+          node scripts/publish-sentiment-repair.js --site site --updated-audit repair/reconciled-audit.json --receipt repair/publication.json
+
+      - name: Verify actual publisher preserves saved evidence without providers
+        env:
+          JEV_ALIGNMENT_PROFILE: src/rubrics/editorial-alignment-v2.json
+          JEV_ENFORCE_AFTER: ${{ vars.JEV_ENFORCE_AFTER }}
+        run: node scripts/verify-publisher-preservation.js
+
+      - name: Verify current main and unchanged live publication
+        if: inputs.mode == 'reconcile'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/publication-guard.js source
+          node scripts/publication-guard.js unchanged
+
+      - name: Publish verified saved sentiment to existing Pages project
+        if: inputs.mode == 'reconcile'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes wrangler@4 pages deploy ./site --project-name bluenews --branch main --commit-hash "$GITHUB_SHA" --commit-dirty=true
+
+      - name: Verify nine published artifacts
+        if: inputs.mode == 'reconcile'
+        run: node scripts/verify-sentiment-readback.js
+
+      # Upload only bounded public-safe receipts and derived manifest metadata.
+      # Never upload the archive, requests, checkpoint or private reference seed.
+      - name: Save reconciliation and publisher verification receipts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sentiment-preservation-evidence
+          path: |
+            repair/reconciliation.json
+            repair/publisher-proof.json
+            repair/publication.json
+            repair/manifest.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Remove private runner material
+        if: always()
+        run: rm -f data/media-tracker-seed.json data/clip-emails.json repair/merged-seed.json
