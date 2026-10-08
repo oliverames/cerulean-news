@@ -513,7 +513,11 @@ test("confirm rejects tampered, expired, wrong-purpose, and superseded links", n
   const link = urlIn(t.sent[0], "Confirm");
   const token = new URL(link).searchParams.get("token");
 
-  const tampered = await call(t, new Request(`${API}/confirm?token=${token.slice(0, -2)}xx`));
+  // Change significant signature bits. A fixed trailing replacement can
+  // already match, or change only ignored base64 padding bits.
+  const [payload, signature] = token.split(".");
+  const changedSignature = (signature[0] === "A" ? "B" : "A") + signature.slice(1);
+  const tampered = await call(t, new Request(`${API}/confirm?token=${payload}.${changedSignature}`));
   assert.equal(tampered.status, 400);
   assert.equal((await call(t, new Request(`${API}/confirm`))).status, 400);
 
