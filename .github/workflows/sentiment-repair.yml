@@ -7,7 +7,7 @@ on:
       mode:
         description: "Freeze without inference, or execute one approved frozen batch"
         type: choice
-        options: [manifest, drain, recover]
+        options: [manifest, drain, recover, salvage, continue, retry]
         default: manifest
         required: true
       freeze_run_id:
@@ -45,10 +45,10 @@ jobs:
           [ "$GITHUB_REF" = refs/heads/main ]
           case "$REPAIR_MODE" in
             manifest) [ -z "$FREEZE_RUN_ID" ] && [ -z "$CHECKPOINT_RUN_ID" ] ;;
-            drain|recover)
+            drain|recover|salvage|continue|retry)
               [[ "$FREEZE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
               [[ -z "$CHECKPOINT_RUN_ID" || "$CHECKPOINT_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-              if [ "$REPAIR_MODE" = recover ]; then [ -n "$CHECKPOINT_RUN_ID" ]; fi
+              if [ "$REPAIR_MODE" != drain ]; then [ -n "$CHECKPOINT_RUN_ID" ]; fi
               ;;
             *) exit 1 ;;
           esac
@@ -71,7 +71,7 @@ jobs:
         run: npm test
 
       - name: Verify freeze and checkpoint lineage before inference
-        if: inputs.mode == 'drain' || inputs.mode == 'recover'
+        if: inputs.mode != 'manifest'
         env:
           GH_TOKEN: ${{ github.token }}
           FREEZE_RUN_ID: ${{ inputs.freeze_run_id }}
@@ -147,7 +147,7 @@ jobs:
           retention-days: 7
 
       - name: Retrieve verified freeze
-        if: inputs.mode == 'drain' || inputs.mode == 'recover'
+        if: inputs.mode != 'manifest'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: sentiment-freeze
@@ -156,7 +156,7 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Retrieve previous durable checkpoint
-        if: (inputs.mode == 'drain' || inputs.mode == 'recover') && inputs.checkpoint_run_id != ''
+        if: inputs.mode != 'manifest' && inputs.checkpoint_run_id != ''
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: sentiment-checkpoint
@@ -165,7 +165,7 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Prepare checkpoint continuation
-        if: inputs.mode == 'drain' || inputs.mode == 'recover'
+        if: inputs.mode != 'manifest'
         run: |
           set -euo pipefail
           cp repair/freeze/manifest.json repair/manifest.json
@@ -182,6 +182,22 @@ jobs:
           JEV_ENFORCE_AFTER: ${{ vars.JEV_ENFORCE_AFTER }}
         run: |
           node scripts/sentiment-repair.js execute --audit repair/freeze/frozen-feed-audit.json --current-audit site/feed-audit.json --manifest repair/freeze/manifest.json --checkpoint repair/checkpoint.json --batch-size 25
+
+      - name: Prepare authorized salvage checkpoint
+        if: inputs.mode == 'salvage'
+        env:
+          JEV_ALIGNMENT_PROFILE: src/rubrics/editorial-alignment-v2.json
+          JEV_ENFORCE_AFTER: ${{ vars.JEV_ENFORCE_AFTER }}
+        run: node scripts/sentiment-authorized-recovery.js salvage
+
+      - name: Execute authorized bounded continuation
+        if: inputs.mode == 'continue' || inputs.mode == 'retry'
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          JEV_ALIGNMENT_PROFILE: src/rubrics/editorial-alignment-v2.json
+          JEV_ENFORCE_AFTER: ${{ vars.JEV_ENFORCE_AFTER }}
+          REPAIR_MODE: ${{ inputs.mode }}
+        run: node scripts/sentiment-authorized-recovery.js "$REPAIR_MODE"
 
       - name: Verify recovered publication without inference
         if: inputs.mode == 'recover'
@@ -211,7 +227,7 @@ jobs:
       # A normal failure still saves sent-attempt dispositions and completed
       # typed results. A cancelled run without a receipt must not be replayed.
       - name: Save inference checkpoint before publication
-        if: always() && inputs.mode == 'drain' && steps.batch.outcome != 'skipped'
+        if: always() && (inputs.mode == 'drain' || inputs.mode == 'salvage' || inputs.mode == 'continue' || inputs.mode == 'retry')
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sentiment-checkpoint
@@ -220,7 +236,7 @@ jobs:
           retention-days: 7
 
       - name: Apply only validated sentiment responses
-        if: success() && inputs.mode == 'drain'
+        if: success() && (inputs.mode == 'drain' || inputs.mode == 'salvage' || inputs.mode == 'continue' || inputs.mode == 'retry')
         env:
           JEV_ALIGNMENT_PROFILE: src/rubrics/editorial-alignment-v2.json
           JEV_ENFORCE_AFTER: ${{ vars.JEV_ENFORCE_AFTER }}
@@ -229,7 +245,7 @@ jobs:
           node scripts/publish-sentiment-repair.js --site site --updated-audit repair/feed-audit.json --receipt repair/publication.json
 
       - name: Verify live publication has not changed
-        if: success() && inputs.mode == 'drain'
+        if: success() && (inputs.mode == 'drain' || inputs.mode == 'salvage' || inputs.mode == 'continue' || inputs.mode == 'retry')
         run: |
           set -euo pipefail
           mkdir -p repair/current
@@ -239,7 +255,7 @@ jobs:
           done
 
       - name: Publish verified sentiment repairs to existing Pages project
-        if: success() && inputs.mode == 'drain'
+        if: success() && (inputs.mode == 'drain' || inputs.mode == 'salvage' || inputs.mode == 'continue' || inputs.mode == 'retry')
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -247,11 +263,11 @@ jobs:
           npx --yes wrangler@4 pages deploy ./site --project-name bluenews --branch main --commit-hash "$GITHUB_SHA" --commit-dirty=true
 
       - name: Read back exact published generated files
-        if: success() && inputs.mode == 'drain'
+        if: success() && (inputs.mode == 'drain' || inputs.mode == 'salvage' || inputs.mode == 'continue' || inputs.mode == 'retry')
         run: node scripts/verify-sentiment-readback.js
 
       - name: Save publication verification
-        if: success() && (inputs.mode == 'drain' || inputs.mode == 'recover')
+        if: success() && inputs.mode != 'manifest'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sentiment-publication

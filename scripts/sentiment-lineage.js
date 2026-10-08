@@ -18,37 +18,39 @@ export function compatibleSourceTrees(left, right) {
 
 export function isVerifiedRecovery(run, jobs, current) {
   if (!sameWorkflow(run) || run.status !== "completed" || run.conclusion !== "success" ||
-      run.run_attempt !== 1 || run.head_sha !== current.head_sha || !/^Sentiment recover freeze=[1-9][0-9]* checkpoint=[1-9][0-9]*$/.test(run.display_title || "")) return false;
+      run.run_attempt !== 1 || run.head_sha !== current.head_sha || !/^Sentiment (?:recover|salvage) freeze=[1-9][0-9]* checkpoint=[1-9][0-9]*$/.test(run.display_title || "")) return false;
   if (!Array.isArray(jobs?.jobs) || !jobs.jobs.length || jobs.total_count > 100 || jobs.jobs.some(job => !Array.isArray(job.steps) || !job.steps.length)) return false;
   const steps = jobs.jobs.flatMap(job => job.steps);
   const completed = name => steps.some(step => step.name === name && step.conclusion === "success");
-  const inference = steps.filter(step => step.name === "Execute at most 25 frozen sentiment requests");
+  const inference = steps.filter(step => ["Execute at most 25 frozen sentiment requests", "Execute authorized bounded continuation"].includes(step.name));
   return inference.length > 0 && inference.every(step => step.conclusion === "skipped") &&
-    completed("Verify recovered publication without inference") && completed("Save recovered checkpoint");
+    (run.display_title.startsWith("Sentiment salvage ")
+      ? completed("Prepare authorized salvage checkpoint") && completed("Save inference checkpoint before publication") && completed("Publish verified sentiment repairs to existing Pages project") && completed("Read back exact published generated files")
+      : completed("Verify recovered publication without inference") && completed("Save recovered checkpoint"));
 }
 
-export function validateRepairLineage({ current, freeze, runs, checkpointId = "", unresolvedRuns = [], mode = "drain", sourceCompatible = false }) {
+export function validateRepairLineage({ current, freeze, runs, checkpointId = "", unresolvedRuns = [], mode = "drain", sourceCompatible = false, compatiblePriorSources = [freeze?.head_sha] }) {
   if (!sameWorkflow(current) || current.run_attempt !== 1 || current.status !== "in_progress") fail("current_run_not_fresh_manual_main");
   if (!sameWorkflow(freeze) || freeze.run_attempt !== 1 || freeze.status !== "completed" ||
       freeze.conclusion !== "success" || (freeze.head_sha !== current.head_sha && !sourceCompatible) ||
       freeze.display_title !== "Sentiment manifest freeze=new checkpoint=none" || freeze.run_number >= current.run_number) fail("invalid_freeze_run");
-  const pattern = /^Sentiment (?:drain|recover) freeze=([1-9][0-9]*) checkpoint=(none|[1-9][0-9]*)$/;
+  const pattern = /^Sentiment (?:drain|recover|salvage|continue|retry) freeze=([1-9][0-9]*) checkpoint=(none|[1-9][0-9]*)$/;
   const lineage = runs.filter(run => {
     const match = pattern.exec(run.display_title || "");
     return sameWorkflow(run) && match?.[1] === String(freeze.id) && run.run_number < current.run_number;
   }).sort((left, right) => right.run_number - left.run_number);
   const latest = lineage[0];
   if (unresolvedRuns.some(run => sameWorkflow(run) && run.run_number < current.run_number &&
-      !(mode === "recover" && run.id === latest?.id && String(run.id) === checkpointId))) fail("unresolved_inference_across_freezes_no_replay");
+      !( ["recover", "salvage"].includes(mode) && run.id === latest?.id && String(run.id) === checkpointId))) fail("unresolved_inference_across_freezes_no_replay");
   if (!latest) {
-    if (mode === "recover") fail("recovery_requires_prior_attempt");
+    if (["recover", "salvage"].includes(mode)) fail("recovery_requires_prior_attempt");
     if (checkpointId) fail("unexpected_checkpoint");
     return { priorDrain: null };
   }
   if (String(latest.id) !== checkpointId) fail("latest_checkpoint_required");
-  if ((latest.head_sha !== current.head_sha && !(sourceCompatible && latest.head_sha === freeze.head_sha)) || latest.run_attempt !== 1 || latest.status !== "completed") fail("prior_drain_unresolved_no_replay");
-  if (mode === "recover") {
-    if (!latest.display_title.startsWith("Sentiment drain ") || latest.conclusion !== "failure") fail("recovery_requires_failed_drain");
+  if ((latest.head_sha !== current.head_sha && !(sourceCompatible && compatiblePriorSources.includes(latest.head_sha))) || latest.run_attempt !== 1 || latest.status !== "completed") fail("prior_drain_unresolved_no_replay");
+  if (["recover", "salvage"].includes(mode)) {
+    if (!/^Sentiment (?:drain|continue|retry) /.test(latest.display_title) || latest.conclusion !== "failure") fail("recovery_requires_failed_drain");
   } else if (latest.conclusion !== "success") fail("prior_drain_unresolved_no_replay");
   return { priorDrain: latest.id };
 }
@@ -80,12 +82,16 @@ async function main() {
   }
   if (!complete) fail("lineage_history_incomplete");
   const recoveries = [];
-  for (const run of runs.filter(run => run.run_number < current.run_number && /^Sentiment recover /.test(run.display_title || ""))) {
-    if (isVerifiedRecovery(run, await get(`runs/${run.id}/jobs?per_page=100`), current)) recoveries.push(run);
+  const compatiblePriorSources = [freeze.head_sha, current.head_sha];
+  for (const sha of new Set(runs.filter(run => run.run_number < current.run_number).map(run => run.head_sha))) {
+    if (!compatiblePriorSources.includes(sha) && compatibleSourceTrees(await get(`git/trees/${sha}?recursive=1`, ""), await get(`git/trees/${freeze.head_sha}?recursive=1`, ""))) compatiblePriorSources.push(sha);
+  }
+  for (const run of runs.filter(run => run.run_number < current.run_number && /^Sentiment (?:recover|salvage) /.test(run.display_title || ""))) {
+    if (compatiblePriorSources.includes(run.head_sha) && isVerifiedRecovery(run, await get(`runs/${run.id}/jobs?per_page=100`), { ...current, head_sha: run.head_sha })) recoveries.push(run);
   }
   const unresolvedRuns = [];
   for (const run of runs.filter(run => sameWorkflow(run) && run.run_number < current.run_number &&
-    /^Sentiment drain freeze=[1-9][0-9]* checkpoint=(none|[1-9][0-9]*)$/.test(run.display_title || "") &&
+    /^Sentiment (?:drain|continue|retry) freeze=[1-9][0-9]* checkpoint=(none|[1-9][0-9]*)$/.test(run.display_title || "") &&
     (run.conclusion !== "success" || run.run_attempt !== 1))) {
     const jobs = await get(`runs/${run.id}/jobs?per_page=100`);
     if (!Array.isArray(jobs.jobs) || !jobs.jobs.length || jobs.total_count > 100 ||
@@ -93,18 +99,18 @@ async function main() {
     // A failed test/input/preflight before the inference step spent nothing.
     // Any inference step that started is unresolved until its durable receipt
     // is explicitly reconciled; a fresh manifest cannot hide that attempt.
-    const inferenceSteps = jobs.jobs.flatMap(job => job.steps || []).filter(step => step.name === "Execute at most 25 frozen sentiment requests");
+    const inferenceSteps = jobs.jobs.flatMap(job => job.steps || []).filter(step => ["Execute at most 25 frozen sentiment requests", "Execute authorized bounded continuation"].includes(step.name));
     if (!inferenceSteps.length) fail("incomplete_prior_attempt_evidence");
     const reconciled = recoveries.some(recovery => {
-      const match = /^Sentiment recover freeze=([1-9][0-9]*) checkpoint=([1-9][0-9]*)$/.exec(recovery.display_title);
-      const original = /^Sentiment drain freeze=([1-9][0-9]*) /.exec(run.display_title);
+      const match = /^Sentiment (?:recover|salvage) freeze=([1-9][0-9]*) checkpoint=([1-9][0-9]*)$/.exec(recovery.display_title);
+      const original = /^Sentiment (?:drain|continue|retry) freeze=([1-9][0-9]*) /.exec(run.display_title);
       return match[2] === String(run.id) && match[1] === original?.[1] && recovery.run_number > run.run_number;
     });
     if (!reconciled && (run.run_attempt !== 1 || inferenceSteps.some(step => step.conclusion !== "skipped" && (step.started_at || step.status === "completed")))) unresolvedRuns.push(run);
   }
   const mode = env.REPAIR_MODE || "drain";
-  if (!["drain", "recover"].includes(mode)) fail("invalid_lineage_mode");
-  const result = validateRepairLineage({ current, freeze, runs, checkpointId: env.CHECKPOINT_RUN_ID || "", unresolvedRuns, mode, sourceCompatible });
+  if (!["drain", "recover", "salvage", "continue", "retry"].includes(mode)) fail("invalid_lineage_mode");
+  const result = validateRepairLineage({ current, freeze, runs, checkpointId: env.CHECKPOINT_RUN_ID || "", unresolvedRuns, mode, sourceCompatible, compatiblePriorSources });
   console.log(`Verified frozen run ${freeze.id}; previous drain ${result.priorDrain || "none"}; rerun/replay disabled.`);
 }
 

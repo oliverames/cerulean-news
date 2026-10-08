@@ -57,3 +57,16 @@ test("successful recovery evidence requires skipped inference and completed veri
   assert.equal(isVerifiedRecovery({ ...recovery, head_sha: "b".repeat(40) }, jobs, current), false);
   assert.equal(isVerifiedRecovery(recovery, { ...jobs, jobs: [{ steps: jobs.jobs[0].steps.map(step => ({ ...step, conclusion: "success" })) }] }, current), false);
 });
+test("authorized salvage accepts its latest failure and requires complete no-inference publication evidence", () => {
+  const failed = { ...prior, conclusion: "failure" };
+  assert.deepEqual(validate({ mode: "salvage", runs: [failed], checkpointId: "20", unresolvedRuns: [failed] }), { priorDrain: 20 });
+  const salvage = { ...prior, display_title: "Sentiment salvage freeze=10 checkpoint=19" };
+  const names = ["Prepare authorized salvage checkpoint", "Save inference checkpoint before publication", "Publish verified sentiment repairs to existing Pages project", "Read back exact published generated files"];
+  const jobs = { total_count: 1, jobs: [{ steps: [
+    { name: "Execute at most 25 frozen sentiment requests", conclusion: "skipped" },
+    { name: "Execute authorized bounded continuation", conclusion: "skipped" },
+    ...names.map(name => ({ name, conclusion: "success" })),
+  ] }] };
+  assert.ok(isVerifiedRecovery(salvage, jobs, current));
+  assert.equal(isVerifiedRecovery(salvage, { ...jobs, jobs: [{ steps: jobs.jobs[0].steps.slice(0, -1) }] }, current), false);
+});
