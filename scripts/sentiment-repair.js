@@ -106,7 +106,9 @@ export async function buildRepairContext({ auditPath, env = process.env, rubric,
   const versions = { alignmentVersion: alignment.version, version: rubric.version, sentimentVersion: sentimentRubric.version };
   const normalized = normalizeJevCache(audit.crawlState.jevCache);
   const byId = new Map(audit.items.map(item => [articleIdentity(item), item]));
-  const entries = selectJevCandidates(items, Infinity).map(item => {
+  // References still come from the complete restored archive above. Primary
+  // candidates cannot enter this queue, so do not build their unused requests.
+  const entries = selectJevCandidates(items, Infinity).filter(shouldScoreSentiment).map(item => {
     const trace = {};
     const request = buildJevRequest(item, rubric, { sentimentRubric, alignment, referenceExamples: frozen.examples, trace });
     const storyKey = jevStoryKey({ ...versions, request });

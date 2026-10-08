@@ -40,6 +40,8 @@ test("manifest freezes the actual unique odds queue without inference or leaking
     brand("topic", { category: "Topic", matchedTerms: ["health care"] })]);
   assert.equal(f.manifest.targetCount, 1);
   assert.equal(f.manifest.aliasCount, 2);
+  assert.equal(f.context.entries.length, 2, "only sentiment-eligible requests are prepared");
+  assert.equal(f.context.referenceInfo.inclusionReferences, 1, "full reference preparation is retained");
   assert.equal(f.manifest.priorReportedPending, 67);
   assert.equal(f.manifest.status, "frozen");
   assert.deepEqual(f.manifest.questionKeys, ["sentiment"]);
