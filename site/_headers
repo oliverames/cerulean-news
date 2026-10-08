@@ -20,3 +20,10 @@ https://:version.:project.pages.dev/*
 # admin check, and never a search result. Not in the sitemap.
 /feedback-admin
   X-Robots-Tag: noindex
+
+# Team review interface. Its source audit remains public.
+/excluded
+  X-Robots-Tag: noindex
+
+/excluded.html
+  X-Robots-Tag: noindex

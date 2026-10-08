@@ -154,6 +154,49 @@
     );
   }
 
+  const EXCLUDED_PAGE_SIZE = 25;
+  const EXCLUDED_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+  const compareText = (a, b) => a < b ? -1 : a > b ? 1 : 0;
+  const dateValue = (value) => typeof value === "string" && value.trim() ? Date.parse(value) : NaN;
+
+  // Recency means first discovery, not the last time a model rejected a story.
+  // Legacy rows fall back to publication date. Undated rows cannot establish
+  // recency; count them explicitly instead of quietly treating them as new.
+  function selectExcludedRows(items, now = Date.now()) {
+    const byKey = new Map();
+    let undated = 0;
+    let invalidLinks = 0;
+    for (const item of Array.isArray(items) ? items : []) {
+      if (!item || item.relevant !== false) continue;
+      const discovered = dateValue(item.firstSeenAt);
+      const published = dateValue(item.pubDate);
+      const date = Number.isFinite(discovered) ? discovered : published;
+      if (!Number.isFinite(date)) { undated += 1; continue; }
+      if (date < now - EXCLUDED_WINDOW_MS || date > now) continue;
+      const link = safeHref(item.link || item.url || "");
+      if (!link) { invalidLinks += 1; continue; }
+      const row = {
+        key: exampleUrl(link), link, date,
+        dateKind: Number.isFinite(discovered) ? "Discovered" : "Published (discovery date unavailable)",
+        title: typeof item.title === "string" && item.title.trim() ? item.title : "Untitled story",
+        outlet: typeof item.outlet === "string" ? item.outlet : "",
+        reason: typeof item.reason === "string" && item.reason.trim() ? item.reason : "No exclusion reason recorded.",
+      };
+      const previous = byKey.get(row.key);
+      // A fixed tie-breaker also makes duplicate rows independent of input order.
+      if (!previous || row.date > previous.date || (row.date === previous.date &&
+          compareText(JSON.stringify(row), JSON.stringify(previous)) < 0)) byKey.set(row.key, row);
+    }
+    return { rows: [...byKey.values()].sort((a, b) => b.date - a.date || compareText(a.key, b.key)), undated, invalidLinks };
+  }
+
+  function excludedPage(rows, requested = 0) {
+    const pages = Math.max(1, Math.ceil(rows.length / EXCLUDED_PAGE_SIZE));
+    const page = Math.min(pages - 1, Math.max(0, Number.isInteger(requested) ? requested : 0));
+    const start = page * EXCLUDED_PAGE_SIZE;
+    return { rows: rows.slice(start, start + EXCLUDED_PAGE_SIZE), page, pages, start, total: rows.length };
+  }
+
   const api = {
     SENTIMENT_LABELS,
     exampleUrl,
@@ -168,6 +211,8 @@
     shortId,
     sortAdminRows,
     summarizeAdminRows,
+    selectExcludedRows,
+    excludedPage,
   };
 
   /* ---- Browser wiring ---- */
@@ -180,6 +225,7 @@
   let statusEl = null;
   let statusTimer = null;
   let noteEl = null;
+  let onSessionChange = null;
 
   function say(message) {
     if (!statusEl) {
@@ -288,24 +334,28 @@
     if (vote) {
       const current = document.createElement("span");
       current.className = "feedback-current";
-      current.textContent = `Your vote: ${voteText(vote)}`;
+      current.textContent = `Your vote: ${entry.keepOnly && vote.vote === "keep" ? "Keep requested" : voteText(vote)}`;
       const undo = makeButton("Undo", `Undo your vote on: ${title}`, () => undoVote(entry));
       undo.dataset.action = "undo";
       undo.disabled = disabled;
       box.append(current, separator(), undo);
     } else {
       const keep = makeButton("Keep", `Keep: ${title}`, () => castVote(entry, "keep"));
-      const drop = makeButton("Drop", `Drop: ${title}`, () => castVote(entry, "drop"));
       keep.dataset.action = "keep";
-      drop.dataset.action = "drop";
-      box.append(keep, separator(), drop);
-      if (canCorrectSentiment(entry.item)) {
+      keep.disabled = disabled;
+      box.append(keep);
+      if (!entry.keepOnly) {
+        const drop = makeButton("Drop", `Drop: ${title}`, () => castVote(entry, "drop"));
+        drop.dataset.action = "drop";
+        drop.disabled = disabled;
+        box.append(separator(), drop);
+      }
+      if (!entry.keepOnly && canCorrectSentiment(entry.item)) {
         const wrong = makeButton("Sentiment is wrong", `Sentiment is wrong: ${title}`, () => togglePicker(entry));
         wrong.dataset.action = "sentiment";
         wrong.setAttribute("aria-expanded", entry.pickerOpen ? "true" : "false");
         box.append(separator(), wrong);
       }
-      keep.disabled = drop.disabled = disabled;
     }
     entry.meta.appendChild(box);
     entry.box = box;
@@ -350,6 +400,7 @@
       render(entry);
     }
     renderNote();
+    onSessionChange?.(state.signedIn);
   }
 
   function togglePicker(entry, open = !entry.pickerOpen) {
@@ -367,7 +418,7 @@
 
   async function castVote(entry, vote, label) {
     const body = voteBody(vote, label);
-    if (!body || state.busy.has(entry.id)) {
+    if (!state.signedIn || !body || state.busy.has(entry.id)) {
       return;
     }
     state.busy.add(entry.id);
@@ -378,8 +429,9 @@
       sessionEnded();
       return;
     }
+    if (!state.signedIn) return;
     const saved = result.ok && result.json && result.json.ok === true ? result.json.vote : null;
-    if (!saved || saved.item !== entry.id) {
+    if (!saved || saved.item !== entry.id || saved.vote !== body.vote || (saved.label || null) !== (body.label || null)) {
       entry.pickerOpen = false;
       render(entry, { focus: vote });
       say("Could not save your vote. Try again in a moment.");
@@ -392,11 +444,13 @@
         render(other, { focus: other === entry ? "undo" : "" });
       }
     }
-    say(`${voteText(state.votes.get(entry.id))}: ${entry.item.title}. It takes effect at the next update.`);
+    say(entry.keepOnly
+      ? `Keep requested: ${entry.item.title}. It will be considered at the next publishing run, subject to editorial and exclusion rules.`
+      : `${voteText(state.votes.get(entry.id))}: ${entry.item.title}. It takes effect at the next update.`);
   }
 
   async function undoVote(entry) {
-    if (state.busy.has(entry.id)) {
+    if (!state.signedIn || state.busy.has(entry.id)) {
       return;
     }
     state.busy.add(entry.id);
@@ -407,6 +461,7 @@
       sessionEnded();
       return;
     }
+    if (!state.signedIn) return;
     if (!(result.ok && result.json && result.json.ok === true)) {
       render(entry, { focus: "undo" });
       say("Could not undo your vote. Try again in a moment.");
@@ -418,12 +473,12 @@
         render(other, { focus: other === entry ? "keep" : "" });
       }
     }
-    say(`Vote removed: ${entry.item.title}.`);
+    say(`Vote removed: ${entry.item.title}.${entry.keepOnly ? " The change applies at the next publishing run." : ""}`);
   }
 
   // The reader calls this for every story it draws. It does nothing visible
   // until a team session is known.
-  function decorate(li, item) {
+  function decorate(li, item, { keepOnly = false } = {}) {
     const meta = li && li.querySelector && li.querySelector(".meta");
     if (!meta || !item) {
       return;
@@ -431,7 +486,7 @@
     if (entries.length > 100) {
       entries.splice(0, entries.length, ...entries.filter((entry) => entry.li.isConnected));
     }
-    const entry = { li, item, meta, id: "", box: null, picker: null, pickerOpen: false };
+    const entry = { li, item, meta, keepOnly, id: "", box: null, picker: null, pickerOpen: false };
     entries.push(entry);
     const pending = idFor(item.link || item.url || "").then((id) => {
       entry.id = id;
@@ -461,6 +516,10 @@
     }
     if (state.signedIn) {
       noteEl.append("Signed in for team feedback. ");
+      const excluded = document.createElement("a");
+      excluded.href = "excluded";
+      excluded.textContent = "Excluded stories";
+      noteEl.append(excluded, " · ");
       if (state.admin) {
         const votes = document.createElement("a");
         votes.href = "feedback-admin";
@@ -497,6 +556,7 @@
   async function start(options = {}) {
     statusEl = options.status || document.getElementById("feedback-status");
     noteEl = options.note || document.getElementById("team-note");
+    onSessionChange = options.onSessionChange || null;
     const result = await request("/feedback");
     await Promise.all([...pendingIds]);
     const parsed = result.ok ? parseVotesResponse(result.json) : null;
@@ -507,13 +567,110 @@
       hint(true);
     } else {
       state.signedIn = false;
+      state.admin = false;
+      state.votes.clear();
       state.live = result.status === 401;
     }
     renderAll();
+    return { signedIn: state.signedIn, status: result.status };
   }
 
   api.decorate = decorate;
   api.start = start;
+
+  /* ---- Recent excluded stories ---- */
+
+  async function mountExcluded({ list, status, summary, message, pager, note, now = Date.now() }) {
+    let selected = { rows: [], undated: 0, invalidLinks: 0 };
+    let page = 0;
+    function show(text) {
+      message.textContent = text;
+      message.hidden = !text;
+    }
+    function clear() {
+      selected = { rows: [], undated: 0, invalidLinks: 0 };
+      list.replaceChildren();
+      pager.replaceChildren();
+      summary.textContent = "";
+    }
+    function signInMessage() {
+      show("Sign in with a team or admin address to review excluded stories.");
+      const link = document.createElement("a");
+      link.href = `${API}/team/signin`;
+      link.textContent = "Team sign-in";
+      message.append(" ", link, ".");
+    }
+    function draw() {
+      if (!state.signedIn) return;
+      list.replaceChildren();
+      pager.replaceChildren();
+      const view = excludedPage(selected.rows, page);
+      page = view.page;
+      summary.textContent = view.total
+        ? `Showing ${view.start + 1}–${view.start + view.rows.length} of ${view.total} recent excluded stories.`
+        : "";
+      if (selected.undated) summary.append(` ${selected.undated} undated excluded ${selected.undated === 1 ? "story is" : "stories are"} not shown because recency is unknown.`);
+      if (selected.invalidLinks) summary.append(` ${selected.invalidLinks} recent ${selected.invalidLinks === 1 ? "story has" : "stories have"} no usable article link and cannot be reviewed here.`);
+      show(view.total ? "" : "No excluded stories were found in this 14-day window.");
+      for (const item of view.rows) {
+        const li = document.createElement("li");
+        const head = document.createElement("a");
+        head.className = "story-title";
+        head.href = item.link;
+        head.textContent = item.title;
+        const reason = document.createElement("p");
+        reason.className = "reason";
+        reason.textContent = `Exclusion reason: ${item.reason}`;
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        const date = new Date(item.date).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" });
+        meta.textContent = [item.outlet, `${item.dateKind}: ${date} UTC`].filter(Boolean).join(" · ");
+        li.append(head, reason, meta);
+        list.appendChild(li);
+        decorate(li, item, { keepOnly: true });
+      }
+      if (view.pages > 1) {
+        const move = (step) => {
+          if (!state.signedIn) return;
+          page += step;
+          draw();
+          list.focus();
+        };
+        const previous = makeButton("Previous", "Previous page of excluded stories", () => move(-1));
+        const next = makeButton("Next", "Next page of excluded stories", () => move(1));
+        previous.disabled = page === 0;
+        next.disabled = page === view.pages - 1;
+        pager.append(previous, ` Page ${page + 1} of ${view.pages} `, next);
+      }
+    }
+
+    clear();
+    show("Checking team sign-in…");
+    const session = await start({ status, note, onSessionChange: (signedIn) => {
+      if (!signedIn) { clear(); signInMessage(); }
+    } });
+    if (!session.signedIn) {
+      if (session.status !== 401) show("The feedback service is not available right now. Please try again later.");
+      return;
+    }
+    show("Loading recent excluded stories…");
+    try {
+      // The audit is already public. Session gating protects this team workflow,
+      // not the underlying file; no API or data-publication policy changes here.
+      const response = await fetch("feed-audit.json", { cache: "no-cache" });
+      if (!response.ok) throw new Error("audit unavailable");
+      const data = await response.json();
+      if (!Array.isArray(data?.items)) throw new Error("invalid audit");
+      if (!state.signedIn) return;
+      selected = selectExcludedRows(data.items, now);
+      draw();
+      await Promise.all([...pendingIds]);
+    } catch {
+      if (state.signedIn) show("Could not load excluded stories. Refresh this page to try again.");
+    }
+  }
+
+  api.mountExcluded = mountExcluded;
 
   /* ---- Admin page ---- */
 

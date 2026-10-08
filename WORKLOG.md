@@ -1,3 +1,17 @@
+## 2026-10-08 - Bounded sentiment allocation and excluded-story review
+
+**What changed**: Added an opt-in sentiment-odds reservation inside the existing Jev evaluation cap ([#14](https://github.com/oliverames/cerulean-news/issues/14), AME-39). The default is zero. Shared request keys are scheduled once; sentiment-only cache entries preserve inclusion and remain pending for primary evaluation. Odds requests and failures now have separate metrics. Added `/excluded` for signed-in team members ([#20](https://github.com/oliverames/cerulean-news/issues/20), AME-40), with a 14-day discovery window, labeled publication fallback, 25-row pages, and the existing Keep/Undo routes. Saved requests are explicitly pending until publishing and remain subject to editorial and deterministic rules.
+
+**Read-only baseline**: The October 8 13:36 UTC audit contains 6,050 candidates, 563 primary evaluations pending, and 67 sentiment-odds repairs pending. Of 264 sentiment-eligible articles, 254 have numeric scores. Three recent runs used all 25 Jev slots for primary evaluations and none for sentiment repair. This is queue evidence, not an accuracy or billing result ([#8](https://github.com/oliverames/cerulean-news/issues/8), AME-38). Actual account spend and controls remain unverified.
+
+**Verification**: 667 credential-free tests passed under Node 26, including SQLite, queue/caching, historical protection, feedback routes and UI races. Syntax and diff checks passed. Local Chrome checks used synthetic data and mocked sessions: 25-row pagination, Keep/keyboard Undo, sign-out, expiry, audit failure, literal HTML rendering and phone-width layout. The initial full test attempt was blocked by sandbox restrictions on localhost listeners; the same suite passed with loopback permitted. No production acceptance is claimed.
+
+**Left off at**: Prepared in an isolated branch for a draft PR; no merge or deployment. No model run, repository-variable change, archive rescore, live feedback vote, or production data change was made. The primary checkout remains untouched.
+
+**Open questions**: Choose and budget any nonzero reservation separately; constant request count is not constant token spend. Gemini archive rescoring remains held because its current path can rewrite summaries, relevance and score metadata. Keep cannot override editorial rejections or deterministic rules; any request to change that precedence is a separate policy decision. Sign-in hardening ([#18](https://github.com/oliverames/cerulean-news/issues/18)) remains a separate project.
+
+---
+
 ## 2026-10-07 - GitHub Issue Review Closeout
 
 **What changed**: Reviewed all 5 open issues against source at `bca2a4368e88` and their complete issue history. Closed as completed: [#13](https://github.com/oliverames/cerulean-news/issues/13).
@@ -24,7 +38,7 @@
 
 ## Open items
 
-- Finish sentiment scoring. The Jev score backfill is done: 251 of 258 eligible brand stories carry a 0-100 score on 2026-09-29. The Gemini archive re-score still waits (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
+- Finish sentiment scoring. The October 8 audit has 254 of 264 eligible brand stories with a 0-100 score, and 67 Jev odds-cache repairs pending (a different population). An opt-in allocation control is prepared but not enabled. The Gemini archive re-score still waits (since 2026-09-24; [#14](https://github.com/oliverames/cerulean-news/issues/14))
 - Review the archive re-check's effect: Jev's applied decisions now differ from the original baseline on 717 inclusions and 81 sentiment labels (`jevBaseline` keeps each original). Label Desk agreement is 42 of 43. Sampling some of these in the Label Desk would show whether Jev or the baseline is closer to the team's judgment (since 2026-09-29; [#8](https://github.com/oliverames/cerulean-news/issues/8))
 - Mail Worker follow-ups for Oliver: unlock the reader once and look at the Keep and Drop buttons and `/feedback-admin` by eye (both sit behind the site password gate, which the 2026-09-29 verification did not enter), then tell the team to sign in with their work address (`mail/README.md`, Team feedback, step 6). The first "Sentiment is wrong" button appears only from about the 82nd newest story down, because the 25 newest stories are not sentiment-eligible ([#17](https://github.com/oliverames/cerulean-news/issues/17))
 - Future: team sign-in hardening with Turnstile, passkeys, and a team admin page ([#18](https://github.com/oliverames/cerulean-news/issues/18)), and a team view to rescue excluded stories ([#20](https://github.com/oliverames/cerulean-news/issues/20)) (since 2026-09-29)

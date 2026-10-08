@@ -26,6 +26,10 @@ on:
         description: "Jev requests in flight this run (default 2). Each takes about 25 seconds, so a raised cap needs more to finish inside the job timeout."
         type: string
         default: ""
+      jev_sentiment_reserved_items:
+        description: "Reserve this many existing Jev evaluation slots for sentiment odds (default 0). Shares the total cap; does not enable archive inclusion re-judging."
+        type: string
+        default: ""
       jev_rejudge_archive:
         description: "Let Jev apply inclusion decisions to articles first seen before the enforcement boundary, this run only. Pair with a raised jev_max_items."
         type: boolean
@@ -244,6 +248,8 @@ jobs:
           # keep the repository setting.
           JEV_RELEVANCE_MAX_ITEMS: ${{ inputs.jev_max_items || vars.JEV_RELEVANCE_MAX_ITEMS || '25' }}
           JEV_RELEVANCE_CONCURRENCY: ${{ inputs.jev_concurrency || vars.JEV_RELEVANCE_CONCURRENCY || '2' }}
+          # Opt-in allocation inside the existing cap, not extra requests.
+          JEV_SENTIMENT_RESERVED_ITEMS: ${{ inputs.jev_sentiment_reserved_items || vars.JEV_SENTIMENT_RESERVED_ITEMS || '0' }}
           JEV_REJUDGE_ARCHIVE: ${{ inputs.jev_rejudge_archive }}
           # Team feedback votes from the mail Worker. Both are read from
           # secrets Oliver creates after deploying it. While the token is

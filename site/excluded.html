@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cerulean News: excluded stories</title>
+    <meta name="description" content="Review recent excluded stories and request Keep with a team session.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <meta name="theme-color" content="#0033a0">
+    <style>
+      :root { --fg: #111; --muted: #555; --rule: #e1e1e1; --blue: #0033a0; }
+      body { margin: 0; background: #fff; color: var(--fg); font: 16px/1.45 Helvetica, Arial, sans-serif; }
+      .page { max-width: 560px; margin: 0 auto; padding: 18px 16px 48px; }
+      .topbar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; font-size: .9rem; }
+      .button { display: inline-block; padding: 4px 12px; border: 1px solid var(--fg); color: var(--fg); text-decoration: none; }
+      .button:hover { background: #f5f8fc; }
+      h1 { margin: 0 0 6px; font-size: 1.65rem; }
+      .tricolor { display: flex; height: 5px; margin-bottom: 18px; }
+      .tricolor span { flex: 1; background: var(--blue); }
+      .tricolor span:nth-child(2) { background: #111; }
+      .tricolor span:nth-child(3) { background: #418fde; }
+      .intro, .message, .summary { margin: 0 0 16px; }
+      .summary, .meta, .window-note { color: var(--muted); font-size: .85rem; }
+      .window-note { margin: 0 0 16px; }
+      ul.stories { list-style: none; margin: 0; padding: 0; }
+      .stories li { padding: 14px 0; border-top: 1px solid var(--rule); overflow-wrap: anywhere; }
+      .stories li:last-child { border-bottom: 1px solid var(--rule); }
+      .story-title { color: var(--fg); font-weight: 700; line-height: 1.3; }
+      .reason { margin: 6px 0 2px; font-size: .9rem; }
+      .feedback-link { appearance: none; background: none; border: 0; padding: 8px 2px; min-height: 44px; color: var(--muted); cursor: pointer; font: inherit; text-decoration: underline; }
+      .feedback-link:hover { color: var(--fg); }
+      .feedback-link:disabled { cursor: default; opacity: .55; }
+      a:focus-visible, button:focus-visible, ul:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+      .pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 0; }
+      footer { margin-top: 28px; color: var(--muted); font-size: .85rem; }
+      footer a { color: inherit; }
+      .affiliation { padding: 10px 12px; border: 2px solid var(--blue); border-radius: 4px; color: var(--fg); font-size: 15px; }
+      .affiliation strong { color: var(--blue); }
+      .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    </style>
+    <!-- feature: password-gate -->
+    <link rel="stylesheet" href="gate.css">
+    <script>
+      try { if (localStorage.getItem("blueNewsAuth") === "true") document.documentElement.classList.add("authenticated"); } catch (e) {}
+    </script>
+    <!-- /feature: password-gate -->
+  </head>
+  <body>
+    <!-- feature: password-gate -->
+    <script src="gate.js"></script>
+    <!-- /feature: password-gate -->
+    <div class="page">
+      <nav class="topbar" aria-label="Site">
+        <a class="button" href="./">Back to stories</a>
+        <a class="button" href="trends">Trends</a>
+      </nav>
+      <main aria-labelledby="excluded-title">
+        <h1 id="excluded-title" tabindex="-1">Excluded stories</h1>
+        <div class="tricolor" aria-hidden="true"><span></span><span></span><span></span></div>
+        <p class="intro">Review stories the feed left out. Keep requests are considered at the next publishing run, subject to editorial and exclusion rules. A request does not guarantee publication.</p>
+        <p class="window-note">The last 14 days are measured from first discovery, using the current time when this page loads. Older records fall back to their publication date, labeled below. Stories with neither date are counted but omitted. Newest first, 25 per page.</p>
+        <p class="message" id="excluded-message" role="status">Checking team sign-in&hellip;</p>
+        <p class="summary" id="excluded-summary" aria-live="polite"></p>
+        <ul class="stories" id="excluded-list" tabindex="-1" aria-label="Recent excluded stories"></ul>
+        <nav class="pager" id="excluded-pager" aria-label="Excluded story pages"></nav>
+        <p class="message" id="feedback-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        <noscript><p>Enable JavaScript to sign in and review excluded stories.</p></noscript>
+      </main>
+      <footer>
+        <p id="team-note" hidden></p>
+        <p>Editorial rejections and deterministic exclusion rules can prevent a Keep request from restoring a story. Tracker clips retain their existing protection. Undo removes your vote; its effect changes at the next publishing run. Where team votes disagree, the latest vote wins.</p>
+        <p>Only stories still retained in the audit can appear here. A story that has aged out or was never admitted cannot be rescued through this view. Refresh after a publishing run to see current exclusions.</p>
+        <p>This interface requires team sign-in. The underlying audit file is already public.</p>
+        <p class="affiliation"><strong>Not affiliated.</strong> Cerulean News is an independent personal project. It is not affiliated with, endorsed by, or operated by Blue Cross and Blue Shield of Vermont or the Blue Cross Blue Shield Association.</p>
+        <p>&copy; Ames Consulting, LLC. <a href="./">Back to the reader</a>.</p>
+      </footer>
+    </div>
+    <script src="feedback.js"></script>
+    <script>
+      function loadExcluded() {
+        if (!window.CeruleanFeedback) return;
+        CeruleanFeedback.mountExcluded({
+          list: document.getElementById("excluded-list"),
+          status: document.getElementById("feedback-status"),
+          summary: document.getElementById("excluded-summary"),
+          message: document.getElementById("excluded-message"),
+          pager: document.getElementById("excluded-pager"),
+          note: document.getElementById("team-note"),
+        });
+      }
+      if (window.CeruleanGate) CeruleanGate.whenUnlocked(loadExcluded);
+      else loadExcluded();
+    </script>
+  </body>
+</html>
