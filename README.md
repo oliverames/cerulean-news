@@ -504,7 +504,7 @@ The workflow is deliberately simple:
 
 `worker/` and `proxy/` retain an alternate Cloudflare execution path. The committed publish workflow uses the Node generator and Cloudflare Pages. The alternate Worker uses KV-backed article caching and can route selected fetches through the configured relay.
 
-`src/egress.js` leaves requests unchanged unless `FETCH_PROXY_URL` is set. See [proxy/README.md](proxy/README.md) and the [migration plan](CLOUDFLARE_MIGRATION_PLAN.md) before operating that path. Configuration in the repository doesn't establish a running Worker or relay.
+`src/egress.js` leaves requests unchanged unless `FETCH_PROXY_URL` is set. See the [relay instructions](proxy/README.md) and [Worker configuration](wrangler.toml) for that path. The [archived migration plan](CLOUDFLARE_MIGRATION_PLAN.md) retains the earlier design rationale; the [publish workflow](.github/workflows/publish-feed.yml) defines the current publishing path. Configuration in the repository doesn't establish a running Worker or relay.
 
 ## Email subscriptions
 
