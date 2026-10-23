@@ -8,6 +8,7 @@
 // It is deliberately not a general proxy. Only hosts on ALLOW_HOSTS are
 // fetched, only GET, only http(s), and every request needs the bearer token.
 import http from "node:http";
+import { timingSafeEqual } from "node:crypto";
 import { createRequire } from "node:module";
 
 // Google News article links are opaque base64 that only Google can resolve,
@@ -31,6 +32,8 @@ if (!TOKEN) {
   console.error("PROXY_TOKEN is required; refusing to start an unauthenticated relay.");
   process.exit(1);
 }
+const TOKEN_BYTES = Buffer.from(TOKEN);
+const MAX_REDIRECTS = 5;
 
 function hostAllowed(hostname) {
   const host = hostname.toLowerCase();
@@ -85,9 +88,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   const auth = req.headers.authorization || "";
-  const presented = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  const presented = Buffer.from(auth.startsWith("Bearer ") ? auth.slice(7) : "");
   // Length check first: timingSafeEqual throws on a length mismatch.
-  if (presented.length !== TOKEN.length || presented !== TOKEN) {
+  if (
+    presented.length !== TOKEN_BYTES.length ||
+    !timingSafeEqual(presented, TOKEN_BYTES)
+  ) {
     unauthorized(res, "Forbidden");
     return;
   }
@@ -157,13 +163,42 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
-    const upstream = await fetch(parsed.toString(), {
-      headers,
-      redirect: "follow",
-      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
-    });
+    // A redirect off the allowlist would otherwise carry the request to any
+    // host, including the home network, so each hop gets the same checks as
+    // the first URL.
+    const signal = AbortSignal.timeout(UPSTREAM_TIMEOUT_MS);
+    let current = parsed;
+    let upstream;
+    for (let hop = 0; ; hop += 1) {
+      upstream = await fetch(current.toString(), {
+        headers,
+        redirect: "manual",
+        signal,
+      });
+      const location = upstream.headers.get("location");
+      if (
+        upstream.status < 300 ||
+        upstream.status > 399 ||
+        upstream.status === 304 ||
+        !location
+      ) {
+        break;
+      }
+      await upstream.body?.cancel();
+      if (hop === MAX_REDIRECTS) {
+        throw new Error("too many redirects");
+      }
+      const next = new URL(location, current);
+      if (
+        (next.protocol !== "https:" && next.protocol !== "http:") ||
+        !hostAllowed(next.hostname)
+      ) {
+        throw new Error(`redirect to ${next.hostname || next.protocol} not allowed`);
+      }
+      current = next;
+    }
 
-    const outHeaders = { "x-final-url": upstream.url || parsed.toString() };
+    const outHeaders = { "x-final-url": current.toString() };
     for (const name of FORWARDED_RESPONSE_HEADERS) {
       const value = upstream.headers.get(name);
       if (value) {

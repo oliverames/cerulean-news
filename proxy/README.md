@@ -28,12 +28,13 @@ everything else directly. `src/egress.js` decides; it is inert unless
 ## What it is not
 
 Not a general proxy. It only accepts `GET`, only `http`/`https`, only hosts on
-`ALLOW_HOSTS`, and only with the bearer token. The allowlist is what stops it
-becoming a route into the home network.
+`ALLOW_HOSTS`, and only with the bearer token. Redirects are followed one hop
+at a time and each hop must pass the same checks. The allowlist is what stops
+it becoming a route into the home network.
 
 ## Deploy on home-server
 
-Docker first, per the exposure policy in `ames-local-automation:home-server-ops`.
+Docker first, per the exposure policy in `mac:home-server-ops`.
 
 ```bash
 ssh home-server 'mkdir -p ~/docker/cerulean-fetch-relay'
