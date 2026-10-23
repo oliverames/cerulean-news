@@ -6,7 +6,7 @@
 // different Google News endpoint and the default agent all get the same 503.
 // That is 39 of 97 sources and 39 Vermont outlets with no other route into the
 // feed, so those fetches are relayed through a small service on a host Google
-// will talk to (see worker/README.md).
+// will talk to (see proxy/README.md).
 //
 // Unset by default. Node runs direct, exactly as before.
 
