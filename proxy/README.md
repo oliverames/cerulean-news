@@ -39,6 +39,7 @@ Docker first, per the exposure policy in `mac:home-server-ops`.
 ```bash
 ssh home-server 'mkdir -p ~/docker/cerulean-fetch-relay'
 scp proxy/server.mjs proxy/Dockerfile proxy/docker-compose.yml \
+  proxy/package.json proxy/package-lock.json \
   home-server:~/docker/cerulean-fetch-relay/
 ```
 
