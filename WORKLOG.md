@@ -15,6 +15,10 @@ Use the [GitHub issues](https://github.com/oliverames/cerulean-news/issues) for 
 
 Moved the complete previous worklog into the dated archive linked below and replaced repeated status summaries with links to the maintained guides. Source, provider settings and publishing workflows are unchanged. No deployment, crawl or model request ran for this cleanup.
 
+## October 23, 2026: security review
+
+The fetch relay in `proxy/server.mjs` checked only the first URL against `ALLOW_HOSTS` and then followed redirects anywhere, so an allowlisted host's redirect could reach the home network. It now follows redirects one hop at a time, applies the scheme and host checks to each, and stops after five. Its bearer check now uses `timingSafeEqual`, as its comment already said. A local harness confirmed the old build followed a redirect to a non-allowlisted host and the new one answers 502. The running `cerulean-fetch-relay` container on home-server keeps the old code until it is rebuilt from this source. The mail Worker, the parked Worker and the workflows needed no change.
+
 ## Historical record
 
 The [complete worklog through October 13, 2026](WORKLOG-2026-10-13.md) is an exact copy of the previous file. It stays at the repository root to preserve each relative link's original context. The [preservation record](docs/archive/worklog-2026-10-13.json) records the source revision, byte count and SHA-256 digest.
