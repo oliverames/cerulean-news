@@ -20,6 +20,12 @@ crons = []
 [observability]
 enabled = true
 
+# Sentry reads the deployed version id from this binding and reports it as the
+# release. Sentry stays off until the optional SENTRY_DSN secret is set:
+#   op read 'op://Development/Cerulean News Sentry DSN/credential' | npx wrangler secret put SENTRY_DSN
+[version_metadata]
+binding = "CF_VERSION_METADATA"
+
 [assets]
 directory = "./site"
 binding = "ASSETS"

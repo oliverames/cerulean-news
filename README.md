@@ -506,6 +506,8 @@ The workflow is deliberately simple:
 
 `src/egress.js` leaves requests unchanged unless `FETCH_PROXY_URL` is set. See the [relay instructions](proxy/README.md) and [Worker configuration](wrangler.toml) for that path. The [archived migration plan](CLOUDFLARE_MIGRATION_PLAN.md) retains the earlier design rationale; the [publish workflow](.github/workflows/publish-feed.yml) defines the current publishing path. Configuration in the repository doesn't establish a running Worker or relay.
 
+Both Workers report errors to Sentry through `@sentry/cloudflare` once the optional `SENTRY_DSN` secret is set, with a `worker` tag naming which one. `worker/sentry.js` keeps events to the error, its stack, and the request method and path; see `mail/README.md` for what it strips.
+
 ## Email subscriptions
 
 Readers can subscribe at [/subscribe](https://cerulean.news/subscribe) to a daily digest, brand-mention alerts, or a monthly leadership report. Sign-up is double opt-in and every email carries a personal unsubscribe link. `mail/` is a separate Worker, `cerulean-news-mail`, that keeps subscribers in D1 and sends through Cloudflare Email Service. It fetches the content it mails from `digest.json`, `alerts.json`, and `reports/latest-email.json` on the public site. It is deployed by the dispatch-only `deploy-mail.yml` workflow and needs a few one-time account steps. See `mail/README.md` for the setup steps, the content contracts, and the sending limits. The same Worker runs team sign-in and the reader's feedback votes (see Team feedback above).

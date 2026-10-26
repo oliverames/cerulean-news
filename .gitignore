@@ -9,8 +9,9 @@ data/media-tracker-seed.json
 # Clip-email rows; only the encrypted data/clip-emails.json.gpg is committed
 data/clip-emails.json
 
-# Local Worker dev secrets
+# Local Worker dev secrets and state
 .dev.vars
+.wrangler/
 
 # Private model evaluations include withheld human tracker labels.
 artifacts/jev-evaluation/

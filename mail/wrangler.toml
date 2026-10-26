@@ -4,6 +4,8 @@
 name = "cerulean-news-mail"
 main = "worker.js"
 compatibility_date = "2026-09-01"
+# nodejs_compat gives the Sentry SDK (@sentry/cloudflare) the AsyncLocalStorage it needs.
+compatibility_flags = ["nodejs_compat"]
 
 # The confirmation, unsubscribe, and preferences links all live on
 # cerulean.news, so the Worker has no workers.dev address.
@@ -45,10 +47,16 @@ allowed_sender_addresses = ["news@cerulean.news"]
 [observability]
 enabled = true
 
+# Sentry reads the deployed version id from this binding and reports it as the release.
+[version_metadata]
+binding = "CF_VERSION_METADATA"
+
 # Secrets (never in this file), set with `npx wrangler@4 secret put NAME`:
 #   MAIL_SIGNING_SECRET      signs every link and the team session cookie
 #   ADMIN_EMAILS             comma-separated admin addresses (team feedback)
 #   FEEDBACK_EXPORT_TOKEN    bearer token the pipeline sends to fetch votes
+#   SENTRY_DSN               optional; turns on Sentry error reporting:
+#     op read 'op://Development/Cerulean News Sentry DSN/credential' | npx wrangler@4 secret put SENTRY_DSN
 # Team sign-in and feedback share the /api/mail/* route above: sign-in is
 # /api/mail/team/*, votes are /api/mail/feedback*.
 # Optional vars, all with defaults in worker.js settings(): MAX_SENDS_PER_RUN,

@@ -7,7 +7,9 @@
 // back to Actions once the macOS builds that had drained the allowance were
 // moved off it; this stays deployable for the next time billing bites. The
 // generator itself is unchanged, only its storage and its trigger.
+import * as Sentry from "@sentry/cloudflare";
 import { setFileSystem } from "../src/fsx.js";
+import { sentryOptions } from "./sentry.js";
 import { generateFeed, setCoverageContext } from "../src/index.js";
 import {
   contentTypeFor,
@@ -104,7 +106,8 @@ async function serveFromR2(env, key, request) {
   return new Response(request.method === "HEAD" ? null : object.body, { headers });
 }
 
-export default {
+// Wrapped for Sentry; see sentry.js for what an event may and may not contain.
+export default Sentry.withSentry(sentryOptions("cerulean-news"), {
   async scheduled(event, env, _ctx) {
     // Awaited rather than handed to waitUntil: a scheduled invocation lives
     // until its promise settles (up to the 15-minute wall limit), and letting
@@ -145,6 +148,7 @@ export default {
         const summary = await runGeneration(env);
         return Response.json(summary);
       } catch (error) {
+        Sentry.captureException(error);
         return Response.json(
           { error: String(error?.message || error) },
           { status: 500 },
@@ -154,4 +158,4 @@ export default {
 
     return env.ASSETS.fetch(request);
   },
-};
+});

@@ -32,6 +32,12 @@ jobs:
         with:
           node-version: 22
 
+      # worker.js imports @sentry/cloudflare from the root package, so the
+      # bundler needs the root node_modules.
+      - name: Install locked root dependencies
+        working-directory: .
+        run: npm ci --ignore-scripts
+
       - name: Refuse to deploy with the placeholder database id
         run: |
           if grep -q REPLACE_WITH_D1_DATABASE_ID wrangler.toml; then

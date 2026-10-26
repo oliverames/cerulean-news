@@ -255,6 +255,14 @@ npx wrangler@4 d1 execute cerulean-news-mail --remote --command "SELECT * FROM j
 
 Logs are in Workers Logs for `cerulean-news-mail`. Email addresses in logs are masked (`o***@example.com`). Delivery, bounce, and complaint data are in Email Service's own logs and metrics.
 
+Errors go to Sentry (project `ames-consulting-llc/cerulean-news`, tag `worker:cerulean-news-mail`) once the optional `SENTRY_DSN` secret is set:
+
+```bash
+op read 'op://Development/Cerulean News Sentry DSN/credential' | npx wrangler@4 secret put SENTRY_DSN --name cerulean-news-mail
+```
+
+An event carries only the error, its stack, and the request method and path. `../worker/sentry.js` turns off the SDK's data collection and strips the request body, headers, cookies, query string, user, IP address and breadcrumbs, and it cuts email addresses, long tokens and query strings out of error messages, so no subscriber address, signed link or session reaches Sentry. Tracing is off.
+
 Replies to the emails go nowhere because the Worker sets no reply address and no inbound route exists. Add one in Email Routing if that matters.
 
 ## Tests

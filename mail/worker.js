@@ -11,6 +11,8 @@
 // Team sign-in and feedback votes live in team.js, which imports the helpers
 // it shares from this file and is routed to from handleRequest below.
 
+import * as Sentry from "@sentry/cloudflare";
+import { sentryOptions } from "../worker/sentry.js";
 import { handleTeamRequest, teamHousekeeping } from "./team.js";
 
 export const LISTS = Object.freeze({
@@ -1263,6 +1265,7 @@ export async function handleRequest(request, ctx) {
     }
   } catch (error) {
     ctx.log("error", "request failed", { path, error: String(error?.stack ?? error) });
+    Sentry.captureException(error);
     return reply(ctx, request, 500, {
       title: "Something went wrong",
       heading: "Something went wrong",
@@ -1296,7 +1299,8 @@ export function makeContext(env, overrides = {}) {
   };
 }
 
-export default {
+// Wrapped for Sentry; see ../worker/sentry.js for what an event may and may not contain.
+export default Sentry.withSentry(sentryOptions("cerulean-news-mail"), {
   async fetch(request, env, executionContext) {
     return handleRequest(
       request,
@@ -1313,4 +1317,4 @@ export default {
       throw error;
     }
   },
-};
+});
