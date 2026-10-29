@@ -1000,7 +1000,10 @@ test("an unexpected database error becomes a generic 500 and is logged", needsSq
 test("wrangler.toml matches the code: name, bindings, sender allowlist, route, and crons", () => {
   const toml = readFileSync(new URL("../mail/wrangler.toml", import.meta.url), "utf8");
   assert.match(toml, /^name = "cerulean-news-mail"$/m);
-  assert.match(toml, /^main = "worker\.js"$/m);
+  // The entry is a thin module that exports only the default handler; workerd
+  // treats every named export of the entry as an entrypoint, so pointing
+  // `main` at worker.js made `wrangler dev` reject CRON_ALERTS.
+  assert.match(toml, /^main = "entry\.js"$/m);
   assert.match(toml, /\[\[d1_databases\]\]\s*\nbinding = "DB"/);
   assert.match(toml, /database_id = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"/, "a real D1 id, not the placeholder");
   assert.match(toml, /\[\[send_email\]\]\s*\nname = "EMAIL"\s*\nallowed_sender_addresses = \["news@cerulean\.news"\]/);
@@ -1009,6 +1012,15 @@ test("wrangler.toml matches the code: name, bindings, sender allowlist, route, a
   assert.deepEqual(crons, [CRON_ALERTS, CRON_DIGEST, CRON_MONTHLY]);
   assert.deepEqual([CRON_ALERTS, CRON_DIGEST, CRON_MONTHLY], ["*/30 * * * *", "5 11 * * *", "5 13 1 * *"]);
   assert.equal(settings({}).from, "news@cerulean.news");
+});
+
+test("the mail Worker entry exports only the default handler", async () => {
+  // workerd rejects any named entry export that is not a function or an
+  // ExportedHandler. worker.js keeps strings and helpers for these tests, so
+  // the entry must stay a bare re-export of the default handler.
+  const entry = await import("../mail/entry.js");
+  assert.deepEqual(Object.keys(entry), ["default"]);
+  assert.equal(typeof entry.default, "object");
 });
 
 test("the deploy workflow is dispatch-only and runs migrations then deploy in mail/", () => {

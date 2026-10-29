@@ -19,6 +19,7 @@ Email Sending is in public beta. It needs the Workers Paid plan and `cerulean.ne
 | File | Purpose |
 | --- | --- |
 | `worker.js` | The Worker: endpoints, delivery, cron handlers. Pure functions are exported for tests |
+| `entry.js` | The Worker entry `wrangler.toml` points at. Exports only the default handler, because workerd treats every named export of the entry as an entrypoint |
 | `team.js` | Team sign-in, sessions, votes, and the pipeline export. Imported by `worker.js` |
 | `wrangler.toml` | Name, bindings, route, cron triggers. `database_id` is a marked placeholder |
 | `migrations/0001_init.sql` | D1 schema for subscriptions |

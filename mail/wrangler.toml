@@ -2,7 +2,9 @@
 # Email Service. A separate Worker from the parked fetch-relay build in
 # ../wrangler.toml. Setup steps are in README.md.
 name = "cerulean-news-mail"
-main = "worker.js"
+# The entry exports only the default handler. worker.js keeps its named
+# exports for the tests; workerd would treat each of them as an entrypoint.
+main = "entry.js"
 compatibility_date = "2026-09-01"
 # nodejs_compat gives the Sentry SDK (@sentry/cloudflare) the AsyncLocalStorage it needs.
 compatibility_flags = ["nodejs_compat"]
