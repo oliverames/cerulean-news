@@ -1,3 +1,11 @@
+## 2026-10-29 - Recent-change release review
+
+**What changed**: Reviewed the default-only mail entry and passed the mail tests. Deployed main through the existing dispatch workflow, run 40974705845, which passed. Cloudflare reports version `168bbe19-d418-409d-b5f3-4b409660bda3`; GET on the POST-only subscribe route returns 405. No subscription or mail delivery was requested.
+
+**Left off at**: Remaining publication checks are recorded in the cross-project review handoff.
+
+---
+
 # Worklog
 
 ## Current guidance
