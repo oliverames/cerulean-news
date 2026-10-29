@@ -11,6 +11,20 @@ The saved-sentiment preservation repair landed on October 8. Further inference r
 
 Use the [GitHub issues](https://github.com/oliverames/cerulean-news/issues) for current task status. Older worklog entries describe what was known on their dates.
 
+## October 29, 2026: mail Worker entry
+
+**What changed**: `mail/wrangler.toml` now points `main` at a new `mail/entry.js` that imports `worker.js` and exports only the default handler. `worker.js` keeps its constants and helpers because the tests import them. A test asserts the entry's only export is `default`, the wrangler test expects `main = "entry.js"`, and the mail README's file table lists the new module. Closes [#34](https://github.com/oliverames/cerulean-news/issues/34).
+
+**Decisions made**: workerd treats every named export of the entry module as an entrypoint, so `CRON_ALERTS`, a string, failed validation. A one-module entry is a smaller change than relocating the roughly sixty named exports that `worker.js` provides to the tests, and it leaves every existing import unchanged. `wrangler deploy --dry-run` had not caught this; only `wrangler dev` starts workerd.
+
+**Verification**: reproduced first with wrangler 4.155.0 — `wrangler dev` failed with `Incorrect type for map entry 'CRON_ALERTS'`. After the change the same command reached `Ready on http://127.0.0.1:8801` with no validation error, `wrangler deploy --dry-run` completed, and `npm test` passed 837 of 837.
+
+**Left off at**: source only. Neither Worker was deployed from here; the mail Worker publishes through the dispatch-only `deploy-mail.yml` workflow.
+
+**Open questions**: none.
+
+---
+
 ## October 13, 2026: documentation cleanup
 
 Moved the complete previous worklog into the dated archive linked below and replaced repeated status summaries with links to the maintained guides. Source, provider settings and publishing workflows are unchanged. No deployment, crawl or model request ran for this cleanup.
